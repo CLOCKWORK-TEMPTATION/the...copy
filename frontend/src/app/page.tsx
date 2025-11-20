@@ -68,23 +68,32 @@ export default function Home() {
         "<"
       );
 
-      // Cards section slide in from bottom
+      // Cards section slide in from bottom and stop at center
       gsap.from(cardsSection, {
         y: 150,
         ease: "power3.out",
         scrollTrigger: {
           trigger: cardsSection,
           start: "top bottom",
-          end: "top 60%",
+          end: "center center",
           scrub: 1.5,
         },
+      });
+
+      // Pin cards section when it reaches center
+      ScrollTrigger.create({
+        trigger: cardsSection,
+        start: "center center",
+        end: "+=100%",
+        pin: true,
+        pinSpacing: true,
       });
 
       // Pin text section when it reaches the top and keep it visible
       ScrollTrigger.create({
         trigger: textSection,
         start: "top top",
-        end: () => `+=${cardsSection.offsetHeight}`,
+        end: () => `+=${cardsSection.offsetHeight * 2}`,
         pin: true,
         pinSpacing: false,
       });
@@ -126,7 +135,7 @@ export default function Home() {
       </section>
 
       {/* Cards Section with Scanner Effect */}
-      <section ref={textSectionRef} className="relative bg-black py-16 md:py-24">
+      <section ref={textSectionRef} className="relative bg-black py-16 md:py-24 z-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl mb-4 text-white">بس اصلي</h2>
