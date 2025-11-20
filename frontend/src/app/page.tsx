@@ -72,8 +72,8 @@ export default function Home() {
       const cardsTimeline = gsap.timeline({
         scrollTrigger: {
           trigger: cardsSection,
-          start: "top bottom",
-          end: "top center",
+          start: "top bottom", // يبدأ لما الكروت تظهر من تحت
+          end: "center center", // يوقف لما منتصف الكروت يوصل لمنتصف الشاشة
           scrub: 1.5,
         },
       });
@@ -86,7 +86,7 @@ export default function Home() {
       // Pin cards section when it reaches center
       ScrollTrigger.create({
         trigger: cardsSection,
-        start: "top center",
+        start: "center center", // يثبت لما منتصف الكروت يوصل لمنتصف الشاشة
         end: "+=2000", // يثبت لمسافة 2000px من التمرير
         pin: true,
         pinSpacing: false,
