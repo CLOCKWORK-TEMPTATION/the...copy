@@ -69,24 +69,31 @@ export default function Home() {
       );
 
       // Cards section slide in from bottom and stop at center
-      gsap.from(cardsSection, {
-        y: 150,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: cardsSection,
-          start: "top bottom",
-          end: "center center",
-          scrub: 1.5,
+      gsap.fromTo(
+        cardsSection,
+        {
+          y: 150,
         },
-      });
+        {
+          y: 0,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: cardsSection,
+            start: "top bottom",
+            end: "center center",
+            scrub: 1.5,
+          },
+        }
+      );
 
-      // Pin cards section when it reaches center
+      // Pin cards section when it reaches center - stop movement completely
       ScrollTrigger.create({
         trigger: cardsSection,
         start: "center center",
-        end: "+=100%",
+        endTrigger: "body",
+        end: "bottom bottom",
         pin: true,
-        pinSpacing: true,
+        pinSpacing: false,
       });
 
       // Pin text section when it reaches the top and keep it visible
