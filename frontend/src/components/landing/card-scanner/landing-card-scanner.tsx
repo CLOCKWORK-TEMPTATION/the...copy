@@ -51,6 +51,11 @@ export function LandingCardScanner() {
       minVelocity: number;
       containerWidth: number;
       cardLineWidth: number;
+      cardWrappers: {
+        wrapper: HTMLElement;
+        normalCard: HTMLElement;
+        asciiCard: HTMLElement;
+      }[];
 
       constructor(container: HTMLElement, cardLine: HTMLElement) {
         this.container = container;
@@ -67,26 +72,18 @@ export function LandingCardScanner() {
         this.minVelocity = 30;
         this.containerWidth = 0;
         this.cardLineWidth = 0;
+        this.cardWrappers = [];
 
         this.init();
       }
 
       init() {
-        this.preloadImages();
         this.populateCardLine();
         this.calculateDimensions();
         this.setupEventListeners();
         this.updateCardPosition();
         this.animate();
         this.startPeriodicUpdates();
-      }
-
-      preloadImages() {
-        // Preload all images for faster rendering
-        images.forEach((src) => {
-          const img = new Image();
-          img.src = src;
-        });
       }
 
       calculateDimensions() {
@@ -359,20 +356,11 @@ export function LandingCardScanner() {
         const scannerRight = scannerX + scannerWidth / 2;
         let anyScanningActive = false;
 
-        document.querySelectorAll(".card-wrapper").forEach((wrapper) => {
+        this.cardWrappers.forEach(({ wrapper, normalCard, asciiCard }) => {
           const rect = wrapper.getBoundingClientRect();
           const cardLeft = rect.left;
           const cardRight = rect.right;
           const cardWidth = rect.width;
-
-          const normalCard = wrapper.querySelector(
-            ".card-normal"
-          ) as HTMLElement | null;
-          const asciiCard = wrapper.querySelector(
-            ".card-ascii"
-          ) as HTMLElement | null;
-
-          if (!normalCard || !asciiCard) return;
 
           if (cardLeft < scannerRight && cardRight > scannerLeft) {
             anyScanningActive = true;
@@ -428,6 +416,7 @@ export function LandingCardScanner() {
 
       populateCardLine() {
         this.cardLine.innerHTML = "";
+        this.cardWrappers = [];
         // Repeat cards 6 times for smoother infinite scroll effect
         const repeatCount = 6;
         for (let repeat = 0; repeat < repeatCount; repeat++) {
@@ -437,6 +426,13 @@ export function LandingCardScanner() {
               cardImageMap[slug as keyof typeof cardImageMap] ?? 0;
             const cardWrapper = this.createCardWrapper(card, imageIndex);
             this.cardLine.appendChild(cardWrapper);
+            
+            const normalCard = cardWrapper.querySelector(".card-normal") as HTMLElement;
+            const asciiCard = cardWrapper.querySelector(".card-ascii") as HTMLElement;
+            
+            if (normalCard && asciiCard) {
+              this.cardWrappers.push({ wrapper: cardWrapper, normalCard, asciiCard });
+            }
           });
         }
       }
