@@ -72,12 +72,21 @@ export function LandingCardScanner() {
       }
 
       init() {
+        this.preloadImages();
         this.populateCardLine();
         this.calculateDimensions();
         this.setupEventListeners();
         this.updateCardPosition();
         this.animate();
         this.startPeriodicUpdates();
+      }
+
+      preloadImages() {
+        // Preload all images for faster rendering
+        images.forEach((src) => {
+          const img = new Image();
+          img.src = src;
+        });
       }
 
       calculateDimensions() {
@@ -300,7 +309,9 @@ export function LandingCardScanner() {
         cardImage.alt = card.title;
         cardImage.loading = "lazy";
         cardImage.decoding = "async";
-        cardImage.setAttribute("fetchpriority", "low");
+        cardImage.setAttribute("fetchpriority", "auto");
+        // Add will-change for better performance
+        cardImage.style.willChange = "transform";
 
         cardImage.onerror = () => {
           const canvas = document.createElement("canvas");
@@ -331,6 +342,7 @@ export function LandingCardScanner() {
           this.calculateCodeDimensions(400, 250);
         asciiContent.style.fontSize = fontSize + "px";
         asciiContent.style.lineHeight = lineHeight + "px";
+        asciiContent.style.willChange = "contents";
         asciiContent.textContent = this.generateCode(width, height);
 
         asciiCard.appendChild(asciiContent);
@@ -432,13 +444,17 @@ export function LandingCardScanner() {
       startPeriodicUpdates() {
         setInterval(() => {
           this.updateAsciiContent();
-        }, 200);
+        }, 1000);
 
-        const updateClipping = () => {
-          this.updateCardClipping();
+        let lastUpdate = 0;
+        const updateClipping = (timestamp: number) => {
+          if (timestamp - lastUpdate > 16) {
+            this.updateCardClipping();
+            lastUpdate = timestamp;
+          }
           requestAnimationFrame(updateClipping);
         };
-        updateClipping();
+        requestAnimationFrame(updateClipping);
       }
     }
 
@@ -1146,6 +1162,8 @@ export function LandingCardScanner() {
           height: 250px;
           flex-shrink: 0;
           transition: transform 0.3s ease;
+          contain: layout style paint;
+          will-change: transform;
         }
 
         .card-wrapper:hover {
@@ -1184,6 +1202,8 @@ export function LandingCardScanner() {
           transition: all 0.3s ease;
           filter: brightness(1.1) contrast(1.1);
           box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+          transform: translateZ(0);
+          backface-visibility: hidden;
         }
 
         .card-image:hover {
