@@ -69,24 +69,27 @@ export default function Home() {
       );
 
       // Cards section slide in from bottom and pin at center
-      const cardsTimeline = gsap.timeline({
-        scrollTrigger: {
-          trigger: cardsSection,
-          start: "top bottom", // يبدأ لما الكروت تظهر من تحت
-          end: "center center", // يوقف لما منتصف الكروت يوصل لمنتصف الشاشة
-          scrub: 1.5,
+      gsap.fromTo(
+        cardsSection,
+        {
+          yPercent: 100, // يبدأ من تحت الشاشة بالكامل
         },
-      });
-
-      cardsTimeline.from(cardsSection, {
-        y: 150,
-        ease: "power3.out",
-      });
+        {
+          yPercent: 0, // يوصل للمكان الطبيعي
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: cardsSection,
+            start: "top bottom",
+            end: "top center", // يوقف لما أول الكروت يوصل للمنتصف
+            scrub: 1.5,
+          },
+        }
+      );
 
       // Pin cards section when it reaches center
       ScrollTrigger.create({
         trigger: cardsSection,
-        start: "center center", // يثبت لما منتصف الكروت يوصل لمنتصف الشاشة
+        start: "top center", // يثبت لما أول الكروت يوصل لمنتصف الشاشة
         end: "+=2000", // يثبت لمسافة 2000px من التمرير
         pin: true,
         pinSpacing: false,
