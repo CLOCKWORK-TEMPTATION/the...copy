@@ -227,7 +227,7 @@ class Navbar extends Component {
                 className: `navbar-link ${currentPage === "home" ? "active" : ""}`,
                 onClick: () => router.navigate("home"),
               },
-              "Home"
+              "الرئيسية"
             )
           ),
           this.createElement(
@@ -239,7 +239,7 @@ class Navbar extends Component {
                 className: `navbar-link ${currentPage === "demo" ? "active" : ""}`,
                 onClick: () => router.navigate("demo"),
               },
-              "Demo"
+              "التجربة"
             )
           ),
           user
@@ -253,7 +253,7 @@ class Navbar extends Component {
                       className: `navbar-link ${currentPage === "dashboard" ? "active" : ""}`,
                       onClick: () => router.navigate("dashboard"),
                     },
-                    "Dashboard"
+                    "لوحة التحكم"
                   )
                 ),
                 this.createElement(
@@ -265,7 +265,7 @@ class Navbar extends Component {
                       className: "btn btn-primary btn-sm",
                       onClick: () => appState.logout(),
                     },
-                    "Logout"
+                    "تسجيل الخروج"
                   )
                 ),
               ]
@@ -279,7 +279,7 @@ class Navbar extends Component {
                       className: "btn btn-outline btn-sm",
                       onClick: () => router.navigate("login"),
                     },
-                    "Login"
+                    "تسجيل الدخول"
                   )
                 ),
                 this.createElement(
@@ -291,7 +291,7 @@ class Navbar extends Component {
                       className: "btn btn-primary btn-sm",
                       onClick: () => router.navigate("register"),
                     },
-                    "Get Started"
+                    "ابدأ الآن"
                   )
                 ),
               ]
@@ -316,7 +316,7 @@ class HeroSection extends Component {
         this.createElement(
           "h1",
           { className: "mb-6" },
-          "Transform Your Acting with AI"
+          "حوّل مستواك التمثيلي مع الذكاء الاصطناعي"
         ),
         this.createElement(
           "p",
@@ -328,7 +328,7 @@ class HeroSection extends Component {
               margin: "0 auto 2rem",
             },
           },
-          "Master your craft with AI-powered script analysis, virtual scene partners, and performance analytics"
+          "أتقن حرفتك مع تحليل النصوص بالذكاء الاصطناعي وشركاء المشهد الافتراضيين وتحليلات الأداء"
         ),
         this.createElement(
           "div",
@@ -339,7 +339,7 @@ class HeroSection extends Component {
               className: "btn btn-primary btn-lg",
               onClick: () => router.navigate("demo"),
             },
-            "🎬 Try Demo"
+            "🎬 جرّب التطبيق"
           ),
           this.createElement(
             "button",
@@ -347,7 +347,7 @@ class HeroSection extends Component {
               className: "btn btn-outline btn-lg",
               onClick: () => router.navigate("register"),
             },
-            "Get Started"
+            "ابدأ الآن"
           )
         ),
         this.createElement(
@@ -370,27 +370,27 @@ class FeaturesSection extends Component {
     const features = [
       {
         icon: "🧠",
-        title: "Script Analysis",
+        title: "تحليل النصوص",
         description:
-          "Deep analysis of objectives, obstacles, and emotional arcs using proven acting methodologies",
+          "تحليل عميق للأهداف والعقبات والأقواس العاطفية باستخدام منهجيات تمثيل مُثبتة",
       },
       {
         icon: "💬",
-        title: "AI Scene Partner",
+        title: "شريك المشهد الذكي",
         description:
-          "Rehearse scenes with an intelligent AI partner that responds naturally to your performance",
+          "تدرّب على المشاهد مع شريك ذكاء اصطناعي ذكي يستجيب بشكل طبيعي لأدائك",
       },
       {
         icon: "📊",
-        title: "Performance Analytics",
+        title: "تحليل الأداء",
         description:
-          "Detailed feedback on emotional authenticity, vocal delivery, and physical presence",
+          "ملاحظات تفصيلية حول الأصالة العاطفية والإلقاء الصوتي والحضور الجسدي",
       },
       {
         icon: "📈",
-        title: "Progress Tracking",
+        title: "تتبع التقدم",
         description:
-          "Monitor your growth with comprehensive analytics and personalized coaching tips",
+          "راقب نموك من خلال تحليلات شاملة ونصائح تدريب مخصصة",
       },
     ];
 
@@ -400,7 +400,7 @@ class FeaturesSection extends Component {
       this.createElement(
         "div",
         { className: "container" },
-        this.createElement("h2", { className: "text-center mb-8" }, "Features"),
+        this.createElement("h2", { className: "text-center mb-8" }, "الميزات"),
         this.createElement(
           "div",
           { className: "grid grid-4" },
@@ -434,18 +434,18 @@ class HowItWorksSection extends Component {
     const steps = [
       {
         number: "1",
-        title: "Upload Your Script",
-        description: "Import any script in text format",
+        title: "ارفع نصك",
+        description: "استورد أي نص بصيغة نصية",
       },
       {
         number: "2",
-        title: "Analyze & Rehearse",
-        description: "Get AI insights and practice with virtual partners",
+        title: "حلّل وتدرّب",
+        description: "احصل على رؤى الذكاء الاصطناعي وتدرّب مع شركاء افتراضيين",
       },
       {
         number: "3",
-        title: "Track Progress",
-        description: "Monitor improvements and master your craft",
+        title: "تتبع تقدمك",
+        description: "راقب التحسينات وأتقن حرفتك",
       },
     ];
 
@@ -458,7 +458,7 @@ class HowItWorksSection extends Component {
         this.createElement(
           "h2",
           { className: "text-center mb-8" },
-          "How It Works"
+          "كيف يعمل"
         ),
         this.createElement(
           "div",
@@ -518,13 +518,13 @@ class Footer extends Component {
           this.createElement(
             "p",
             { className: "text-secondary" },
-            "AI-powered actor training platform"
+            "منصة تدريب الممثلين بالذكاء الاصطناعي"
           )
         ),
         this.createElement(
           "div",
           { className: "footer-section" },
-          this.createElement("h6", {}, "Product"),
+          this.createElement("h6", {}, "المنتج"),
           this.createElement(
             "ul",
             { className: "footer-links" },
@@ -537,49 +537,49 @@ class Footer extends Component {
                   className: "footer-link",
                   onClick: () => router.navigate("demo"),
                 },
-                "Demo"
+                "التجربة"
               )
             ),
             this.createElement(
               "li",
               {},
-              this.createElement("a", { className: "footer-link" }, "Pricing")
+              this.createElement("a", { className: "footer-link" }, "الأسعار")
             ),
             this.createElement(
               "li",
               {},
-              this.createElement("a", { className: "footer-link" }, "Features")
+              this.createElement("a", { className: "footer-link" }, "الميزات")
             )
           )
         ),
         this.createElement(
           "div",
           { className: "footer-section" },
-          this.createElement("h6", {}, "Resources"),
+          this.createElement("h6", {}, "الموارد"),
           this.createElement(
             "ul",
             { className: "footer-links" },
             this.createElement(
               "li",
               {},
-              this.createElement("a", { className: "footer-link" }, "Blog")
+              this.createElement("a", { className: "footer-link" }, "المدونة")
             ),
             this.createElement(
               "li",
               {},
-              this.createElement("a", { className: "footer-link" }, "Tutorials")
+              this.createElement("a", { className: "footer-link" }, "الدروس")
             ),
             this.createElement(
               "li",
               {},
-              this.createElement("a", { className: "footer-link" }, "Support")
+              this.createElement("a", { className: "footer-link" }, "الدعم")
             )
           )
         ),
         this.createElement(
           "div",
           { className: "footer-section" },
-          this.createElement("h6", {}, "Connect"),
+          this.createElement("h6", {}, "تواصل معنا"),
           this.createElement(
             "p",
             { className: "text-secondary" },
@@ -648,32 +648,32 @@ class DemoPage extends Component {
   getSampleAnalysis() {
     return {
       objectives: {
-        main: "To be with Juliet and overcome family obstacles",
-        scene: "To declare love and assess Juliet's feelings",
+        main: "أن يكون مع جولييت ويتغلب على عقبات العائلة",
+        scene: "الإعلان عن الحب وتقييم مشاعر جولييت",
         beats: [
-          "Observe Juliet from afar",
-          "Reveal presence",
-          "Express love poetically",
+          "مراقبة جولييت من بعيد",
+          "الكشف عن الحضور",
+          "التعبير عن الحب شعرياً",
         ],
       },
       obstacles: {
-        internal: ["Fear of rejection", "Anxiety about family discovery"],
+        internal: ["الخوف من الرفض", "القلق من اكتشاف العائلة"],
         external: [
-          "Physical distance (balcony)",
-          "Family feud",
-          "Risk of being caught",
+          "المسافة الجسدية (الشرفة)",
+          "عداء العائلتين",
+          "خطر الوقوع في الأسر",
         ],
       },
       emotionalArc: [
-        { beat: 1, emotion: "Longing", intensity: 70 },
-        { beat: 2, emotion: "Wonder", intensity: 85 },
-        { beat: 3, emotion: "Love", intensity: 95 },
+        { beat: 1, emotion: "الشوق", intensity: 70 },
+        { beat: 2, emotion: "العجب", intensity: 85 },
+        { beat: 3, emotion: "الحب", intensity: 95 },
       ],
       coachingTips: [
-        "Focus on the visual imagery - really see Juliet as the sun",
-        "Allow moments of silence for breath and thought",
-        "Find the balance between passion and vulnerability",
-        "Use heightened language without losing authenticity",
+        "ركّز على الصور البصرية - انظر حقاً إلى جولييت كأنها الشمس",
+        "اسمح بلحظات صمت للتنفس والتفكير",
+        "أوجد التوازن بين العاطفة والضعف",
+        "استخدم لغة راقية دون فقدان الأصالة",
       ],
     };
   }
@@ -719,11 +719,11 @@ class DemoPage extends Component {
 
   renderAnalysisTab() {
     const methodologies = [
-      { id: "stanislavsky", name: "Stanislavsky Method" },
-      { id: "meisner", name: "Meisner Technique" },
-      { id: "chekhov", name: "Michael Chekhov Technique" },
-      { id: "hagen", name: "Uta Hagen" },
-      { id: "practical_aesthetics", name: "Practical Aesthetics" },
+      { id: "stanislavsky", name: "منهجية ستانيسلافسكي" },
+      { id: "meisner", name: "تقنية مايسنر" },
+      { id: "chekhov", name: "تقنية مايكل تشيخوف" },
+      { id: "hagen", name: "أوتا هاجن" },
+      { id: "practical_aesthetics", name: "الجماليات العملية" },
     ];
 
     return this.createElement(
@@ -732,7 +732,7 @@ class DemoPage extends Component {
       this.createElement(
         "div",
         { className: "card mb-6" },
-        this.createElement("h4", { className: "mb-4" }, "Script Upload"),
+        this.createElement("h4", { className: "mb-4" }, "رفع النص"),
         this.state.scriptText
           ? this.createElement(
               "div",
@@ -761,11 +761,11 @@ class DemoPage extends Component {
                 { style: { fontSize: "40px", marginBottom: "1rem" } },
                 "📄"
               ),
-              this.createElement("p", {}, "Click to use sample script"),
+              this.createElement("p", {}, "اضغط لاستخدام نص تجريبي"),
               this.createElement(
                 "p",
                 { className: "text-secondary", style: { fontSize: "12px" } },
-                "or drag and drop your script here"
+                "أو اسحب وأفلت النص هنا"
               )
             ),
         this.createElement(
@@ -777,7 +777,7 @@ class DemoPage extends Component {
               className: "mb-2",
               style: { display: "block", fontWeight: "500" },
             },
-            "Acting Methodology"
+            "منهجية التمثيل"
           ),
           this.createElement(
             "select",
@@ -802,13 +802,13 @@ class DemoPage extends Component {
               className: "mb-2",
               style: { display: "block", fontWeight: "500" },
             },
-            "Character Name"
+            "اسم الشخصية"
           ),
           this.createElement("input", {
             className: "input",
             type: "text",
-            placeholder: "e.g., Romeo",
-            value: "Romeo",
+            placeholder: "مثلاً: روميو",
+            value: "روميو",
           })
         ),
         this.createElement(
@@ -818,7 +818,7 @@ class DemoPage extends Component {
             onClick: () => this.analyzeScript(),
             disabled: this.state.analyzing || !this.state.scriptText,
           },
-          this.state.analyzing ? "Analyzing..." : "🔍 Analyze Script"
+          this.state.analyzing ? "جارِ التحليل..." : "🔍 تحليل النص"
         )
       ),
       this.state.analyzing &&
@@ -837,12 +837,12 @@ class DemoPage extends Component {
             this.createElement(
               "h4",
               { className: "mb-4 text-primary" },
-              "🎯 Objectives"
+              "🎯 الأهداف"
             ),
             this.createElement(
               "div",
               { className: "mb-4" },
-              this.createElement("strong", {}, "Main Objective: "),
+              this.createElement("strong", {}, "الهدف الرئيسي: "),
               this.createElement(
                 "span",
                 {},
@@ -852,7 +852,7 @@ class DemoPage extends Component {
             this.createElement(
               "div",
               { className: "mb-4" },
-              this.createElement("strong", {}, "Scene Objective: "),
+              this.createElement("strong", {}, "هدف المشهد: "),
               this.createElement(
                 "span",
                 {},
@@ -862,7 +862,7 @@ class DemoPage extends Component {
             this.createElement(
               "div",
               {},
-              this.createElement("strong", {}, "Beat Objectives:"),
+              this.createElement("strong", {}, "أهداف الإيقاعات:"),
               this.createElement(
                 "ul",
                 { style: { marginTop: "0.5rem", paddingLeft: "1.5rem" } },
@@ -878,12 +878,12 @@ class DemoPage extends Component {
             this.createElement(
               "h4",
               { className: "mb-4 text-primary" },
-              "🚧 Obstacles"
+              "🚧 العقبات"
             ),
             this.createElement(
               "div",
               { className: "mb-4" },
-              this.createElement("strong", {}, "Internal:"),
+              this.createElement("strong", {}, "داخلية:"),
               this.createElement(
                 "ul",
                 { style: { marginTop: "0.5rem", paddingLeft: "1.5rem" } },
@@ -895,7 +895,7 @@ class DemoPage extends Component {
             this.createElement(
               "div",
               {},
-              this.createElement("strong", {}, "External:"),
+              this.createElement("strong", {}, "خارجية:"),
               this.createElement(
                 "ul",
                 { style: { marginTop: "0.5rem", paddingLeft: "1.5rem" } },
@@ -911,7 +911,7 @@ class DemoPage extends Component {
             this.createElement(
               "h4",
               { className: "mb-4 text-primary" },
-              "💭 Emotional Arc"
+              "💭 القوس العاطفي"
             ),
             this.createElement(
               "div",
@@ -955,7 +955,7 @@ class DemoPage extends Component {
             this.createElement(
               "h4",
               { className: "mb-4 text-primary" },
-              "💡 Coaching Tips"
+              "💡 نصائح التدريب"
             ),
             this.createElement(
               "ul",
@@ -976,7 +976,7 @@ class DemoPage extends Component {
       this.createElement(
         "div",
         { className: "card mb-6" },
-        this.createElement("h4", { className: "mb-4" }, "Scene Configuration"),
+        this.createElement("h4", { className: "mb-4" }, "إعداد المشهد"),
         this.createElement(
           "div",
           { className: "grid grid-2 mb-4" },
@@ -989,13 +989,13 @@ class DemoPage extends Component {
                 className: "mb-2",
                 style: { display: "block", fontWeight: "500" },
               },
-              "Your Character"
+              "شخصيتك"
             ),
             this.createElement(
               "select",
               { className: "select" },
-              this.createElement("option", {}, "Romeo"),
-              this.createElement("option", {}, "Juliet")
+              this.createElement("option", {}, "روميو"),
+              this.createElement("option", {}, "جولييت")
             )
           ),
           this.createElement(
@@ -1007,14 +1007,14 @@ class DemoPage extends Component {
                 className: "mb-2",
                 style: { display: "block", fontWeight: "500" },
               },
-              "AI Voice"
+              "صوت الذكاء الاصطناعي"
             ),
             this.createElement(
               "select",
               { className: "select" },
-              this.createElement("option", {}, "Female - Natural"),
-              this.createElement("option", {}, "Female - Dramatic"),
-              this.createElement("option", {}, "Male - Natural")
+              this.createElement("option", {}, "أنثى - طبيعي"),
+              this.createElement("option", {}, "أنثى - درامي"),
+              this.createElement("option", {}, "ذكر - طبيعي")
             )
           )
         ),
@@ -1027,15 +1027,15 @@ class DemoPage extends Component {
               className: "mb-2",
               style: { display: "block", fontWeight: "500" },
             },
-            "Emotion"
+            "العاطفة"
           ),
           this.createElement(
             "select",
             { className: "select" },
-            this.createElement("option", {}, "Longing"),
-            this.createElement("option", {}, "Joy"),
-            this.createElement("option", {}, "Anger"),
-            this.createElement("option", {}, "Sadness")
+            this.createElement("option", {}, "شوق"),
+            this.createElement("option", {}, "فرح"),
+            this.createElement("option", {}, "غضب"),
+            this.createElement("option", {}, "حزن")
           )
         ),
         this.createElement(
@@ -1047,7 +1047,7 @@ class DemoPage extends Component {
               className: "mb-2",
               style: { display: "block", fontWeight: "500" },
             },
-            `Speech Rate: Normal`
+            `معدل الكلام: عادي`
           ),
           this.createElement("input", {
             className: "slider",
@@ -1064,14 +1064,14 @@ class DemoPage extends Component {
             onClick: () => this.startRehearsal(),
             disabled: this.state.rehearsing,
           },
-          this.state.rehearsing ? "🎭 Rehearsing..." : "🎭 Start Rehearsal"
+          this.state.rehearsing ? "🎭 جارِ التدريب..." : "🎭 ابدأ التدريب"
         )
       ),
       this.state.rehearsing &&
         this.createElement(
           "div",
           { className: "card" },
-          this.createElement("h4", { className: "mb-4" }, "Rehearsal"),
+          this.createElement("h4", { className: "mb-4" }, "التدريب"),
           this.createElement(
             "div",
             { className: "chat-container" },
@@ -1103,16 +1103,16 @@ class DemoPage extends Component {
     const metrics = {
       overall: 82,
       emotional: { consistency: 78, authenticity: 85 },
-      vocal: { clarity: 87, pitchRange: "Good", speechRate: 145 },
+      vocal: { clarity: 87, pitchRange: "جيد", speechRate: 145 },
       strengths: [
-        "Strong vocal projection and clarity",
-        "Authentic emotional connection to material",
-        "Good use of pauses for dramatic effect",
+        "إسقاط صوتي قوي ووضوح ممتاز",
+        "اتصال عاطفي أصيل مع المادة",
+        "استخدام جيد للتوقفات لخلق التأثير الدرامي",
       ],
       improvements: [
-        "Increase eye contact with camera/audience",
-        "Add more physical gestures to support text",
-        "Work on vocal variety in pitch",
+        "زيادة التواصل البصري مع الكاميرا/الجمهور",
+        "إضافة المزيد من الحركات الجسدية لدعم النص",
+        "العمل على التنوع الصوتي في النبرة",
       ],
     };
 
@@ -1122,7 +1122,7 @@ class DemoPage extends Component {
       this.createElement(
         "div",
         { className: "card mb-6" },
-        this.createElement("h4", { className: "mb-4" }, "Sample Performance"),
+        this.createElement("h4", { className: "mb-4" }, "نموذج الأداء"),
         this.createElement(
           "div",
           { className: "video-placeholder" },
@@ -1134,7 +1134,7 @@ class DemoPage extends Component {
               { style: { fontSize: "48px", marginBottom: "1rem" } },
               "🎬"
             ),
-            this.createElement("div", {}, "Performance Video")
+            this.createElement("div", {}, "فيديو الأداء")
           )
         )
       ),
@@ -1176,19 +1176,19 @@ class DemoPage extends Component {
               metrics.overall
             )
           ),
-          this.createElement("h5", { className: "mt-4" }, "Overall Score")
+          this.createElement("h5", { className: "mt-4" }, "النتيجة الإجمالية")
         ),
         this.createElement(
           "div",
           { className: "card" },
-          this.createElement("h5", { className: "mb-4" }, "Key Metrics"),
+          this.createElement("h5", { className: "mb-4" }, "المقاييس الرئيسية"),
           this.createElement(
             "div",
             { className: "mb-3" },
             this.createElement(
               "div",
               { className: "flex justify-between mb-2" },
-              this.createElement("span", {}, "Emotional Consistency"),
+              this.createElement("span", {}, "الاتساق العاطفي"),
               this.createElement(
                 "span",
                 { className: "font-bold" },
@@ -1210,7 +1210,7 @@ class DemoPage extends Component {
             this.createElement(
               "div",
               { className: "flex justify-between mb-2" },
-              this.createElement("span", {}, "Authenticity"),
+              this.createElement("span", {}, "الأصالة"),
               this.createElement(
                 "span",
                 { className: "font-bold" },
@@ -1232,7 +1232,7 @@ class DemoPage extends Component {
             this.createElement(
               "div",
               { className: "flex justify-between mb-2" },
-              this.createElement("span", {}, "Vocal Clarity"),
+              this.createElement("span", {}, "الوضوح الصوتي"),
               this.createElement(
                 "span",
                 { className: "font-bold" },
@@ -1256,7 +1256,7 @@ class DemoPage extends Component {
         this.createElement(
           "div",
           { className: "card" },
-          this.createElement("h5", { className: "mb-4" }, "✅ Strengths"),
+          this.createElement("h5", { className: "mb-4" }, "✅ نقاط القوة"),
           this.createElement(
             "ul",
             { style: { paddingLeft: "1.5rem" } },
@@ -1271,7 +1271,7 @@ class DemoPage extends Component {
           this.createElement(
             "h5",
             { className: "mb-4" },
-            "💪 Areas for Improvement"
+            "💪 مجالات التحسين"
           ),
           this.createElement(
             "ul",
@@ -1288,12 +1288,12 @@ class DemoPage extends Component {
         this.createElement(
           "h5",
           { className: "mb-4" },
-          "🎓 AI Coaching Feedback"
+          "🎓 ملاحظات المدرب الذكي"
         ),
         this.createElement(
           "p",
           { className: "text-secondary" },
-          "Overall, this is a strong performance with excellent vocal clarity and authentic emotional connection. Your use of pauses is particularly effective in creating dramatic tension. To take this to the next level, focus on increasing your physical engagement with the space and maintaining more consistent eye contact."
+          "بشكل عام، هذا أداء قوي مع وضوح صوتي ممتاز واتصال عاطفي أصيل. استخدامك للتوقفات فعّال بشكل خاص في خلق التوتر الدرامي. للارتقاء بهذا الأداء إلى المستوى التالي، ركّز على زيادة مشاركتك الجسدية مع المساحة والحفاظ على تواصل بصري أكثر اتساقاً."
         )
       )
     );
@@ -1309,7 +1309,7 @@ class DemoPage extends Component {
       this.createElement(
         "div",
         { className: "container", style: { padding: "2rem 1.5rem" } },
-        this.createElement("h2", { className: "mb-8" }, "Interactive Demo"),
+        this.createElement("h2", { className: "mb-8" }, "التجربة التفاعلية"),
         this.createElement(
           "div",
           { className: "tabs" },
@@ -1322,7 +1322,7 @@ class DemoPage extends Component {
                 this.update();
               },
             },
-            "🧠 Script Analysis"
+            "🧠 تحليل النصوص"
           ),
           this.createElement(
             "button",
@@ -1333,7 +1333,7 @@ class DemoPage extends Component {
                 this.update();
               },
             },
-            "💬 AI Scene Partner"
+            "💬 شريك المشهد الذكي"
           ),
           this.createElement(
             "button",
@@ -1344,7 +1344,7 @@ class DemoPage extends Component {
                 this.update();
               },
             },
-            "📊 Performance Analysis"
+            "📊 تحليل الأداء"
           )
         ),
         this.state.activeTab === "analysis"
@@ -1400,11 +1400,11 @@ class LoginPage extends Component {
               { style: { fontSize: "48px", marginBottom: "1rem" } },
               "🎭"
             ),
-            this.createElement("h3", { className: "mb-2" }, "Welcome Back"),
+            this.createElement("h3", { className: "mb-2" }, "مرحباً بعودتك"),
             this.createElement(
               "p",
               { className: "text-secondary" },
-              "Sign in to continue your training"
+              "سجّل الدخول لمتابعة تدريبك"
             )
           ),
           this.createElement(
@@ -1421,7 +1421,7 @@ class LoginPage extends Component {
                   className: "mb-2",
                   style: { display: "block", fontWeight: "500" },
                 },
-                "Email"
+                "البريد الإلكتروني"
               ),
               this.createElement("input", {
                 className: "input",
@@ -1440,7 +1440,7 @@ class LoginPage extends Component {
                   className: "mb-2",
                   style: { display: "block", fontWeight: "500" },
                 },
-                "Password"
+                "كلمة المرور"
               ),
               this.createElement("input", {
                 className: "input",
@@ -1467,7 +1467,7 @@ class LoginPage extends Component {
                 this.createElement(
                   "span",
                   { style: { fontSize: "14px" } },
-                  "Remember me"
+                  "تذكرني"
                 )
               ),
               this.createElement(
@@ -1479,7 +1479,7 @@ class LoginPage extends Component {
                     cursor: "pointer",
                   },
                 },
-                "Forgot password?"
+                "نسيت كلمة المرور؟"
               )
             ),
             this.createElement(
@@ -1488,7 +1488,7 @@ class LoginPage extends Component {
                 className: "btn btn-primary w-full mb-4",
                 type: "submit",
               },
-              "Sign In"
+              "تسجيل الدخول"
             ),
             this.createElement(
               "div",
@@ -1496,7 +1496,7 @@ class LoginPage extends Component {
               this.createElement(
                 "span",
                 { className: "text-secondary", style: { fontSize: "14px" } },
-                "Don't have an account? "
+                "ليس لديك حساب؟ "
               ),
               this.createElement(
                 "a",
@@ -1504,7 +1504,7 @@ class LoginPage extends Component {
                   style: { color: "var(--primary)", cursor: "pointer" },
                   onClick: () => router.navigate("register"),
                 },
-                "Sign up"
+                "سجّل الآن"
               )
             )
           )
@@ -1557,11 +1557,11 @@ class RegisterPage extends Component {
               { style: { fontSize: "48px", marginBottom: "1rem" } },
               "🎭"
             ),
-            this.createElement("h3", { className: "mb-2" }, "Create Account"),
+            this.createElement("h3", { className: "mb-2" }, "إنشاء حساب"),
             this.createElement(
               "p",
               { className: "text-secondary" },
-              "Start your AI-powered acting journey"
+              "ابدأ رحلتك التمثيلية مع الذكاء الاصطناعي"
             )
           ),
           this.createElement(
@@ -1578,13 +1578,13 @@ class RegisterPage extends Component {
                   className: "mb-2",
                   style: { display: "block", fontWeight: "500" },
                 },
-                "Name"
+                "الاسم"
               ),
               this.createElement("input", {
                 className: "input",
                 type: "text",
                 name: "name",
-                placeholder: "Your name",
+                placeholder: "اسمك",
                 required: true,
               })
             ),
@@ -1597,7 +1597,7 @@ class RegisterPage extends Component {
                   className: "mb-2",
                   style: { display: "block", fontWeight: "500" },
                 },
-                "Email"
+                "البريد الإلكتروني"
               ),
               this.createElement("input", {
                 className: "input",
@@ -1616,7 +1616,7 @@ class RegisterPage extends Component {
                   className: "mb-2",
                   style: { display: "block", fontWeight: "500" },
                 },
-                "Password"
+                "كلمة المرور"
               ),
               this.createElement("input", {
                 className: "input",
@@ -1646,7 +1646,7 @@ class RegisterPage extends Component {
                 this.createElement(
                   "span",
                   { style: { fontSize: "14px" } },
-                  "I agree to the Terms and Conditions"
+                  "أوافق على الشروط والأحكام"
                 )
               )
             ),
@@ -1656,7 +1656,7 @@ class RegisterPage extends Component {
                 className: "btn btn-primary w-full mb-4",
                 type: "submit",
               },
-              "Create Account"
+              "إنشاء حساب"
             ),
             this.createElement(
               "div",
@@ -1664,7 +1664,7 @@ class RegisterPage extends Component {
               this.createElement(
                 "span",
                 { className: "text-secondary", style: { fontSize: "14px" } },
-                "Already have an account? "
+                "لديك حساب بالفعل؟ "
               ),
               this.createElement(
                 "a",
@@ -1672,7 +1672,7 @@ class RegisterPage extends Component {
                   style: { color: "var(--primary)", cursor: "pointer" },
                   onClick: () => router.navigate("login"),
                 },
-                "Sign in"
+                "سجّل الدخول"
               )
             )
           )
@@ -1688,11 +1688,11 @@ class Sidebar extends Component {
   render() {
     const { currentPage, user } = appState;
     const menuItems = [
-      { id: "dashboard", icon: "🏠", label: "Dashboard" },
-      { id: "scripts", icon: "📜", label: "Scripts" },
-      { id: "rehearsal", icon: "🎭", label: "Rehearsal Studio" },
-      { id: "recordings", icon: "🎬", label: "Recordings" },
-      { id: "analytics", icon: "📊", label: "Analytics" },
+      { id: "dashboard", icon: "🏠", label: "لوحة التحكم" },
+      { id: "scripts", icon: "📜", label: "النصوص" },
+      { id: "rehearsal", icon: "🎭", label: "استوديو التدريب" },
+      { id: "recordings", icon: "🎬", label: "التسجيلات" },
+      { id: "analytics", icon: "📊", label: "التحليلات" },
     ];
 
     return this.createElement(
@@ -1756,49 +1756,49 @@ class DashboardPage extends Component {
     const sidebar = new Sidebar();
     const stats = [
       {
-        label: "Total Scripts",
+        label: "مجموع النصوص",
         value: "12",
         icon: "📜",
         color: "var(--primary)",
       },
       {
-        label: "Rehearsals",
+        label: "التدريبات",
         value: "47",
         icon: "🎭",
         color: "var(--ai-color)",
       },
       {
-        label: "Recordings",
+        label: "التسجيلات",
         value: "28",
         icon: "🎬",
         color: "var(--secondary)",
       },
-      { label: "Avg Score", value: "79", icon: "⭐", color: "var(--primary)" },
+      { label: "متوسط النتيجة", value: "79", icon: "⭐", color: "var(--primary)" },
     ];
 
     const recentActivity = [
       {
         type: "analysis",
-        title: 'Completed analysis for "Hamlet - To be or not to be"',
-        time: "2 hours ago",
+        title: 'اكتمل التحليل لـ "هاملت - أكون أو لا أكون"',
+        time: "منذ ساعتين",
         icon: "🧠",
       },
       {
         type: "rehearsal",
-        title: 'Rehearsed Scene 3 from "A Streetcar Named Desire"',
-        time: "5 hours ago",
+        title: 'تم التدرب على المشهد 3 من "عربة اسمها الرغبة"',
+        time: "منذ 5 ساعات",
         icon: "🎭",
       },
       {
         type: "recording",
-        title: 'Saved Take 3 of "Death of a Salesman"',
-        time: "1 day ago",
+        title: 'تم حفظ المحاولة 3 من "موت بائع متجول"',
+        time: "منذ يوم",
         icon: "🎬",
       },
       {
         type: "upload",
-        title: 'Uploaded script "The Glass Menagerie"',
-        time: "2 days ago",
+        title: 'تم رفع نص "حديقة الحيوانات الزجاجية"',
+        time: "منذ يومين",
         icon: "📤",
       },
     ];
@@ -1855,7 +1855,7 @@ class DashboardPage extends Component {
               this.createElement(
                 "h4",
                 { className: "mb-6" },
-                "Recent Activity"
+                "النشاط الأخير"
               ),
               this.createElement(
                 "div",
@@ -1909,7 +1909,7 @@ class DashboardPage extends Component {
             this.createElement(
               "div",
               { className: "card" },
-              this.createElement("h4", { className: "mb-6" }, "Quick Actions"),
+              this.createElement("h4", { className: "mb-6" }, "إجراءات سريعة"),
               this.createElement(
                 "div",
                 {
@@ -1925,7 +1925,7 @@ class DashboardPage extends Component {
                     className: "btn btn-primary w-full",
                     onClick: () => router.navigate("scripts"),
                   },
-                  "📤 Upload Script"
+                  "📤 رفع نص"
                 ),
                 this.createElement(
                   "button",
@@ -1933,7 +1933,7 @@ class DashboardPage extends Component {
                     className: "btn btn-outline w-full",
                     onClick: () => router.navigate("rehearsal"),
                   },
-                  "🎭 Start Rehearsal"
+                  "🎭 ابدأ التدريب"
                 ),
                 this.createElement(
                   "button",
@@ -1941,7 +1941,7 @@ class DashboardPage extends Component {
                     className: "btn btn-outline w-full",
                     onClick: () => router.navigate("analytics"),
                   },
-                  "📊 View Analytics"
+                  "📊 عرض التحليلات"
                 )
               )
             )
@@ -1952,7 +1952,7 @@ class DashboardPage extends Component {
             this.createElement(
               "h4",
               { className: "mb-6" },
-              "Performance Trend"
+              "اتجاه الأداء"
             ),
             this.createElement(
               "div",
@@ -2005,11 +2005,11 @@ class ScriptsPage extends Component {
           this.createElement(
             "div",
             { className: "flex justify-between items-center mb-8" },
-            this.createElement("h2", {}, "My Scripts"),
+            this.createElement("h2", {}, "نصوصي"),
             this.createElement(
               "button",
               { className: "btn btn-primary" },
-              "📤 Upload Script"
+              "📤 رفع نص"
             )
           ),
           this.createElement(
@@ -2098,7 +2098,7 @@ class ScriptAnalysisPage extends Component {
               className: "btn btn-ghost mb-4",
               onClick: () => router.navigate("scripts"),
             },
-            "← Back to Scripts"
+            "← العودة إلى النصوص"
           ),
           this.createElement(
             "h2",
@@ -2162,7 +2162,7 @@ class ScriptAnalysisPage extends Component {
             this.createElement(
               "p",
               {},
-              "To be with Juliet and overcome family obstacles"
+              "أن يكون مع جولييت ويتغلب على عقبات العائلة"
             )
           ),
           this.createElement(
@@ -2176,7 +2176,7 @@ class ScriptAnalysisPage extends Component {
             this.createElement(
               "p",
               {},
-              "Family feud, physical distance, risk of discovery"
+              "عداء العائلتين، المسافة الجسدية، خطر الاكتشاف"
             )
           ),
           this.createElement(
@@ -2190,7 +2190,7 @@ class ScriptAnalysisPage extends Component {
             this.createElement(
               "p",
               {},
-              "Focus on the visual imagery - really see Juliet as the sun"
+              "ركّز على الصور البصرية - انظر حقاً إلى جولييت كأنها الشمس"
             )
           )
         )
@@ -2215,14 +2215,14 @@ class RehearsalPage extends Component {
         this.createElement(
           "div",
           { className: "fade-in" },
-          this.createElement("h2", { className: "mb-8" }, "Rehearsal Studio"),
+          this.createElement("h2", { className: "mb-8" }, "استوديو التدريب"),
           this.createElement(
             "div",
             { className: "split-layout" },
             this.createElement(
               "div",
               { className: "card" },
-              this.createElement("h4", { className: "mb-4" }, "Scene Text"),
+              this.createElement("h4", { className: "mb-4" }, "نص المشهد"),
               this.createElement(
                 "div",
                 {
@@ -2242,7 +2242,7 @@ class RehearsalPage extends Component {
             this.createElement(
               "div",
               { className: "card" },
-              this.createElement("h4", { className: "mb-4" }, "AI Partner"),
+              this.createElement("h4", { className: "mb-4" }, "الشريك الذكي"),
               this.createElement(
                 "div",
                 { className: "mb-4" },
@@ -2267,7 +2267,7 @@ class RehearsalPage extends Component {
                 this.createElement(
                   "div",
                   { className: "text-secondary text-center" },
-                  "Select scene and start rehearsal"
+                  "اختر المشهد وابدأ التدريب"
                 )
               ),
               this.createElement(
@@ -2276,17 +2276,17 @@ class RehearsalPage extends Component {
                 this.createElement(
                   "button",
                   { className: "btn btn-primary" },
-                  "▶️ Start"
+                  "▶️ ابدأ"
                 ),
                 this.createElement(
                   "button",
                   { className: "btn btn-outline" },
-                  "⏸️ Pause"
+                  "⏸️ إيقاف مؤقت"
                 ),
                 this.createElement(
                   "button",
                   { className: "btn btn-outline" },
-                  "⏹️ Stop"
+                  "⏹️ إيقاف"
                 )
               )
             )
@@ -2313,7 +2313,7 @@ class RecordingsPage extends Component {
         this.createElement(
           "div",
           { className: "fade-in" },
-          this.createElement("h2", { className: "mb-8" }, "My Recordings"),
+          this.createElement("h2", { className: "mb-8" }, "تسجيلاتي"),
           this.createElement(
             "div",
             { className: "grid grid-3" },
@@ -2375,12 +2375,12 @@ class RecordingsPage extends Component {
                       className: "btn btn-primary btn-sm",
                       onClick: () => router.navigate("recording-analysis"),
                     },
-                    "Analyze"
+                    "تحليل"
                   ),
                   this.createElement(
                     "button",
                     { className: "btn btn-outline btn-sm" },
-                    "Play"
+                    "تشغيل"
                   )
                 )
               )
@@ -2414,12 +2414,12 @@ class RecordingAnalysisPage extends Component {
               className: "btn btn-ghost mb-4",
               onClick: () => router.navigate("recordings"),
             },
-            "← Back to Recordings"
+            "← العودة إلى التسجيلات"
           ),
           this.createElement(
             "h2",
             { className: "mb-8" },
-            "Performance Analysis"
+            "تحليل الأداء"
           ),
           this.createElement(
             "div",
@@ -2462,17 +2462,17 @@ class RecordingAnalysisPage extends Component {
               this.createElement(
                 "div",
                 { className: "stat-label" },
-                "Overall Score"
+                "النتيجة الإجمالية"
               )
             ),
             this.createElement(
               "div",
               { className: "card" },
-              this.createElement("h5", { className: "mb-4" }, "Quick Summary"),
+              this.createElement("h5", { className: "mb-4" }, "ملخص سريع"),
               this.createElement(
                 "p",
                 { className: "text-secondary" },
-                "Strong performance with excellent vocal clarity and emotional connection"
+                "أداء قوي مع وضوح صوتي ممتاز واتصال عاطفي"
               )
             )
           ),
@@ -2482,7 +2482,7 @@ class RecordingAnalysisPage extends Component {
             this.createElement(
               "h4",
               { className: "mb-4" },
-              "💡 Key Recommendations"
+              "💡 التوصيات الرئيسية"
             ),
             this.createElement(
               "ul",
@@ -2490,14 +2490,14 @@ class RecordingAnalysisPage extends Component {
               this.createElement(
                 "li",
                 { className: "mb-2" },
-                "Increase eye contact with camera/audience"
+                "زيادة التواصل البصري مع الكاميرا/الجمهور"
               ),
               this.createElement(
                 "li",
                 { className: "mb-2" },
-                "Add more physical gestures to support text"
+                "إضافة المزيد من الحركات الجسدية لدعم النص"
               ),
-              this.createElement("li", {}, "Work on vocal variety in pitch")
+              this.createElement("li", {}, "العمل على التنوع الصوتي في النبرة")
             )
           )
         )
@@ -2525,7 +2525,7 @@ class AnalyticsPage extends Component {
           this.createElement(
             "h2",
             { className: "mb-8" },
-            "Performance Analytics"
+            "تحليلات الأداء"
           ),
           this.createElement(
             "div",
@@ -2538,7 +2538,7 @@ class AnalyticsPage extends Component {
                 this.createElement(
                   "div",
                   { className: "stat-label" },
-                  ["Avg Score", "Best Score", "Scripts", "Sessions"][i]
+                  ["متوسط النتيجة", "أفضل نتيجة", "النصوص", "الجلسات"][i]
                 )
               )
             )
@@ -2612,7 +2612,7 @@ class AnalyticsPage extends Component {
             this.createElement(
               "div",
               { className: "card" },
-              this.createElement("h4", { className: "mb-6" }, "🎯 AI Insights"),
+              this.createElement("h4", { className: "mb-6" }, "🎯 رؤى الذكاء الاصطناعي"),
               this.createElement(
                 "div",
                 {
@@ -2634,7 +2634,7 @@ class AnalyticsPage extends Component {
                   this.createElement(
                     "div",
                     { className: "font-bold mb-2" },
-                    "📈 Improving Trend"
+                    "📈 اتجاه متحسن"
                   ),
                   this.createElement(
                     "p",
@@ -2642,7 +2642,7 @@ class AnalyticsPage extends Component {
                       className: "text-secondary",
                       style: { fontSize: "14px" },
                     },
-                    "Your scores have improved 12% over the last month"
+                    "تحسنت نتائجك بنسبة 12% خلال الشهر الماضي"
                   )
                 ),
                 this.createElement(
@@ -2657,7 +2657,7 @@ class AnalyticsPage extends Component {
                   this.createElement(
                     "div",
                     { className: "font-bold mb-2" },
-                    "🎭 Strength Area"
+                    "🎭 مجال القوة"
                   ),
                   this.createElement(
                     "p",
@@ -2665,7 +2665,7 @@ class AnalyticsPage extends Component {
                       className: "text-secondary",
                       style: { fontSize: "14px" },
                     },
-                    "Vocal delivery is your strongest skill area"
+                    "الإلقاء الصوتي هو أقوى مجالاتك"
                   )
                 ),
                 this.createElement(
@@ -2680,7 +2680,7 @@ class AnalyticsPage extends Component {
                   this.createElement(
                     "div",
                     { className: "font-bold mb-2" },
-                    "💪 Focus Area"
+                    "💪 مجال التركيز"
                   ),
                   this.createElement(
                     "p",
@@ -2688,7 +2688,7 @@ class AnalyticsPage extends Component {
                       className: "text-secondary",
                       style: { fontSize: "14px" },
                     },
-                    "Physical presence could use more practice"
+                    "الحضور الجسدي يحتاج إلى مزيد من التدريب"
                   )
                 )
               )
