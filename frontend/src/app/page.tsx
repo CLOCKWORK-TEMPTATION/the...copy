@@ -5,8 +5,9 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { VideoTextMask } from "@/components/video-text-mask";
 import { LazyLandingCardScanner } from "@/components/landing/card-scanner/lazy-landing-card-scanner";
+import { LazyOptimizedLandingCardScanner } from "@/components/landing/card-scanner/lazy-optimized-landing-card-scanner";
+import { LazyOptimizedLandingCardScanner } from "@/components/landing/card-scanner/lazy-optimized-landing-card-scanner";
 
-// Register GSAP plugin
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
@@ -34,7 +35,13 @@ export default function Home() {
       const maskContent = maskContentRef.current;
       const textSection = textSectionRef.current;
 
-      if (!heroSection || !header || !cardsSection || !maskContent || !textSection) {
+      if (
+        !heroSection ||
+        !header ||
+        !cardsSection ||
+        !maskContent ||
+        !textSection
+      ) {
         console.error("عنصر واحد أو أكثر مفقود من الصفحة.");
         return;
       }
@@ -141,7 +148,10 @@ export default function Home() {
       </section>
 
       {/* Cards Section with Scanner Effect */}
-      <section ref={textSectionRef} className="relative bg-black py-16 md:py-24 z-50">
+      <section
+        ref={textSectionRef}
+        className="relative bg-black py-16 md:py-24 z-50"
+      >
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl mb-4 text-white">بس اصلي</h2>
@@ -157,8 +167,9 @@ export default function Home() {
         className="relative h-screen bg-black overflow-hidden"
       >
         <LazyLandingCardScanner />
+        <LazyLandingCardScanner />
+        <LazyOptimizedLandingCardScanner />
       </section>
-
       {/* Footer */}
       <footer className="relative bg-black border-t border-white/10 px-4 py-8">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:flex-row">
