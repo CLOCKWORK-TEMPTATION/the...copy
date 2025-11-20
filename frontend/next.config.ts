@@ -57,6 +57,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  eslint: {
+    // Disable Next.js built-in ESLint to avoid deprecated options
+    ignoreDuringBuilds: true,
+  },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
@@ -260,11 +264,13 @@ const nextConfig = {
       // Ignore OpenTelemetry instrumentation warnings
       {
         module: /@opentelemetry\/instrumentation/,
-        message: /Critical dependency: the request of a dependency is an expression/,
+        message:
+          /Critical dependency: the request of a dependency is an expression/,
       },
       {
         module: /require-in-the-middle/,
-        message: /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
+        message:
+          /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
       },
       // Ignore Sentry related warnings
       {
@@ -277,7 +283,8 @@ const nextConfig = {
       },
       // Generic critical dependency warnings for known safe modules
       {
-        message: /Critical dependency: the request of a dependency is an expression/,
+        message:
+          /Critical dependency: the request of a dependency is an expression/,
       },
       // Ignore ESLint configuration warnings
       {
