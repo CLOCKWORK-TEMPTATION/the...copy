@@ -474,6 +474,7 @@ export function OptimizedCardScanner() {
         for (let repeat = 0; repeat < repeatCount; repeat++) {
           for (let i = 0; i < CARDS_11.length; i++) {
             const card = CARDS_11[i];
+            if (!card) continue;
             const slug = card.href.replace("/", "");
             const imageIndex = cardImageMap[slug as keyof typeof cardImageMap] ?? 0;
             
