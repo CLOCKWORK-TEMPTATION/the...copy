@@ -1116,12 +1116,14 @@ export function LandingCardScanner() {
         }
 
         .card-stream {
-          position: absolute;
+          position: sticky;
+          top: calc(50vh - 90px);
           width: 100vw;
           height: 180px;
           display: flex;
           align-items: center;
           overflow: visible;
+          z-index: 10;
         }
 
         .card-line {
