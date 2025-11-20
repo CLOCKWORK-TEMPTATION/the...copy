@@ -593,6 +593,7 @@ export function OptimizedCardScanner() {
       update(deltaTime: number) {
         for (let i = this.particles.length - 1; i >= 0; i--) {
           const particle = this.particles[i];
+          if (!particle) continue;
           particle.life += deltaTime;
           
           if (particle.life >= particle.maxLife) {

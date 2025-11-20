@@ -49,39 +49,24 @@ module.exports = [
 
   // Extend Next.js and Prettier configs (fixed deprecated options)
   ...compat.extends("next/core-web-vitals", "prettier").map(config => {
-    // Remove all deprecated ESLint options
-    const cleanConfig = { ...config };
+    // Deep clean function to recursively remove deprecated options
+    function deepClean(obj) {
+      if (!obj || typeof obj !== 'object') return;
 
-    // Remove deprecated top-level options
-    delete cleanConfig.useEslintrc;
-    delete cleanConfig.extensions;
+      // Remove deprecated options at current level
+      delete obj.useEslintrc;
+      delete obj.extensions;
 
-    // Clean settings object
-    if (cleanConfig.settings) {
-      delete cleanConfig.settings['import/extensions'];
-      delete cleanConfig.settings.extensions;
-    }
-
-    // Clean parserOptions
-    if (cleanConfig.parserOptions) {
-      delete cleanConfig.parserOptions.extensions;
-    }
-
-    // Clean languageOptions if present
-    if (cleanConfig.languageOptions?.parserOptions) {
-      delete cleanConfig.languageOptions.parserOptions.extensions;
-    }
-
-    // Clean any nested plugin configs
-    if (cleanConfig.plugins) {
-      Object.keys(cleanConfig.plugins).forEach(pluginName => {
-        const plugin = cleanConfig.plugins[pluginName];
-        if (plugin && typeof plugin === 'object') {
-          delete plugin.useEslintrc;
-          delete plugin.extensions;
+      // Recursively clean all nested objects
+      Object.keys(obj).forEach(key => {
+        if (obj[key] && typeof obj[key] === 'object') {
+          deepClean(obj[key]);
         }
       });
     }
+
+    const cleanConfig = JSON.parse(JSON.stringify(config)); // Deep clone
+    deepClean(cleanConfig);
 
     return cleanConfig;
   }),
