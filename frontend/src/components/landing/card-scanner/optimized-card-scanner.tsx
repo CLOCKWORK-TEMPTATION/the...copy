@@ -44,6 +44,7 @@ export function OptimizedCardScanner() {
 
   useEffect(() => {
     if (
+      !containerRef.current ||
       !cardLineRef.current ||
       !particleCanvasRef.current ||
       !scannerCanvasRef.current ||
@@ -51,6 +52,12 @@ export function OptimizedCardScanner() {
     ) return;
 
     isInitializedRef.current = true;
+
+    // Get non-null refs (TypeScript type narrowing)
+    const container = containerRef.current;
+    const cardLine = cardLineRef.current;
+    const particleCanvas = particleCanvasRef.current;
+    const scannerCanvas = scannerCanvasRef.current;
 
     // Enhanced CardStreamController with viewport-based loading
     class EnhancedCardStreamController {
@@ -780,12 +787,12 @@ export function OptimizedCardScanner() {
 
     // Initialize systems
     const cardStreamController = new EnhancedCardStreamController(
-      containerRef.current,
-      cardLineRef.current
+      container,
+      cardLine
     );
 
-    const particleSystem = new OptimizedParticleSystem(particleCanvasRef.current);
-    const scannerBeam = new OptimizedScannerBeam(scannerCanvasRef.current);
+    const particleSystem = new OptimizedParticleSystem(particleCanvas);
+    const scannerBeam = new OptimizedScannerBeam(scannerCanvas);
 
     // Global scanner state management
     (window as any).setScannerScanning = (isScanning: boolean) => {

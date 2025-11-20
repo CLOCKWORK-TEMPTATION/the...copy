@@ -1,13 +1,10 @@
-const { FlatCompat } = require("@eslint/eslintrc");
 const js = require("@eslint/js");
 const typescriptParser = require("@typescript-eslint/parser");
 const typescriptPlugin = require("@typescript-eslint/eslint-plugin");
 const importPlugin = require("eslint-plugin-import");
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-});
+// Import Next.js ESLint plugin directly instead of using FlatCompat
+const nextPlugin = require("@next/eslint-plugin-next");
 
 module.exports = [
   // Ignore patterns
@@ -47,29 +44,17 @@ module.exports = [
     },
   },
 
-  // Extend Next.js and Prettier configs (fixed deprecated options)
-  ...compat.extends("next/core-web-vitals", "prettier").map(config => {
-    // Deep clean function to recursively remove deprecated options
-    function deepClean(obj) {
-      if (!obj || typeof obj !== 'object') return;
-
-      // Remove deprecated options at current level
-      delete obj.useEslintrc;
-      delete obj.extensions;
-
-      // Recursively clean all nested objects
-      Object.keys(obj).forEach(key => {
-        if (obj[key] && typeof obj[key] === 'object') {
-          deepClean(obj[key]);
-        }
-      });
-    }
-
-    const cleanConfig = JSON.parse(JSON.stringify(config)); // Deep clone
-    deepClean(cleanConfig);
-
-    return cleanConfig;
-  }),
+  // Next.js plugin configuration (avoiding FlatCompat to prevent deprecated options)
+  {
+    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
+    plugins: {
+      "@next/next": nextPlugin,
+    },
+    rules: {
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs["core-web-vitals"].rules,
+    },
+  },
 
   // Custom rules to override extends
   {
