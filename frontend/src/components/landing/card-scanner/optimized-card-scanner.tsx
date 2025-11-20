@@ -502,7 +502,7 @@ export function OptimizedCardScanner() {
       startPeriodicUpdates() {
         setInterval(() => {
           this.updateAsciiContent();
-        }, 2000);```tsx:frontend/src/components/landing/card-scanner/optimized-card-scanner.tsx
+        }, 2000);
       }
 
       destroy() {
