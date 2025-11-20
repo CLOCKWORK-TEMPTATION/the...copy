@@ -59,6 +59,9 @@ module.exports = [
   // Custom rules to override extends
   {
     files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
+    plugins: {
+      "react-hooks": require("eslint-plugin-react-hooks"),
+    },
     rules: {
       "react/no-unescaped-entities": "off",
       "react/no-direct-mutation-state": "off",

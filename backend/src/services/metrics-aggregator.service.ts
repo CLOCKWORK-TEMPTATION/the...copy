@@ -304,7 +304,7 @@ export class MetricsAggregatorService {
    */
   private async aggregateGeminiMetrics(parsed: any): Promise<any> {
     let totalRequests = 0;
-    let totalDuration = 0;
+    const totalDuration = 0;
     let cacheHits = 0;
     let cacheMisses = 0;
     let errors = 0;

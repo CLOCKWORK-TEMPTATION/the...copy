@@ -39,8 +39,8 @@ async function processCacheWarming(job: Job<CacheWarmingJobData>): Promise<Cache
   await job.updateProgress(0);
 
   let warmedCount = 0;
-  let skippedCount = 0;
-  let failedCount = 0;
+  const skippedCount = 0;
+  const failedCount = 0;
 
   try {
     // Use the warmGeminiCache utility

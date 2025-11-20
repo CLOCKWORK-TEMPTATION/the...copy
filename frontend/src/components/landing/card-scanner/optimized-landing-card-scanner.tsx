@@ -218,8 +218,7 @@ export function OptimizedLandingCardScanner() {
 
         this.isDragging = true;
         this.isAnimating = false;
-        this.lastMouseX =
-          "clientX" in e ? e.clientX : e.touches ? e.touches[0].clientX : 0;
+        this.lastMouseX = e.clientX;
         this.mouseVelocity = 0;
 
         const transform = window.getComputedStyle(this.cardLine).transform;
@@ -233,12 +232,16 @@ export function OptimizedLandingCardScanner() {
         document.body.style.cursor = "grabbing";
       }
 
-      onDrag(e: MouseEvent | Touch) {
+      onDrag(e: MouseEvent | TouchEvent | Touch) {
         if (!this.isDragging) return;
         if ("preventDefault" in e) e.preventDefault();
 
         const currentX =
-          "clientX" in e ? e.clientX : e.touches ? e.touches[0].clientX : 0;
+          "clientX" in e
+            ? e.clientX
+            : e.touches
+              ? (e.touches[0]?.clientX ?? 0)
+              : 0;
         const deltaX = currentX - this.lastMouseX;
         this.position += deltaX;
         this.mouseVelocity = deltaX * 60;
@@ -1450,7 +1453,7 @@ export function OptimizedLandingCardScanner() {
       `}</style>
 
       <div className="card-scanner-container" ref={containerRef}>
-        <canvas ref={ticketCanvasRef} id="particleCanvas" />
+        <canvas ref={particleCanvasRef} id="particleCanvas" />
         <canvas ref={scannerCanvasRef} id="scannerCanvas" />
 
         <div className="card-stream" ref={cardStreamRef}>
