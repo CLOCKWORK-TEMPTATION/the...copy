@@ -16,6 +16,7 @@ export default function Home() {
   const headerRef = useRef<HTMLElement>(null);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const maskContentRef = useRef<HTMLDivElement>(null);
+  const textSectionRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -31,8 +32,9 @@ export default function Home() {
       const header = headerRef.current;
       const cardsSection = cardsContainerRef.current;
       const maskContent = maskContentRef.current;
+      const textSection = textSectionRef.current;
 
-      if (!heroSection || !header || !cardsSection || !maskContent) {
+      if (!heroSection || !header || !cardsSection || !maskContent || !textSection) {
         console.error("عنصر واحد أو أكثر مفقود من الصفحة.");
         return;
       }
@@ -77,6 +79,15 @@ export default function Home() {
           scrub: 1.5,
         },
       });
+
+      // Pin text section when it reaches the top and keep it visible
+      ScrollTrigger.create({
+        trigger: textSection,
+        start: "top top",
+        end: () => `+=${cardsSection.offsetHeight}`,
+        pin: true,
+        pinSpacing: false,
+      });
     });
 
     return () => ctx.revert();
@@ -115,7 +126,7 @@ export default function Home() {
       </section>
 
       {/* Cards Section with Scanner Effect */}
-      <section className="relative bg-black py-16 md:py-24">
+      <section ref={textSectionRef} className="relative bg-black py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl mb-4 text-white">بس اصلي</h2>
