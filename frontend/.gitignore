@@ -1,0 +1,67 @@
+# Frontend (Next.js) - The Copy
+
+# Dependencies
+node_modules/
+/.pnp
+.pnp.*
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+# Ensure specific files are ignored
+.env.local
+.env.production
+
+# Next.js build output
+.next/
+out/
+/dist
+/build
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Coverage and testing
+coverage/
+*.lcov
+.nyc_output/
+lib-cov
+
+# TypeScript
+*.tsbuildinfo
+typings/
+
+# Cache directories
+.npm
+.eslintcache
+.cache/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Package files
+*.tgz
+.yarn-integrity
+.node_repl_history
+
+# System files
+.DS_Store
+*.pem
+
+
