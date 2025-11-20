@@ -1,13 +1,10 @@
-const { FlatCompat } = require("@eslint/eslintrc");
 const js = require("@eslint/js");
 const typescriptParser = require("@typescript-eslint/parser");
 const typescriptPlugin = require("@typescript-eslint/eslint-plugin");
 const importPlugin = require("eslint-plugin-import");
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-});
+// Import Next.js ESLint plugin directly instead of using FlatCompat
+const nextPlugin = require("@next/eslint-plugin-next");
 
 module.exports = [
   // Ignore patterns
@@ -47,44 +44,17 @@ module.exports = [
     },
   },
 
-  // Extend Next.js and Prettier configs (fixed deprecated options)
-  ...compat.extends("next/core-web-vitals", "prettier").map(config => {
-    // Remove all deprecated ESLint options
-    const cleanConfig = { ...config };
-
-    // Remove deprecated top-level options
-    delete cleanConfig.useEslintrc;
-    delete cleanConfig.extensions;
-
-    // Clean settings object
-    if (cleanConfig.settings) {
-      delete cleanConfig.settings['import/extensions'];
-      delete cleanConfig.settings.extensions;
-    }
-
-    // Clean parserOptions
-    if (cleanConfig.parserOptions) {
-      delete cleanConfig.parserOptions.extensions;
-    }
-
-    // Clean languageOptions if present
-    if (cleanConfig.languageOptions?.parserOptions) {
-      delete cleanConfig.languageOptions.parserOptions.extensions;
-    }
-
-    // Clean any nested plugin configs
-    if (cleanConfig.plugins) {
-      Object.keys(cleanConfig.plugins).forEach(pluginName => {
-        const plugin = cleanConfig.plugins[pluginName];
-        if (plugin && typeof plugin === 'object') {
-          delete plugin.useEslintrc;
-          delete plugin.extensions;
-        }
-      });
-    }
-
-    return cleanConfig;
-  }),
+  // Next.js plugin configuration (avoiding FlatCompat to prevent deprecated options)
+  {
+    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
+    plugins: {
+      "@next/next": nextPlugin,
+    },
+    rules: {
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs["core-web-vitals"].rules,
+    },
+  },
 
   // Custom rules to override extends
   {
