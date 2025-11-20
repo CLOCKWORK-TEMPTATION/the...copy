@@ -232,16 +232,11 @@ export function OptimizedLandingCardScanner() {
         document.body.style.cursor = "grabbing";
       }
 
-      onDrag(e: MouseEvent | TouchEvent | Touch) {
+      onDrag(e: MouseEvent | Touch) {
         if (!this.isDragging) return;
         if ("preventDefault" in e) e.preventDefault();
 
-        const currentX =
-          "clientX" in e
-            ? e.clientX
-            : e.touches
-              ? (e.touches[0]?.clientX ?? 0)
-              : 0;
+        const currentX = e.clientX;
         const deltaX = currentX - this.lastMouseX;
         this.position += deltaX;
         this.mouseVelocity = deltaX * 60;
