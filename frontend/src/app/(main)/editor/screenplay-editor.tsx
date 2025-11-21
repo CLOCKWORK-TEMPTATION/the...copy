@@ -1080,8 +1080,8 @@ export default function ScreenplayEditor({ onBack }: ScreenplayEditorProps) {
         const match = textContent.match(bulletCharacterPattern);
 
         if (match) {
-          const characterName = match[1].trim();
-          const dialogueText = match[2].trim();
+          const characterName = (match[1] || "").trim();
+          const dialogueText = (match[2] || "").trim();
 
           // Convert this action line to character + dialogue
           currentElement.className = "character";
