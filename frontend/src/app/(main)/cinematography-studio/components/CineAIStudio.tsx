@@ -10,9 +10,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Camera, Clapperboard, Film, Wand2 } from "lucide-react";
-import PreProductionTools from "@/app/(main)/cinematography-studio/components/tools/PreProductionTools";
-import ProductionTools from "@/app/(main)/cinematography-studio/components/tools/ProductionTools";
-import PostProductionTools from "@/app/(main)/cinematography-studio/components/tools/PostProductionTools";
+import PreProductionTools from "./tools/PreProductionTools";
+
+import ProductionTools from "./tools/ProductionTools";
+
+import PostProductionTools from "./tools/PostProductionTools";
 
 type Phase = "pre" | "production" | "post";
 type TabValue = "pre-production" | "production" | "post-production";

@@ -32,15 +32,15 @@ export function OptimizedLandingCardScanner() {
 
   // Performance optimization: Use RAF throttling
   const useRAFThrottle = (callback: () => void, deps: any[]) => {
-    const rafRef = useRef<number>();
+    const rafRef = useRef<number | null>(null);
     const callbackRef = useRef(callback);
     callbackRef.current = callback;
 
     return useCallback(() => {
-      if (rafRef.current) return;
+      if (rafRef.current !== null) return;
       rafRef.current = requestAnimationFrame(() => {
         callbackRef.current();
-        rafRef.current = undefined;
+        rafRef.current = null;
       });
     }, deps);
   };
@@ -72,8 +72,8 @@ export function OptimizedLandingCardScanner() {
 
       // Performance optimizations
       private updateClippingThrottled: () => void;
-      private resizeObserver: ResizeObserver;
-      private intersectionObserver: IntersectionObserver;
+      private resizeObserver!: ResizeObserver;
+      private intersectionObserver!: IntersectionObserver;
       private visibleCards: Set<HTMLElement> = new Set(); // Changed to HTMLElement
       private cardPool: HTMLDivElement[] = [];
 
@@ -102,6 +102,8 @@ export function OptimizedLandingCardScanner() {
         this.updateClippingThrottled = () => {
           // نترك التحكم في الـ Loop الرئيسي لتجنب التداخل
         };
+        this.resizeObserver = new ResizeObserver(() => {});
+        this.intersectionObserver = new IntersectionObserver(() => {});
 
         this.init();
       }
@@ -118,6 +120,7 @@ export function OptimizedLandingCardScanner() {
       }
 
       private setupIntersectionObserver() {
+        if (this.intersectionObserver) this.intersectionObserver.disconnect();
         this.intersectionObserver = new IntersectionObserver(
           (entries) => {
             entries.forEach((entry) => {
@@ -137,6 +140,7 @@ export function OptimizedLandingCardScanner() {
       }
 
       private setupResizeObserver() {
+        if (this.resizeObserver) this.resizeObserver.disconnect();
         this.resizeObserver = new ResizeObserver(() => {
           this.calculateDimensions();
         });
@@ -305,8 +309,9 @@ export function OptimizedLandingCardScanner() {
         const randInt = (min: number, max: number) =>
           Math.floor(Math.random() * (max - min + 1)) + min;
         const pick = (arr: string[]) => {
+          if (!arr || arr.length === 0) return "";
           const item = arr[randInt(0, arr.length - 1)];
-          return item ?? "";
+          return item ? item : "";
         };
 
         const header = [
@@ -332,7 +337,7 @@ export function OptimizedLandingCardScanner() {
         const totalChars = width * height;
         while (flow.length < totalChars + width) {
           const extra = pick(library).replace(/\s+/g, " ").trim();
-          flow += " " + extra;
+          flow += " " + (extra || "");
         }
 
         let out = "";
@@ -350,7 +355,17 @@ export function OptimizedLandingCardScanner() {
         return out;
       }
 
-      calculateCodeDimensions(cardWidth: number, cardHeight: number) {
+      calculateCodeDimensions(
+        cardWidth: number,
+        cardHeight: number
+      ): {
+        width: number;
+        height: number;
+        fontSize: number;
+        lineHeight: number;
+      } {
+        if (!cardWidth || !cardHeight)
+          return { width: 0, height: 0, fontSize: 11, lineHeight: 13 };
         return {
           width: Math.floor(cardWidth / 6),
           height: Math.floor(cardHeight / 13),
@@ -361,7 +376,8 @@ export function OptimizedLandingCardScanner() {
 
       // Helper methods for pooling
       private getCardFromPool(): HTMLDivElement {
-        return this.cardPool.pop() || this.createNewCard();
+        const card = this.cardPool.pop();
+        return card ? card : this.createNewCard();
       }
       private createNewCard(): HTMLDivElement {
         const wrapper = document.createElement("div");
@@ -454,16 +470,18 @@ export function OptimizedLandingCardScanner() {
           // تحسين جذري: تخطي الحسابات إذا كان الكارت خارج منطقة الماسح تماماً بهامش كبير
           if (cardRight < scannerLeft - 50 || cardLeft > scannerRight + 50) {
             // Reset styles if needed only once (using a flag ideally, but simplistic here)
-            const normalCard = wrapper.firstChild as HTMLElement;
-            const asciiCard = wrapper.lastChild as HTMLElement;
-            if (normalCard.style.getPropertyValue("--clip-right") !== "0%") {
-              // Only write if changed
-              if (cardRight < scannerLeft) {
-                normalCard.style.setProperty("--clip-right", "100%");
-                asciiCard.style.setProperty("--clip-left", "100%");
-              } else {
-                normalCard.style.setProperty("--clip-right", "0%");
-                asciiCard.style.setProperty("--clip-left", "0%");
+            const normalCard = wrapper.firstChild as HTMLElement | null;
+            const asciiCard = wrapper.lastChild as HTMLElement | null;
+            if (normalCard && asciiCard) {
+              if (normalCard.style.getPropertyValue("--clip-right") !== "0%") {
+                // Only write if changed
+                if (cardRight < scannerLeft) {
+                  normalCard.style.setProperty("--clip-right", "100%");
+                  asciiCard.style.setProperty("--clip-left", "100%");
+                } else {
+                  normalCard.style.setProperty("--clip-right", "0%");
+                  asciiCard.style.setProperty("--clip-left", "0%");
+                }
               }
             }
             wrapper.removeAttribute("data-scanned");
@@ -472,8 +490,8 @@ export function OptimizedLandingCardScanner() {
 
           // If we are here, the card is intersecting or very close to the scanner
           const cardWidth = 400; // Fixed width known
-          const normalCard = wrapper.firstChild as HTMLElement;
-          const asciiCard = wrapper.lastChild as HTMLElement;
+          const normalCard = wrapper.firstChild as HTMLElement | null;
+          const asciiCard = wrapper.lastChild as HTMLElement | null;
 
           if (cardLeft < scannerRight && cardRight > scannerLeft) {
             anyScanningActive = true;
@@ -485,8 +503,13 @@ export function OptimizedLandingCardScanner() {
             const asciiClipLeft =
               normalClipRight + ((scannerWidthHalf * 2) / cardWidth) * 100;
 
-            normalCard.style.setProperty("--clip-right", `${normalClipRight}%`);
-            asciiCard.style.setProperty("--clip-left", `${asciiClipLeft}%`);
+            if (normalCard && asciiCard) {
+              normalCard.style.setProperty(
+                "--clip-right",
+                `${normalClipRight}%`
+              );
+              asciiCard.style.setProperty("--clip-left", `${asciiClipLeft}%`);
+            }
 
             if (
               !wrapper.hasAttribute("data-scanned") &&
