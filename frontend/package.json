@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "description": "النسخة - Landing Page مع Video Text Mask و Cards Scanner",
   "engines": {
-    "node": ">=20.11.0",
+    "node": "20.x",
     "npm": ">=10.0.0"
   },
   "private": true,
