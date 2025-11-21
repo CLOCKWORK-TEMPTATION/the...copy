@@ -116,7 +116,7 @@ class ScreenplayClassifier {
       "٨": "8",
       "٩": "9",
     };
-    return s.replace(/[٠٢٣٤٥٦٧٨٩]/g, (char) => map[char]);
+    return s.replace(/[٠٢٣٤٥٦٧٨٩]/g, (char) => map[char] || char);
   }
 
   static stripTashkeel(s: string): string {
