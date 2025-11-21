@@ -311,7 +311,7 @@ export function OptimizedLandingCardScanner() {
         const pick = (arr: string[]) => {
           if (!arr || arr.length === 0) return "";
           const item = arr[randInt(0, arr.length - 1)];
-          return item ? item : "";
+          return item !== undefined && item !== null ? String(item) : "";
         };
 
         const header = [
@@ -407,7 +407,7 @@ export function OptimizedLandingCardScanner() {
 
         const cardImage = document.createElement("img");
         cardImage.className = "card-image";
-        cardImage.src = images[imageIndex] ?? images[0];
+        cardImage.src = (images[imageIndex] ?? images[0]) || "";
         cardImage.alt = card.title;
         cardImage.loading = "lazy";
         cardImage.decoding = "async"; // Important for performance
@@ -473,7 +473,10 @@ export function OptimizedLandingCardScanner() {
             const normalCard = wrapper.firstChild as HTMLElement | null;
             const asciiCard = wrapper.lastChild as HTMLElement | null;
             if (normalCard && asciiCard) {
-              if (normalCard.style.getPropertyValue("--clip-right") !== "0%") {
+              if (
+                normalCard.style &&
+                normalCard.style.getPropertyValue("--clip-right") !== "0%"
+              ) {
                 // Only write if changed
                 if (cardRight < scannerLeft) {
                   normalCard.style.setProperty("--clip-right", "100%");
@@ -503,7 +506,12 @@ export function OptimizedLandingCardScanner() {
             const asciiClipLeft =
               normalClipRight + ((scannerWidthHalf * 2) / cardWidth) * 100;
 
-            if (normalCard && asciiCard) {
+            if (
+              normalCard &&
+              asciiCard &&
+              normalCard.style &&
+              asciiCard.style
+            ) {
               normalCard.style.setProperty(
                 "--clip-right",
                 `${normalClipRight}%`
@@ -749,9 +757,9 @@ export function OptimizedLandingCardScanner() {
 
           // Performance: Process particles in batches
           const batchSize = 50;
+          const pCount = this.particleCount > 0 ? this.particleCount : 1;
           const startIndex =
-            (Math.floor(time * 10) %
-              Math.ceil(this.particleCount / batchSize)) *
+            (Math.floor(time * 10) % (Math.ceil(pCount / batchSize) || 1)) *
             batchSize;
           const endIndex = Math.min(startIndex + batchSize, this.particleCount);
 
