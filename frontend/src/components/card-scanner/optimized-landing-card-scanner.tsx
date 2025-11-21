@@ -311,7 +311,7 @@ export function OptimizedLandingCardScanner() {
         const pick = (arr: string[]) => {
           if (!arr || arr.length === 0) return "";
           const item = arr[randInt(0, arr.length - 1)];
-          return item !== undefined && item !== null ? String(item) : "";
+          return item || "";
         };
 
         const header = [
@@ -622,7 +622,9 @@ export function OptimizedLandingCardScanner() {
       private setupVisibilityObserver() {
         const observer = new IntersectionObserver(
           (entries) => {
-            this.isVisible = entries[0].isIntersecting;
+            if (entries[0]) {
+              this.isVisible = entries[0].isIntersecting;
+            }
           },
           { threshold: 0 }
         );
@@ -761,7 +763,10 @@ export function OptimizedLandingCardScanner() {
           const startIndex =
             (Math.floor(time * 10) % (Math.ceil(pCount / batchSize) || 1)) *
             batchSize;
-          const endIndex = Math.min(startIndex + batchSize, this.particleCount);
+          const endIndex = Math.min(
+            startIndex + batchSize,
+            this.particleCount || 0
+          );
 
           for (let i = startIndex; i < endIndex; i++) {
             const velocity = this.velocities[i];
@@ -915,7 +920,9 @@ export function OptimizedLandingCardScanner() {
       private setupVisibilityObserver() {
         const observer = new IntersectionObserver(
           (entries) => {
-            this.isVisible = entries[0].isIntersecting;
+            if (entries[0]) {
+              this.isVisible = entries[0].isIntersecting;
+            }
           },
           { threshold: 0 }
         );

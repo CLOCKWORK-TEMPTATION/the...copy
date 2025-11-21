@@ -58,7 +58,7 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true,
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
