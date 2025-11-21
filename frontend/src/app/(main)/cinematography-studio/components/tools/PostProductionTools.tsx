@@ -14,7 +14,11 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 
-const PostProductionTools: React.FC = () => {
+interface PostProductionToolsProps {
+  mood?: string;
+}
+
+const PostProductionTools: React.FC<PostProductionToolsProps> = ({ mood }) => {
   const [colorPalette, setColorPalette] = useState<string[]>([]);
   const [temperature, setTemperature] = useState(5500);
 
