@@ -27,20 +27,41 @@ let auth: Auth;
 let db: Firestore;
 let analytics: Analytics | null = null;
 
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
+try {
+  if (
+    typeof window !== "undefined" ||
+    (firebaseConfig.apiKey && firebaseConfig.projectId)
+  ) {
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0] as FirebaseApp;
+    }
 
-  // Analytics only in browser
-  if (typeof window !== "undefined") {
-    analytics = getAnalytics(app);
+    auth = getAuth(app);
+    db = getFirestore(app);
+
+    // Analytics only in browser
+    if (typeof window !== "undefined") {
+      analytics = getAnalytics(app);
+    }
+  } else {
+    console.warn(
+      "Firebase config missing or incomplete. Skipping initialization during build."
+    );
+    // Mock objects for build time to prevent crashes if imported
+    // These will throw if used, which is expected if config is missing
+    app = {} as FirebaseApp;
+    auth = {} as Auth;
+    db = {} as Firestore;
   }
-} else {
-  app = getApps()[0] as FirebaseApp;
-  auth = getAuth(app);
-  db = getFirestore(app);
+} catch (error) {
+  console.warn("Error initializing Firebase:", error);
+  app = {} as FirebaseApp;
+  auth = {} as Auth;
+  db = {} as Firestore;
 }
+
 export { app, auth, db, analytics };
 
 export async function loginUser(email: string, password: string) {
