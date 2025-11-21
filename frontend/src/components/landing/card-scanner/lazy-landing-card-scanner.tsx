@@ -3,11 +3,11 @@
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 
-// Lazy load the heavy LandingCardScanner component
+// Lazy load the optimized LandingCardScanner component
 const LandingCardScanner = dynamic(
   () =>
-    import("./landing-card-scanner").then((mod) => ({
-      default: mod.LandingCardScanner,
+    import("@/components/card-scanner/optimized-landing-card-scanner").then((mod) => ({
+      default: mod.OptimizedLandingCardScanner,
     })),
   {
     ssr: false, // Disable SSR for Three.js components

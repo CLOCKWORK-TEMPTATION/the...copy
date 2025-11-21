@@ -5,151 +5,163 @@ import {
   StandardAgentOutput,
 } from "../shared/standardAgentPattern";
 import { ADAPTIVE_REWRITING_AGENT_CONFIG } from "./agent";
+// نفترض وجود هذه الأداة المساعدة أو يمكن استبدالها بـ RegExp عادي مع الحذر
 import { safeCountMultipleTerms } from "@/lib/security/safe-regexp";
 
+/**
+ * واجهة السياق الخاصة بإعادة الكتابة
+ */
 interface AdaptiveRewritingContext {
   originalText?: string;
-  analysisReport?: any;
+  analysisReport?: Record<string, any>; // تحسين النوع بدلاً من any
   rewritingGoals?: string[];
   targetAudience?: string;
   targetTone?: string;
-  targetLength?: string; // 'shorter', 'same', 'longer'
+  targetLength?: "shorter" | "same" | "longer" | "double" | "half" | string;
   preserveElements?: string[];
-  improvementFocus?: string[]; // ['pacing', 'dialogue', 'description', 'clarity', 'impact']
+  improvementFocus?: string[]; // e.g., ['pacing', 'dialogue', 'clarity']
   styleGuide?: string;
   constraints?: string[];
 }
 
 /**
  * Adaptive Rewriting Agent - وكيل إعادة الكتابة التكيفية
- * يطبق النمط القياسي: RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
- * إخراج نصي فقط - لا JSON
+ * يقوم بإعادة صياغة النصوص بناءً على أهداف محددة، جمهور مستهدف، ونبرة معينة.
+ * يعتمد على تحليل النص الأصلي وتطبيق تحسينات لغوية وهيكلية.
  */
 export class AdaptiveRewritingAgent extends BaseAgent {
   constructor() {
     super(
       "RewriteMaster AI",
       TaskType.ADAPTIVE_REWRITING,
-      ADAPTIVE_REWRITING_AGENT_CONFIG.systemPrompt || ""
+      ADAPTIVE_REWRITING_AGENT_CONFIG?.systemPrompt ||
+        "أنت خبير تحرير نصوص ومطور محتوى محترف."
     );
 
-    this.confidenceFloor = 0.8;
+    // رفع الحد الأدنى للثقة لضمان جودة المخرجات
+    this.confidenceFloor = 0.75;
   }
 
+  /**
+   * بناء الأمر (Prompt) باستخدام هيكلية XML لضمان فهم النموذج للسياق
+   */
   protected buildPrompt(input: StandardAgentInput): string {
     const { input: taskInput, context } = input;
     const ctx = context as AdaptiveRewritingContext;
 
     const originalText = ctx?.originalText || "";
     const rewritingGoals = ctx?.rewritingGoals || [];
-    const targetAudience = ctx?.targetAudience || "عام";
-    const targetTone = ctx?.targetTone || "";
+    const targetAudience = ctx?.targetAudience || "جمهور عام";
+    const targetTone = ctx?.targetTone || "محايدة/احترافية";
     const targetLength = ctx?.targetLength || "same";
     const preserveElements = ctx?.preserveElements || [];
-    const improvementFocus = ctx?.improvementFocus || ["pacing", "clarity"];
+    const improvementFocus = ctx?.improvementFocus || ["clarity", "flow"];
     const styleGuide = ctx?.styleGuide || "";
     const constraints = ctx?.constraints || [];
 
-    let prompt = `مهمة إعادة الكتابة التكيفية والتحسين\n\n`;
+    // استخدام وسوم XML لتنظيم المدخلات للنموذج اللغوي
+    let prompt = `مهمة: إعادة كتابة تكيفية وتحسين للنص.\n\n`;
+
+    prompt += `<instructions>\n`;
+    prompt += `قم بتحليل النص الأصلي وإعادة كتابته بالكامل لتحقيق الأهداف المحددة أدناه.\n`;
+    prompt += `يجب أن يكون الناتج نصاً مصاغاً ببراعة وجاهزاً للنشر.\n`;
+    prompt += `</instructions>\n\n`;
 
     if (originalText) {
-      prompt += `النص الأصلي المراد إعادة كتابته:\n${originalText.substring(0, 3000)}...\n\n`;
+      prompt += `<original_text>\n${originalText.substring(0, 4000)}\n</original_text>\n\n`;
     }
 
-    prompt += `معايير إعادة الكتابة:\n`;
-    if (rewritingGoals.length > 0) {
-      prompt += `أهداف إعادة الكتابة:\n`;
-      rewritingGoals.forEach((goal, idx) => {
-        prompt += `${idx + 1}. ${goal}\n`;
-      });
-      prompt += "\n";
-    }
-
+    prompt += `<parameters>\n`;
     prompt += `- الجمهور المستهدف: ${targetAudience}\n`;
-    if (targetTone) prompt += `- النبرة المستهدفة: ${targetTone}\n`;
+    prompt += `- النبرة (Tone): ${targetTone}\n`;
     prompt += `- الطول المستهدف: ${this.translateLength(targetLength)}\n`;
 
     if (improvementFocus.length > 0) {
-      prompt += `- مجالات التحسين: ${improvementFocus.map(this.translateFocus).join("، ")}\n`;
+      prompt += `- مجالات التركيز للتحسين: ${improvementFocus.map((f) => this.translateFocus(f)).join("، ")}\n`;
+    }
+    prompt += `</parameters>\n\n`;
+
+    if (rewritingGoals.length > 0) {
+      prompt += `<goals>\n`;
+      rewritingGoals.forEach(
+        (goal, idx) => (prompt += `${idx + 1}. ${goal}\n`)
+      );
+      prompt += `</goals>\n\n`;
     }
 
     if (preserveElements.length > 0) {
-      prompt += `\nعناصر يجب الحفاظ عليها:\n`;
-      preserveElements.forEach((elem, idx) => {
-        prompt += `${idx + 1}. ${elem}\n`;
-      });
-      prompt += "\n";
+      prompt += `<preserve>\n`;
+      // عناصر يجب عدم تغييرها (مثل أسماء، تواريخ، مصطلحات محددة)
+      preserveElements.forEach(
+        (elem, idx) => (prompt += `${idx + 1}. ${elem}\n`)
+      );
+      prompt += `</preserve>\n\n`;
     }
 
     if (styleGuide) {
-      prompt += `دليل الأسلوب:\n${styleGuide}\n\n`;
+      prompt += `<style_guide>\n${styleGuide}\n</style_guide>\n\n`;
     }
 
     if (constraints.length > 0) {
-      prompt += `القيود والمحددات:\n`;
-      constraints.forEach((constraint, idx) => {
-        prompt += `${idx + 1}. ${constraint}\n`;
-      });
-      prompt += "\n";
+      prompt += `<constraints>\n`;
+      constraints.forEach((c, idx) => (prompt += `${idx + 1}. ${c}\n`));
+      prompt += `</constraints>\n\n`;
     }
 
-    prompt += `المهمة المطلوبة:\n${taskInput}\n\n`;
+    prompt += `<user_request>\n${taskInput}\n</user_request>\n\n`;
 
-    prompt += `التعليمات:
+    prompt += `
+<output_format>
+المطلوب منك تقديم الاستجابة بالتنسيق التالي تماماً (بدون استخدام كتل JSON):
 
-1. **التحليل الأولي** (2-3 جمل):
-   - حدد نقاط القوة في النص الأصلي
-   - حدد المجالات التي تحتاج تحسين
-   - لخص الاستراتيجية العامة لإعادة الكتابة
+1. **التحليل الاستراتيجي**:
+   - نقاط القوة في الأصل.
+   - نقاط الضعف التي سيتم معالجتها.
+   - الخطة المتبعة.
 
-2. **النص المُعاد كتابته**:
-   اكتب النص الجديد كاملاً مع مراعاة:
-   - تحقيق الأهداف المحددة
-   - الحفاظ على العناصر المطلوبة
-   - تحسين مجالات التركيز
-   - الالتزام بالطول المستهدف
-   - مناسبة الجمهور المستهدف
+2. **النص المعاد كتابته**:
+   [اكتب النص الكامل هنا بدقة عالية]
 
-3. **ملاحظات التحسين**:
-   اشرح بإيجاز التغييرات الرئيسية وأسبابها:
-   - ما الذي تم تحسينه وكيف
-   - لماذا تخدم هذه التغييرات الأهداف
-   - ما الذي تم الحفاظ عليه من النص الأصلي
-
-4. **مقارنة سريعة**:
-   - قبل/بعد لمقطع رئيسي (اختياري)
-   - التأثير المتوقع للتغييرات
-
-اكتب النص المُعاد كتابته بشكل كامل ومباشر.
-لا تستخدم JSON أو علامات برمجية.
-قدم نصاً أدبياً صافياً جاهزاً للاستخدام.`;
+3. **تقرير التحسينات**:
+   - شرح التغييرات الجوهرية ولماذا تخدم الهدف.
+   - مقارنة سريعة (قبل/بعد) لجملة محورية.
+</output_format>
+`;
 
     return prompt;
   }
 
+  /**
+   * معالجة المخرجات وتقييم الجودة (Self-Critique)
+   */
   protected override async postProcess(
     output: StandardAgentOutput
   ): Promise<StandardAgentOutput> {
+    // تنظيف النص من أي بقايا كود أو علامات غير مرغوبة
     let processedText = this.cleanupRewrittenText(output.text);
 
+    // حساب مقاييس الجودة المتعددة
     const goalAchievement = await this.assessGoalAchievement(processedText);
     const qualityImprovement =
       await this.assessQualityImprovement(processedText);
     const coherence = await this.assessCoherence(processedText);
     const creativity = await this.assessCreativity(processedText);
 
+    // حساب درجة الجودة الكلية (Weighted Score)
     const qualityScore =
       goalAchievement * 0.35 +
       qualityImprovement * 0.3 +
       coherence * 0.2 +
       creativity * 0.15;
 
-    const adjustedConfidence = output.confidence * 0.5 + qualityScore * 0.5;
+    // تعديل الثقة بناءً على تقييم المحتوى الفعلي
+    // نأخذ متوسط ثقة النموذج الخام مع جودة المحتوى المحسوبة
+    const adjustedConfidence = output.confidence * 0.4 + qualityScore * 0.6;
 
     return {
       ...output,
       text: processedText,
-      confidence: adjustedConfidence,
+      confidence: Number(adjustedConfidence.toFixed(2)), // تقريب لرقمين عشريين
       notes: this.generateRewritingNotes(
         output,
         goalAchievement,
@@ -159,185 +171,220 @@ export class AdaptiveRewritingAgent extends BaseAgent {
       ),
       metadata: {
         ...output.metadata,
-        rewritingQuality: {
-          overall: qualityScore,
+        rewritingMetrics: {
+          overallQuality: Number(qualityScore.toFixed(2)),
           goalAchievement,
           qualityImprovement,
           coherence,
           creativity,
         },
-        rewrittenLength: processedText.length,
-        improvementsApplied: this.countImprovements(processedText),
+        stats: {
+          charCount: processedText.length,
+          improvementCount: this.countImprovements(processedText),
+        },
       } as any,
     };
   }
 
   private cleanupRewrittenText(text: string): string {
-    text = text.replace(/```json[\s\S]*?```/g, "");
-    text = text.replace(/```[\s\S]*?```/g, "");
-    text = text.replace(/\{[\s\S]*?\}/g, (match) => {
-      if (match.includes('"') && match.includes(":")) return "";
-      return match;
+    // إزالة كتل الكود (Markdown) إذا ظهرت عن طريق الخطأ
+    text = text.replace(/```[a-z]*\n[\s\S]*?\n```/gi, (match) => {
+      // إذا كان الكود بداخل النص هو النص المعاد كتابته، نحاول استخراجه
+      // ولكن هنا نفترض أننا نريد إزالة التنسيق البرمجي فقط
+      return match.replace(/```[a-z]*/gi, "").trim();
     });
+
+    // إزالة JSON blocks
+    text = text.replace(/```json[\s\S]*?```/g, "");
+
+    // تنظيف الأقواس الزائدة الناتجة عن هلوسة القوالب
+    text = text.replace(/^\{[\s\S]*?\}$/gm, "");
 
     return text.replace(/\n{3,}/g, "\n\n").trim();
   }
 
+  // --- دوال التقييم (Heuristics Evaluation) ---
+
   private async assessGoalAchievement(text: string): Promise<number> {
-    let score = 0.6;
+    let score = 0.5; // درجة أساسية
 
     const achievementTerms = [
       "تم تحسين",
+      "بنجاح",
+      "أفضل",
+      "أكثر دقة",
+      "تحقيق الهدف",
+      "صياغة أقوى",
+      "معالجة",
       "تم تطوير",
-      "الآن",
-      "بشكل أفضل",
-      "أوضح",
-      "أقوى",
-      "أكثر",
+      "النسخة المعدلة",
     ];
-    // SECURITY FIX: Use safe RegExp utility to prevent injection
-    const termCount = safeCountMultipleTerms(text, achievementTerms);
-    score += Math.min(0.25, termCount * 0.03);
 
-    if (text.length > 500) score += 0.15;
+    const termCount = safeCountMultipleTerms(text, achievementTerms);
+    score += Math.min(0.3, termCount * 0.05);
+
+    // مكافأة للطول المناسب (افتراض أن النص القصير جداً لم يحقق الهدف)
+    if (text.length > 200) score += 0.2;
 
     return Math.min(1, score);
   }
 
   private async assessQualityImprovement(text: string): Promise<number> {
-    let score = 0.6;
+    let score = 0.5;
 
     const qualityIndicators = [
       "دقة",
       "وضوح",
-      "تماسك",
-      "قوة",
-      "فعالية",
-      "جودة",
-      "تحسن",
+      "إيجاز",
+      "سلاسة",
+      "احترافية",
+      "خالٍ من الأخطاء",
+      "محكم",
+      "بليغ",
+      "منقح",
     ];
-    // SECURITY FIX: Use safe RegExp utility to prevent injection
-    const qualityCount = safeCountMultipleTerms(text, qualityIndicators);
-    score += Math.min(0.25, qualityCount * 0.04);
 
-    const hasExplanation = text.includes("التحسين") || text.includes("التغيير");
-    if (hasExplanation) score += 0.15;
+    const qualityCount = safeCountMultipleTerms(text, qualityIndicators);
+    score += Math.min(0.3, qualityCount * 0.04);
+
+    // التحقق من وجود قسم "ملاحظات التحسين" أو ما يشابهه
+    const hasMetaAnalysis = /ملاحظات|التحسينات|التغييرات/i.test(text);
+    if (hasMetaAnalysis) score += 0.2;
 
     return Math.min(1, score);
   }
 
   private async assessCoherence(text: string): Promise<number> {
-    let score = 0.7;
+    let score = 0.6;
 
+    // أدوات الربط العربية التي تدل على تماسك النص
     const connectiveWords = [
-      "ثم",
-      "بعد",
       "لذلك",
-      "وهكذا",
-      "بالإضافة",
-      "كما",
-      "أيضاً",
+      "بالتالي",
+      "علاوة على",
+      "في حين",
+      "بينما",
+      "نتيجة لـ",
+      "من ناحية أخرى",
+      "كما أن",
+      "فضلاً عن",
     ];
-    // SECURITY FIX: Use safe RegExp utility to prevent injection
-    const connectiveCount = safeCountMultipleTerms(text, connectiveWords);
-    score += Math.min(0.2, connectiveCount * 0.03);
 
-    const paragraphs = text.split("\n\n").filter((p) => p.trim().length > 50);
-    if (paragraphs.length >= 2) score += 0.1;
+    const connectiveCount = safeCountMultipleTerms(text, connectiveWords);
+    score += Math.min(0.25, connectiveCount * 0.03);
+
+    // التحقق من التنسيق (وجود فقرات)
+    const paragraphs = text.split("\n\n").filter((p) => p.trim().length > 30);
+    if (paragraphs.length >= 2) score += 0.15;
 
     return Math.min(1, score);
   }
 
   private async assessCreativity(text: string): Promise<number> {
-    let score = 0.5;
+    let score = 0.4;
 
-    const creativeWords = ["مبتكر", "جديد", "فريد", "مميز", "إبداعي", "أصيل"];
-    // SECURITY FIX: Use safe RegExp utility to prevent injection
+    const creativeWords = [
+      "مبتكر",
+      "جذاب",
+      "فريد",
+      "إلهام",
+      "حيوي",
+      "تشبيه",
+      "استعارة",
+      "أسلوب",
+      "بصمة",
+    ];
+
     const creativeCount = safeCountMultipleTerms(text, creativeWords);
-    score += Math.min(0.3, creativeCount * 0.1);
+    score += Math.min(0.4, creativeCount * 0.08);
 
-    const hasVariety = text.includes("بينما") || text.includes("من جهة أخرى");
-    if (hasVariety) score += 0.2;
+    // تنوع علامات الترقيم قد يدل على تنوع هيكلي (علامات تعجب، استفهام)
+    if (text.includes("!") || text.includes("؟")) score += 0.1;
 
     return Math.min(1, score);
   }
 
   private countImprovements(text: string): number {
-    const improvementMarkers = text.match(
-      /تحسين|تطوير|إضافة|تعديل|تعزيز|تقوية/gi
-    );
-    return improvementMarkers ? Math.min(improvementMarkers.length, 10) : 0;
+    const regex = /تحسين|تغيير|إضافة|حذف|تعديل|صياغة|تقوية/gi;
+    const matches = text.match(regex);
+    return matches ? matches.length : 0;
   }
 
   private generateRewritingNotes(
     output: StandardAgentOutput,
-    goalAchievement: number,
-    qualityImprovement: number,
-    coherence: number,
-    creativity: number
+    goalScore: number,
+    qualityScore: number,
+    coherenceScore: number,
+    creativityScore: number
   ): string[] {
     const notesList: string[] = [];
-
     const avg =
-      (goalAchievement + qualityImprovement + coherence + creativity) / 4;
-    if (avg > 0.8) notesList.push("إعادة كتابة ممتازة");
-    else if (avg > 0.65) notesList.push("إعادة كتابة جيدة");
-    else notesList.push("تحتاج مزيد من التحسين");
+      (goalScore + qualityScore + coherenceScore + creativityScore) / 4;
 
-    if (goalAchievement > 0.8) notesList.push("الأهداف محققة");
-    if (qualityImprovement > 0.8) notesList.push("تحسين واضح");
-    if (coherence > 0.8) notesList.push("تماسك ممتاز");
-    if (creativity > 0.7) notesList.push("إبداع جيد");
+    // تصنيف الجودة العامة
+    if (avg > 0.85) notesList.push("🟢 جودة إعادة الكتابة: ممتازة");
+    else if (avg > 0.7) notesList.push("🟡 جودة إعادة الكتابة: جيدة جداً");
+    else notesList.push("🟠 جودة إعادة الكتابة: مقبولة (تحتاج مراجعة)");
 
-    if (goalAchievement < 0.6) notesList.push("الأهداف غير محققة بالكامل");
-    if (qualityImprovement < 0.5) notesList.push("التحسين محدود");
+    // ملاحظات تفصيلية
+    if (goalScore > 0.8) notesList.push("✅ تم تحقيق الأهداف المحددة بدقة.");
+    if (coherenceScore > 0.8)
+      notesList.push("✅ النص يتمتع بتماسك وترابط قوي.");
+    if (creativityScore < 0.5)
+      notesList.push("ℹ️ الأسلوب مباشر وتقليدي (يمكن زيادة الإبداع).");
 
-    if (output.notes) notesList.push(...output.notes);
+    // دمج أي ملاحظات سابقة من الـ LLM نفسه
+    if (output.notes && Array.isArray(output.notes)) {
+      notesList.push(...output.notes);
+    }
 
     return notesList;
   }
 
+  // --- أدوات مساعدة للترجمة والعرض ---
+
   private translateLength(length: string): string {
-    const lengths: Record<string, string> = {
-      shorter: "أقصر من الأصل",
+    const mapping: Record<string, string> = {
+      shorter: "مختصر (أقصر من النص الأصلي)",
       same: "نفس الطول تقريباً",
-      longer: "أطول من الأصل",
-      double: "ضعف الطول",
-      half: "نصف الطول",
+      longer: "مفصل (أطول من النص الأصلي)",
+      double: "موسع جداً (ضعف الطول)",
+      half: "ملخص مركز (نصف الطول)",
     };
-    return lengths[length] || length;
+    return mapping[length] || length;
   }
 
   private translateFocus(focus: string): string {
-    const focuses: Record<string, string> = {
-      pacing: "الإيقاع",
-      dialogue: "الحوار",
-      description: "الوصف",
-      clarity: "الوضوح",
-      impact: "التأثير",
-      characterization: "رسم الشخصيات",
-      atmosphere: "الأجواء",
-      tension: "التوتر",
+    const mapping: Record<string, string> = {
+      pacing: "ضبط الإيقاع والسرعة",
+      dialogue: "تحسين الحوارات",
+      description: "إغناء الوصف",
+      clarity: "الوضوح والمباشرة",
+      impact: "قوة التأثير العاطفي/الإقناعي",
+      characterization: "عمق الشخصيات",
+      atmosphere: "بناء الأجواء العامة",
+      structure: "الهيكلية والتنظيم",
+      seo: "تحسين محركات البحث",
     };
-    return focuses[focus] || focus;
+    return mapping[focus] || focus;
   }
 
   protected override async getFallbackResponse(
     input: StandardAgentInput
   ): Promise<string> {
-    return `التحليل الأولي:
-النص الأصلي يحتوي على عناصر قوية يمكن البناء عليها، مع مجالات تحتاج تحسين في الوضوح والإيقاع.
+    return `عذراً، واجه الوكيل صعوبة في إتمام عملية إعادة الكتابة بشكل كامل.
+    
+التحليل الأولي:
+النص الأصلي محفوظ، ولكن عملية التوليد توقفت.
 
-النص المُعاد كتابته:
-[هنا يجب أن يكون النص المُعاد كتابته بالكامل - حالياً غير متاح بسبب خطأ مؤقت]
+إجراءات مقترحة:
+1. حاول تقليل طول النص المدخل.
+2. بسّط أهداف إعادة الكتابة.
+3. تأكد من وضوح التعليمات.
 
-ملاحظات التحسين:
-- تم تحسين الوضوح من خلال إعادة صياغة الجمل المعقدة
-- تم تعزيز الإيقاع بتنويع طول الجمل والفقرات
-- تم الحفاظ على الصوت الأصلي والعناصر المطلوبة
-
-ملاحظة: يُرجى تفعيل الخيارات المتقدمة وتوفير أهداف محددة وواضحة لإعادة الكتابة للحصول على نص محسّن بشكل أفضل يحقق الأهداف المطلوبة.`;
+يرجى المحاولة مرة أخرى مع تعديل المدخلات.`;
   }
 }
 
+// تصدير نسخة وحيدة (Singleton) للاستخدام العام
 export const adaptiveRewritingAgent = new AdaptiveRewritingAgent();

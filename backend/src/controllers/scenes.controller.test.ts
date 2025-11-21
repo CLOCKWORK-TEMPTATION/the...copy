@@ -87,7 +87,7 @@ class MockScenesController {
         return res.status(400).json({
           success: false,
           error: 'بيانات غير صالحة',
-          details: error.errors,
+          details: error.issues,
         });
       }
 
@@ -141,7 +141,7 @@ class MockScenesController {
         return res.status(400).json({
           success: false,
           error: 'بيانات غير صالحة',
-          details: error.errors,
+          details: error.issues,
         });
       }
 

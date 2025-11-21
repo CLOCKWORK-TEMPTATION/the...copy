@@ -19,11 +19,11 @@ export function validateBody<T extends ZodSchema>(schema: T) {
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        logger.warn('Validation error:', { errors: error.errors, path: req.path });
+        logger.warn('Validation error:', { errors: error.issues, path: req.path });
         res.status(400).json({
           success: false,
           error: 'بيانات غير صالحة',
-          details: error.errors.map((err) => ({
+          details: error.issues.map((err) => ({
             field: err.path.join('.'),
             message: err.message,
           })),
@@ -42,15 +42,15 @@ export function validateQuery<T extends ZodSchema>(schema: T) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       const validated = schema.parse(req.query);
-      req.query = validated;
+      req.query = validated as any;
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        logger.warn('Query validation error:', { errors: error.errors, path: req.path });
+        logger.warn('Query validation error:', { errors: error.issues, path: req.path });
         res.status(400).json({
           success: false,
           error: 'معاملات استعلام غير صالحة',
-          details: error.errors.map((err) => ({
+          details: error.issues.map((err) => ({
             field: err.path.join('.'),
             message: err.message,
           })),
@@ -69,15 +69,15 @@ export function validateParams<T extends ZodSchema>(schema: T) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       const validated = schema.parse(req.params);
-      req.params = validated;
+      req.params = validated as any;
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        logger.warn('Params validation error:', { errors: error.errors, path: req.path });
+        logger.warn('Params validation error:', { errors: error.issues, path: req.path });
         res.status(400).json({
           success: false,
           error: 'معاملات المسار غير صالحة',
-          details: error.errors.map((err) => ({
+          details: error.issues.map((err) => ({
             field: err.path.join('.'),
             message: err.message,
           })),
@@ -98,8 +98,8 @@ export const commonSchemas = {
 
   // Pagination query
   paginationQuery: z.object({
-    page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
-    limit: z.string().regex(/^\d+$/).transform(Number).optional().default('10'),
+    page: z.string().regex(/^\d+$/).optional().default('1').transform(Number),
+    limit: z.string().regex(/^\d+$/).optional().default('10').transform(Number),
     sort: z.enum(['asc', 'desc']).optional(),
   }),
 

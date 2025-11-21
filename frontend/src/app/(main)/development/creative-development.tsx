@@ -101,6 +101,24 @@ const FileUpload = dynamic(() => import("@/components/file-upload"), {
   ),
 });
 
+// Define TaskType enum
+enum TaskType {
+  CREATIVE = 'CREATIVE',
+  COMPLETION = 'COMPLETION',
+  ADAPTIVE_REWRITING = 'ADAPTIVE_REWRITING',
+  SCENE_GENERATOR = 'SCENE_GENERATOR',
+  CHARACTER_VOICE = 'CHARACTER_VOICE',
+  WORLD_BUILDER = 'WORLD_BUILDER',
+  PLOT_PREDICTOR = 'PLOT_PREDICTOR',
+  TENSION_OPTIMIZER = 'TENSION_OPTIMIZER',
+  RHYTHM_MAPPING = 'RHYTHM_MAPPING',
+  CHARACTER_NETWORK = 'CHARACTER_NETWORK',
+  DIALOGUE_FORENSICS = 'DIALOGUE_FORENSICS',
+  THEMATIC_MINING = 'THEMATIC_MINING',
+  STYLE_FINGERPRINT = 'STYLE_FINGERPRINT',
+  CONFLICT_DYNAMICS = 'CONFLICT_DYNAMICS',
+}
+
 // Keep only creative development tools
 const CREATIVE_DEVELOPMENT_TASKS = {
   [TaskType.CREATIVE]: "إبداع محاكي",
@@ -340,11 +358,27 @@ const DramaAnalystApp: React.FC = () => {
 
   // Use utility functions for reduced complexity
   const getCreativeTaskIcon = (taskType: TaskType) => {
-    return getCreativeTaskIconUtil(taskType);
+    const iconMap = {
+      [TaskType.CREATIVE]: <Wand2 className="w-5 h-5" />,
+      [TaskType.COMPLETION]: <Clipboard className="w-5 h-5" />,
+      [TaskType.ADAPTIVE_REWRITING]: <Code className="w-5 h-5" />,
+      [TaskType.SCENE_GENERATOR]: <Film className="w-5 h-5" />,
+      [TaskType.CHARACTER_VOICE]: <MessageSquare className="w-5 h-5" />,
+      [TaskType.WORLD_BUILDER]: <Globe className="w-5 h-5" />,
+      [TaskType.PLOT_PREDICTOR]: <TrendingUp className="w-5 h-5" />,
+      [TaskType.TENSION_OPTIMIZER]: <Zap className="w-5 h-5" />,
+      [TaskType.RHYTHM_MAPPING]: <Map className="w-5 h-5" />,
+      [TaskType.CHARACTER_NETWORK]: <Network className="w-5 h-5" />,
+      [TaskType.DIALOGUE_FORENSICS]: <Search className="w-5 h-5" />,
+      [TaskType.THEMATIC_MINING]: <Target className="w-5 h-5" />,
+      [TaskType.STYLE_FINGERPRINT]: <Palette className="w-5 h-5" />,
+      [TaskType.CONFLICT_DYNAMICS]: <Brain className="w-5 h-5" />,
+    };
+    return iconMap[taskType] || <Lightbulb className="w-5 h-5" />;
   };
 
   const getTaskIcon = (taskType: TaskType) => {
-    return getTaskIconUtil(taskType, TASK_CATEGORY_MAP);
+    return getCreativeTaskIcon(taskType);
   };
 
   const creativeTasks = Object.keys(CREATIVE_DEVELOPMENT_TASKS) as TaskType[];

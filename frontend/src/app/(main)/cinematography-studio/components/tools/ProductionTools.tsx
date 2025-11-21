@@ -10,201 +10,183 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  ScanLine,
+  AlertTriangle,
+  CheckCircle,
+  Focus,
+  Aperture,
+  Thermometer,
+} from "lucide-react";
 
-const ProductionTools: React.FC = () => {
-  const [shotValidation, setShotValidation] = useState<any>(null);
-  const [isValidating, setIsValidating] = useState(false);
+interface ProductionProps {
+  mood?: string;
+}
 
-  const handleValidateShot = () => {
-    setIsValidating(true);
-    // Simulated validation
+interface ShotAnalysis {
+  score: number;
+  dynamicRange: string;
+  grainLevel: string;
+  issues: string[];
+  exposure: number;
+}
+
+const ProductionTools: React.FC<ProductionProps> = ({ mood = "noir" }) => {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<ShotAnalysis | null>(null);
+
+  const handleAnalyzeShot = () => {
+    setIsAnalyzing(true);
     setTimeout(() => {
-      setShotValidation({
-        status: "good",
-        score: 85,
-        suggestions: [
-          "الإضاءة جيدة ولكن يمكن تحسين الـ fill light قليلاً",
-          "الإطار مكون بشكل ممتاز - القاعدة الثلثية مطبقة",
-          "تأكد من ضبط الفوكس على عيني الممثل",
-        ],
-        exposure: "Good",
-        composition: "Excellent",
-        focus: "Acceptable",
+      setAnalysis({
+        score: 88,
+        dynamicRange: "High",
+        grainLevel: "Moderate (Cinematic)",
+        issues:
+          mood === "noir"
+            ? []
+            : [
+                "الإضاءة مظلمة جداً (تتناسب مع النوار ولكن تأكد من تفاصيل الوجه)",
+              ],
+        exposure: 70,
       });
-      setIsValidating(false);
-    }, 2000);
+      setIsAnalyzing(false);
+    }, 1500);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Real-Time Shot Validator */}
-      <Card>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Card className="col-span-1 md:col-span-2 bg-zinc-900 border-zinc-800">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2 space-x-reverse">
-            <span className="text-2xl">✅</span>
-            <span>مدقق اللقطات المباشر - Real-Time Shot Validator</span>
+          <CardTitle className="text-white flex justify-between items-center">
+            <span className="flex items-center gap-2">
+              <ScanLine className="text-amber-500" />
+              تحليل اللقطة الحي
+            </span>
+            {analysis && (
+              <Badge
+                variant="outline"
+                className="text-green-400 border-green-900 bg-green-900/20"
+              >
+                READY TO SHOOT
+              </Badge>
+            )}
           </CardTitle>
-          <CardDescription>
-            تحقق من جودة اللقطة قبل التسجيل النهائي
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-            <div className="text-6xl mb-4">📷</div>
-            <p className="text-gray-600 mb-4">
-              ارفع صورة من الكاميرا أو Monitor
-            </p>
-            <Button>📤 رفع صورة للتحليل</Button>
+        <CardContent className="space-y-6">
+          <div className="aspect-video bg-black rounded-lg border border-zinc-800 flex items-center justify-center relative overflow-hidden group">
+            <div className="absolute top-4 right-4 flex flex-col gap-2">
+              <div className="bg-red-600 w-2 h-2 rounded-full animate-pulse" />
+              <span className="text-[10px] font-mono text-zinc-500">
+                REC 4K
+              </span>
+            </div>
+
+            <Button
+              variant="outline"
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+              onClick={handleAnalyzeShot}
+            >
+              {isAnalyzing
+                ? "جاري المسح الطيفي..."
+                : "ارفع لقطة اختبار (Test Shot)"}
+            </Button>
           </div>
 
-          <Button
-            onClick={handleValidateShot}
-            disabled={isValidating}
-            className="w-full"
-          >
-            {isValidating ? "🔄 جاري التحليل..." : "🔍 تحليل اللقطة"}
-          </Button>
-
-          {shotValidation && (
-            <div className="space-y-3 mt-4">
-              <Alert className="bg-green-50 border-green-200">
-                <AlertDescription>
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">
-                      تقييم اللقطة: {shotValidation.score}/100
-                    </span>
-                    <Badge className="bg-green-600">
-                      {shotValidation.status === "good" ? "جيد" : "يحتاج تحسين"}
-                    </Badge>
-                  </div>
-                </AlertDescription>
-              </Alert>
-
-              <div className="grid grid-cols-3 gap-3">
-                <Card className="text-center p-3">
-                  <p className="text-xs text-gray-500">Exposure</p>
-                  <p className="font-semibold">{shotValidation.exposure}</p>
-                </Card>
-                <Card className="text-center p-3">
-                  <p className="text-xs text-gray-500">Composition</p>
-                  <p className="font-semibold">{shotValidation.composition}</p>
-                </Card>
-                <Card className="text-center p-3">
-                  <p className="text-xs text-gray-500">Focus</p>
-                  <p className="font-semibold">{shotValidation.focus}</p>
-                </Card>
+          {analysis && (
+            <div className="grid grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
+              <div className="bg-zinc-950 p-3 rounded border-l-2 border-amber-500">
+                <p className="text-[10px] text-zinc-500 uppercase">Exposure</p>
+                <p className="font-mono text-lg text-white">
+                  {analysis.exposure}%
+                </p>
               </div>
-
-              <Card className="bg-blue-50 border-blue-200">
-                <CardHeader>
-                  <CardTitle className="text-sm">اقتراحات التحسين:</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {shotValidation.suggestions.map(
-                      (suggestion: string, idx: number) => (
-                        <li
-                          key={idx}
-                          className="text-sm flex items-start space-x-2 space-x-reverse"
-                        >
-                          <span className="text-blue-600">•</span>
-                          <span>{suggestion}</span>
-                        </li>
-                      )
-                    )}
-                  </ul>
-                </CardContent>
-              </Card>
+              <div className="bg-zinc-950 p-3 rounded border-l-2 border-blue-500">
+                <p className="text-[10px] text-zinc-500 uppercase">Grain</p>
+                <p className="font-mono text-sm text-white truncate">
+                  {analysis.grainLevel}
+                </p>
+              </div>
+              <div className="bg-zinc-950 p-3 rounded border-l-2 border-purple-500">
+                <p className="text-[10px] text-zinc-500 uppercase">Mood Fit</p>
+                <p className="font-mono text-lg text-white">
+                  {analysis.score}/100
+                </p>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Real-Time Assistant */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 space-x-reverse">
-            <span className="text-2xl">🤖</span>
-            <span>المساعد الفوري - Real-Time Assistant</span>
-          </CardTitle>
-          <CardDescription>اسأل أي سؤال فني أثناء التصوير</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="question">سؤالك</Label>
+      <div className="space-y-6">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-zinc-400 uppercase tracking-widest">
+              Technical Specs
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-2 bg-zinc-950 rounded">
+              <div className="flex items-center gap-2">
+                <Focus className="w-4 h-4 text-zinc-500" />
+                <span className="text-sm text-zinc-300">Focus Peaking</span>
+              </div>
+              <Badge variant="secondary" className="bg-zinc-800 text-zinc-400">
+                ON
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-zinc-950 rounded">
+              <div className="flex items-center gap-2">
+                <Aperture className="w-4 h-4 text-zinc-500" />
+                <span className="text-sm text-zinc-300">False Color</span>
+              </div>
+              <Badge variant="secondary" className="bg-zinc-800 text-zinc-400">
+                OFF
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-zinc-950 rounded">
+              <div className="flex items-center gap-2">
+                <Thermometer className="w-4 h-4 text-zinc-500" />
+                <span className="text-sm text-zinc-300">Color Temp</span>
+              </div>
+              <span className="font-mono text-xs text-amber-500">3200K</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900 border-zinc-800 flex-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-amber-500 uppercase tracking-widest flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Rady's Warning System
+            </CardTitle>
+            <CardDescription className="text-xs text-zinc-500">
+              المحلل الفوري يعطي ملاحظات بناءً على ستايل التصوير الخاص بك
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-zinc-400 mb-4">
+              {analysis && analysis.issues.length > 0 ? (
+                <ul className="list-disc pl-4 space-y-1 text-red-400">
+                  {analysis.issues.map((issue, i) => (
+                    <li key={issue + i}>{issue}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-green-500/80 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" /> لا توجد مشاكل حرجة. الجو
+                  العام متناسق.
+                </p>
+              )}
+            </div>
             <Input
-              id="question"
-              placeholder="مثال: ما هي أفضل فتحة عدسة لهذا المشهد؟"
-              className="mt-2"
+              placeholder="اسأل عن الإضاءة، العدسات..."
+              className="bg-zinc-950 border-zinc-800 text-xs"
             />
-          </div>
-          <Button className="w-full">💬 اسأل المساعد</Button>
-
-          <div className="bg-gray-50 rounded-lg p-4 mt-4">
-            <h4 className="font-semibold mb-2 text-sm">أسئلة شائعة:</h4>
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-xs"
-              >
-                ما هي أفضل إعدادات الكاميرا للتصوير الخارجي؟
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-xs"
-              >
-                كيف أحقق الـ bokeh effect في هذا المشهد؟
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-xs"
-              >
-                ما هو ISO المناسب في ظروف الإضاءة المنخفضة؟
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Data Logger */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 space-x-reverse">
-            <span className="text-2xl">📊</span>
-            <span>مسجل البيانات - Data Logger</span>
-          </CardTitle>
-          <CardDescription>
-            تسجيل إعدادات الكاميرا والإضاءة لكل لقطة
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Scene / المشهد</Label>
-              <Input placeholder="1A" className="mt-1" />
-            </div>
-            <div>
-              <Label>Take / اللقطة</Label>
-              <Input placeholder="3" className="mt-1" />
-            </div>
-            <div>
-              <Label>Lens / العدسة</Label>
-              <Input placeholder="50mm" className="mt-1" />
-            </div>
-            <div>
-              <Label>Aperture / الفتحة</Label>
-              <Input placeholder="f/2.8" className="mt-1" />
-            </div>
-          </div>
-          <Button className="w-full mt-4">💾 حفظ البيانات</Button>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -189,7 +189,7 @@ export class ScenesController {
         res.status(400).json({
           success: false,
           error: 'بيانات غير صالحة',
-          details: error.errors,
+          details: error.issues,
         });
         return;
       }
@@ -261,7 +261,7 @@ export class ScenesController {
         res.status(400).json({
           success: false,
           error: 'بيانات غير صالحة',
-          details: error.errors,
+          details: error.issues,
         });
         return;
       }

@@ -10,185 +10,152 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+import { Eye, Sparkles, Zap, Image as ImageIcon } from "lucide-react";
 
-const PreProductionTools: React.FC = () => {
-  const [script, setScript] = useState("");
-  const [shotList, setShotList] = useState<any[]>([]);
-  const [location, setLocation] = useState("");
-  const [loading, setLoading] = useState(false);
+interface PreProductionProps {
+  mood?: string;
+}
 
-  const handleGenerateShotList = async () => {
-    if (!script.trim()) return;
-    setLoading(true);
+const PreProductionTools: React.FC<PreProductionProps> = ({
+  mood = "noir",
+}) => {
+  const [prompt, setPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [darkness, setDarkness] = useState([50]);
+  const [complexity, setComplexity] = useState([30]);
 
-    // Simulated AI response for now
-    setTimeout(() => {
-      const mockShots = [
-        {
-          id: 1,
-          type: "Wide Shot",
-          description: "Establishing shot of the location",
-          camera: "Static",
-          lighting: "Natural",
-        },
-        {
-          id: 2,
-          type: "Medium Shot",
-          description: "Character enters frame",
-          camera: "Dolly in",
-          lighting: "Three-point",
-        },
-        {
-          id: 3,
-          type: "Close-up",
-          description: "Character emotional reaction",
-          camera: "Handheld",
-          lighting: "Soft key",
-        },
-        {
-          id: 4,
-          type: "Over-the-shoulder",
-          description: "Conversation shot",
-          camera: "Static",
-          lighting: "Balanced",
-        },
-      ];
-      setShotList(mockShots);
-      setLoading(false);
-    }, 2000);
+  const handleGenerate = () => {
+    if (!prompt.trim()) {
+      return;
+    }
+    setIsGenerating(true);
+    setTimeout(() => setIsGenerating(false), 2000);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Shot List Generator */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 space-x-reverse">
-            <span className="text-2xl">📝</span>
-            <span>مولد قائمة اللقطات - Shot List Generator</span>
-          </CardTitle>
-          <CardDescription>
-            قم بإدخال السيناريو وسيقوم الذكاء الاصطناعي بإنشاء قائمة لقطات مفصلة
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="script-input">نص السيناريو / Script</Label>
-            <Textarea
-              id="script-input"
-              value={script}
-              onChange={(e) => setScript(e.target.value)}
-              placeholder="أدخل نص السيناريو هنا...&#10;Enter your script here..."
-              rows={10}
-              className="mt-2"
-            />
-          </div>
-          <Button
-            onClick={handleGenerateShotList}
-            disabled={loading || !script.trim()}
-            className="w-full"
-          >
-            {loading ? "🔄 جاري التوليد..." : "🎬 توليد قائمة اللقطات"}
-          </Button>
-
-          {/* Shot List Results */}
-          {shotList.length > 0 && (
-            <div className="mt-6 space-y-3">
-              <h4 className="font-semibold text-lg">قائمة اللقطات المقترحة:</h4>
-              {shotList.map((shot) => (
-                <Card key={shot.id} className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 space-x-reverse mb-2">
-                          <Badge>{shot.type}</Badge>
-                          <Badge variant="outline">{shot.camera}</Badge>
-                        </div>
-                        <p className="text-sm text-gray-700">
-                          {shot.description}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Lighting: {shot.lighting}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="lg:col-span-4 space-y-6">
+        <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-amber-500 flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              مولد الرؤية البصرية
+            </CardTitle>
+            <CardDescription className="text-zinc-400">
+              حول المشهد المكتوب إلى كادر سينمائي (Concept Art)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-300">
+                وصف المشهد
+              </label>
+              <Textarea
+                placeholder="مثال: غرفة تحقيق مظلمة، ضوء واحد مسلط على وجه المتهم، دخان سجائر يملأ المكان..."
+                className="bg-black/20 border-zinc-700 text-zinc-100 min-h-[120px] focus:border-amber-500"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+              />
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Location Scout Assistant */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 space-x-reverse">
-            <span className="text-2xl">📍</span>
-            <span>مساعد استكشاف المواقع - Location Scout</span>
-          </CardTitle>
-          <CardDescription>
-            تحليل المواقع واقتراحات الإضاءة والزوايا المثالية
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="location-input">
-              وصف الموقع / Location Description
-            </Label>
-            <Input
-              id="location-input"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="مثال: مكتب حديث بنوافذ كبيرة / Modern office with large windows"
-              className="mt-2"
-            />
+            <div className="space-y-4 p-4 bg-black/20 rounded-lg border border-white/5">
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-400">
+                    Shadows & Mystery (الغموض)
+                  </span>
+                  <span className="text-amber-500 font-mono">
+                    {darkness[0]}%
+                  </span>
+                </div>
+                <Slider
+                  value={darkness}
+                  onValueChange={setDarkness}
+                  max={100}
+                  step={1}
+                  className="cursor-pointer"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-400">
+                    Visual Chaos (الفوضى البصرية)
+                  </span>
+                  <span className="text-amber-500 font-mono">
+                    {complexity[0]}%
+                  </span>
+                </div>
+                <Slider
+                  value={complexity}
+                  onValueChange={setComplexity}
+                  max={100}
+                  step={1}
+                />
+              </div>
+            </div>
+
+            <Button
+              onClick={handleGenerate}
+              disabled={isGenerating || !prompt.trim()}
+              className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-black font-bold py-6"
+            >
+              {isGenerating ? (
+                <>
+                  جاري التخيل <Sparkles className="ml-2 h-4 w-4 animate-spin" />
+                </>
+              ) : (
+                <>
+                  توليد الكادر <Zap className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="lg:col-span-8">
+        <Card className="bg-zinc-900 border-zinc-800 h-full min-h-[500px] flex flex-col relative overflow-hidden group">
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-5 pointer-events-none mix-blend-overlay" />
+
+          <div className="flex-1 flex items-center justify-center bg-black/40 relative">
+            {!isGenerating ? (
+              <div className="text-center space-y-4">
+                <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center mx-auto border-2 border-dashed border-zinc-700 group-hover:border-amber-500/50 transition-colors">
+                  <ImageIcon className="h-10 w-10 text-zinc-500" />
+                </div>
+                <p className="text-zinc-500 max-w-sm mx-auto px-4">
+                  الصورة ستظهر هنا. الذكاء الاصطناعي سيقترح زاوية الكاميرا
+                  وتوزيع الإضاءة بناءً على "مود" {mood}.
+                </p>
+              </div>
+            ) : (
+              <div className="text-center space-y-4 animate-pulse">
+                <div className="w-full max-w-md h-64 bg-zinc-800/50 rounded-lg mx-auto" />
+                <p className="text-amber-500 font-mono text-sm">
+                  جاري هندسة الضوء والظلال...
+                </p>
+              </div>
+            )}
           </div>
-          <Button className="w-full" variant="outline">
-            🔍 تحليل الموقع
-          </Button>
-        </CardContent>
-      </Card>
 
-      {/* Mood Board Creator */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 space-x-reverse">
-            <span className="text-2xl">🎨</span>
-            <span>منشئ لوحة المزاج - Mood Board Creator</span>
-          </CardTitle>
-          <CardDescription>
-            إنشاء لوحات مزاج بصرية للإلهام والمرجعية
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline">📸 رفع صور مرجعية</Button>
-            <Button variant="outline">🤖 توليد بالذكاء الاصطناعي</Button>
+          <div className="p-4 bg-zinc-950 border-t border-zinc-800 grid grid-cols-3 gap-4 text-xs font-mono text-zinc-400">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-600">LENS:</span>
+              {isGenerating ? "..." : "35mm Anamorphic"}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-amber-600">LIGHT:</span>
+              {isGenerating ? "..." : "Low-Key / Chiaroscuro"}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-amber-600">ANGLE:</span>
+              {isGenerating ? "..." : "Dutch Angle (Low)"}
+            </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Equipment Optimizer */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 space-x-reverse">
-            <span className="text-2xl">⚙️</span>
-            <span>محسن المعدات - Equipment Optimizer</span>
-          </CardTitle>
-          <CardDescription>
-            اقتراحات ذكية لأفضل تجهيزات الكاميرا والإضاءة
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button className="w-full" variant="outline">
-            🛠️ تحسين قائمة المعدات
-          </Button>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };

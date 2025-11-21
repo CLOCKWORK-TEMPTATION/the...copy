@@ -3,164 +3,147 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-
-// Import tool components
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Camera, Clapperboard, Film, Wand2 } from "lucide-react";
 import PreProductionTools from "@/app/(main)/cinematography-studio/components/tools/PreProductionTools";
 import ProductionTools from "@/app/(main)/cinematography-studio/components/tools/ProductionTools";
 import PostProductionTools from "@/app/(main)/cinematography-studio/components/tools/PostProductionTools";
 
+type Phase = "pre" | "production" | "post";
+type TabValue = "pre-production" | "production" | "post-production";
+
+const tabValueByPhase: Record<Phase, TabValue> = {
+  pre: "pre-production",
+  production: "production",
+  post: "post-production",
+};
+
+const phaseByTab: Record<TabValue, Phase> = {
+  "pre-production": "pre",
+  production: "production",
+  "post-production": "post",
+};
+
+const isTabValue = (value: string): value is TabValue =>
+  value === "pre-production" ||
+  value === "production" ||
+  value === "post-production";
+
 export const CineAIStudio: React.FC = () => {
-  const [currentPhase, setCurrentPhase] = useState<
-    "pre" | "production" | "post"
-  >("pre");
+  const [currentPhase, setCurrentPhase] = useState<Phase>("pre");
+  const [visualMood, setVisualMood] = useState("noir");
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-slate-900 via-zinc-800 to-slate-900 text-white py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center space-x-4 space-x-reverse justify-center mb-4">
-            <span className="text-6xl">🎥</span>
-            <div className="text-center">
-              <h1 className="text-4xl font-bold mb-2">CineAI Studio</h1>
-              <p className="text-xl text-gray-300">
-                استوديو مديري التصوير السينمائي
-              </p>
-              <p className="text-sm text-gray-400 mt-1">
-                AI-Powered Cinematography Assistant
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-amber-500/30">
+      <header className="border-b border-white/10 bg-zinc-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-600 p-2 rounded-lg shadow-[0_0_15px_rgba(245,158,11,0.5)]">
+              <Camera className="h-6 w-6 text-black" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tighter flex items-center gap-2">
+                CineAI <span className="text-amber-600">Vision</span>
+              </h1>
+              <p className="text-xs text-zinc-400 font-mono tracking-widest uppercase">
+                Director of Photography OS
               </p>
             </div>
           </div>
-          <div className="flex justify-center space-x-2 space-x-reverse">
-            <Badge variant="outline" className="text-white border-white">
-              مدعوم بالذكاء الاصطناعي
-            </Badge>
-            <Badge variant="outline" className="text-white border-white">
-              Pre-Production
-            </Badge>
-            <Badge variant="outline" className="text-white border-white">
-              Production
-            </Badge>
-            <Badge variant="outline" className="text-white border-white">
-              Post-Production
-            </Badge>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-zinc-800/50 px-3 py-1.5 rounded-full border border-white/5">
+              <Wand2 className="h-4 w-4 text-amber-500" />
+              <span className="text-xs text-zinc-300">مود المشروع:</span>
+              <Select value={visualMood} onValueChange={setVisualMood}>
+                <SelectTrigger className="h-6 w-[140px] border-none bg-transparent text-xs focus:ring-0 p-0 text-amber-500 font-bold">
+                  <SelectValue placeholder="اختر المود" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200">
+                  <SelectItem value="noir">Noir / كابوسي</SelectItem>
+                  <SelectItem value="realistic">Realistic / واقعي</SelectItem>
+                  <SelectItem value="surreal">Surreal / غرائبي</SelectItem>
+                  <SelectItem value="vintage">Vintage / كلاسيكي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Welcome Card */}
-          <Card className="mb-8 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardHeader>
-              <CardTitle className="text-3xl">
-                مرحباً بك في استوديو CineAI 🎬
-              </CardTitle>
-              <CardDescription className="text-lg">
-                أدوات متقدمة لمديري التصوير في جميع مراحل الإنتاج السينمائي
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 mb-4">
-                CineAI يوفر لك مجموعة شاملة من الأدوات المدعومة بالذكاء
-                الاصطناعي لمساعدتك في:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-start space-x-3 space-x-reverse">
-                  <span className="text-3xl">📋</span>
-                  <div>
-                    <h4 className="font-semibold text-blue-900">
-                      ما قبل الإنتاج
-                    </h4>
-                    <p className="text-sm text-gray-600">التخطيط والاستعداد</p>
+      <main className="container mx-auto px-6 py-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <Tabs
+            value={tabValueByPhase[currentPhase]}
+            onValueChange={(value) => {
+              if (isTabValue(value)) {
+                setCurrentPhase(phaseByTab[value]);
+              }
+            }}
+            className="w-full"
+          >
+            <div className="flex justify-center mb-8">
+              <TabsList className="bg-zinc-900/80 border border-white/10 p-1 rounded-2xl h-auto">
+                <TabsTrigger
+                  value="pre-production"
+                  className="px-8 py-3 rounded-xl text-zinc-400 data-[state=active]:bg-amber-600 data-[state=active]:text-black transition-all duration-300"
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <Clapperboard className="h-5 w-5" />
+                    <span className="font-bold">ما قبل الإنتاج</span>
                   </div>
-                </div>
-                <div className="flex items-start space-x-3 space-x-reverse">
-                  <span className="text-3xl">🎬</span>
-                  <div>
-                    <h4 className="font-semibold text-blue-900">الإنتاج</h4>
-                    <p className="text-sm text-gray-600">التصوير والتنفيذ</p>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="production"
+                  className="px-8 py-3 rounded-xl text-zinc-400 data-[state=active]:bg-amber-600 data-[state=active]:text-black transition-all duration-300"
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <Camera className="h-5 w-5" />
+                    <span className="font-bold">أثناء التصوير</span>
                   </div>
-                </div>
-                <div className="flex items-start space-x-3 space-x-reverse">
-                  <span className="text-3xl">✨</span>
-                  <div>
-                    <h4 className="font-semibold text-blue-900">
-                      ما بعد الإنتاج
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      المونتاج والإخراج النهائي
-                    </p>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="post-production"
+                  className="px-8 py-3 rounded-xl text-zinc-400 data-[state=active]:bg-amber-600 data-[state=active]:text-black transition-all duration-300"
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <Film className="h-5 w-5" />
+                    <span className="font-bold">ما بعد الإنتاج</span>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-          {/* Main Tabs */}
-          <Tabs defaultValue="pre-production" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger
+            <div className="relative min-h-[600px]">
+              <TabsContent
                 value="pre-production"
-                onClick={() => setCurrentPhase("pre")}
+                className="animate-in fade-in slide-in-from-bottom-4 duration-500"
               >
-                <span className="mr-2">📋</span>
-                ما قبل الإنتاج
-              </TabsTrigger>
-              <TabsTrigger
+                <PreProductionTools mood={visualMood} />
+              </TabsContent>
+
+              <TabsContent
                 value="production"
-                onClick={() => setCurrentPhase("production")}
+                className="animate-in fade-in slide-in-from-bottom-4 duration-500"
               >
-                <span className="mr-2">🎬</span>
-                الإنتاج
-              </TabsTrigger>
-              <TabsTrigger
+                <ProductionTools mood={visualMood} />
+              </TabsContent>
+
+              <TabsContent
                 value="post-production"
-                onClick={() => setCurrentPhase("post")}
+                className="animate-in fade-in slide-in-from-bottom-4 duration-500"
               >
-                <span className="mr-2">✨</span>
-                ما بعد الإنتاج
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Pre-Production Phase */}
-            <TabsContent value="pre-production">
-              <PreProductionTools />
-            </TabsContent>
-
-            {/* Production Phase */}
-            <TabsContent value="production">
-              <ProductionTools />
-            </TabsContent>
-
-            {/* Post-Production Phase */}
-            <TabsContent value="post-production">
-              <PostProductionTools />
-            </TabsContent>
+                <PostProductionTools mood={visualMood} />
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-6 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-400">
-            CineAI Studio - أدوات مديري التصوير المدعومة بالذكاء الاصطناعي
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            Powered by Advanced AI for Cinematographers
-          </p>
-        </div>
-      </footer>
     </div>
   );
 };

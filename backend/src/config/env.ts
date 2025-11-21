@@ -5,7 +5,7 @@ dotenv.config();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().transform(Number).default('3001'),
+  PORT: z.string().default('3001').transform(Number),
   GOOGLE_GENAI_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   DATABASE_URL: z.string().optional().default('sqlite://./dev.db'),
@@ -13,12 +13,12 @@ const envSchema = z.object({
   // In development, a default is provided but should be changed
   JWT_SECRET: z.string().default('dev-secret-CHANGE-THIS-IN-PRODUCTION-minimum-32-chars'),
   CORS_ORIGIN: z.string().default('http://localhost:5000,http://localhost:9002'),
-  RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'), // 15 minutes
-  RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
+  RATE_LIMIT_WINDOW_MS: z.string().default('900000').transform(Number), // 15 minutes
+  RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform(Number),
   // Redis Configuration (for caching and job queues)
   REDIS_URL: z.string().optional(),
   REDIS_HOST: z.string().optional().default('localhost'),
-  REDIS_PORT: z.string().transform(Number).optional().default('6379'),
+  REDIS_PORT: z.string().optional().default('6379').transform(Number),
   REDIS_PASSWORD: z.string().optional(),
   // Sentry Configuration (for error tracking and performance monitoring)
   SENTRY_DSN: z.string().optional(),

@@ -188,7 +188,7 @@ app.get('/api/metrics/cache/health', authMiddleware, metricsController.getCacheH
 app.get('/api/metrics/cache/report', authMiddleware, metricsController.getCacheReport.bind(metricsController));
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     error: 'المسار غير موجود',

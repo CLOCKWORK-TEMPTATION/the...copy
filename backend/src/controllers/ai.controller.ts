@@ -35,7 +35,7 @@ export class AIController {
         res.status(400).json({
           success: false,
           error: 'بيانات غير صحيحة',
-          details: validation.error.errors,
+          details: validation.error.issues,
         });
         return;
       }
@@ -87,7 +87,7 @@ export class AIController {
         res.status(400).json({
           success: false,
           error: 'بيانات غير صحيحة',
-          details: validation.error.errors,
+          details: validation.error.issues,
         });
         return;
       }
