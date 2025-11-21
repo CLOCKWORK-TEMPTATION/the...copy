@@ -2,6 +2,7 @@ services:
   - type: web
     name: thecopy-backend
     env: node
+    runtime: node@20.18.1
     buildCommand: pnpm install && pnpm build
     startCommand: node dist/server.js
     envVars:
