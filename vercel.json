@@ -1,7 +1,7 @@
 {
   "buildCommand": "cd frontend && pnpm build",
   "outputDirectory": "frontend/.next",
-  "installCommand": "pnpm install --filter nextn",
+  "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs",
   "crons": [],
   "headers": [
