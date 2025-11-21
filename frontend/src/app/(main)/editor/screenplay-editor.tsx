@@ -137,7 +137,7 @@ class ScreenplayClassifier {
 
   static textInsideParens(s: string): string {
     const match = s.match(/^\s*\((.*?)\)\s*$/);
-    return match ? match[1] : "";
+    return match ? match[1] || "" : "";
   }
 
   static hasSentencePunctuation(s: string): boolean {
