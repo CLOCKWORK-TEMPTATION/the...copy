@@ -145,7 +145,7 @@
     "eslint-plugin-vitest": "^0.5.4",
     "genkit-cli": "^1.23.0",
     "husky": "^9.1.7",
-    "jsdom": "^24.1.0",
+    "jsdom": "^27.2.0",
     "lint-staged": "^15.2.10",
     "postcss": "^8",
     "postcss-preset-env": "^9.3.0",
