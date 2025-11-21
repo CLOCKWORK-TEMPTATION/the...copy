@@ -973,7 +973,10 @@ export default function ScreenplayEditor({ onBack }: ScreenplayEditorProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Tab") {
       e.preventDefault();
-      const nextFormat = getNextFormatOnTab(currentFormat, e.shiftKey);
+
+      const nextFormat =
+        getNextFormatOnTab(currentFormat, e.shiftKey) || "action";
+
       applyFormatToCurrentLine(nextFormat);
     } else if (e.key === "Enter") {
       e.preventDefault();
