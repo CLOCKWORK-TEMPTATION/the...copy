@@ -33,7 +33,7 @@ import {
   ChevronDown,
   BookHeart,
 } from "lucide-react";
-import ExportDialog from "./ExportDialog";
+import ExportDialog from "./ExportDialog.tsx";
 
 // ScreenplayClassifier class
 class ScreenplayClassifier {
