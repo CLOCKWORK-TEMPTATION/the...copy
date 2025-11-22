@@ -2055,8 +2055,8 @@ const SceneHeaderAgent = (
   const m2 = trimmedLine.match(/^(مشهد\s*\d+)\s*[-–—:،]?\s*(.*)$/i);
 
   if (m2) {
-    const head = m2[1].trim(); // "مشهد 1"
-    const rest = m2[2].trim(); // "ليل-داخلي" or similar
+    const head = (m2[1] || "").trim(); // "مشهد 1"
+    const rest = (m2[2] || "").trim(); // "ليل-داخلي" or similar
 
     // Enhanced pattern matching for complex scene headers
     // Handle cases like "ليل-داخلي" or "ليل - داخلي"
