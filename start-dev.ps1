@@ -21,13 +21,13 @@ Start-Sleep -Seconds 2
 Write-Host "Launching Backend and Frontend in separate PowerShell windows..." -ForegroundColor Yellow
 
 # Backend window (auto-fallback from BackendPort implemented in server.ts)
-Start-Process pwsh -ArgumentList @(
+Start-Process powershell -ArgumentList @(
   '-NoExit', '-Command',
   "Set-Location '$BackendPath'; $env:PORT=$BackendPort; pnpm run dev"
 )
 
 # Frontend window (auto-fallback implemented in scripts/dev-with-fallback.js)
-Start-Process pwsh -ArgumentList @(
+Start-Process powershell -ArgumentList @(
   '-NoExit', '-Command',
   "Set-Location '$FrontendPath'; $env:PORT=$FrontendPort; pnpm run dev"
 )
