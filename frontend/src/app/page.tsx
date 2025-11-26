@@ -51,7 +51,7 @@ export default function Home() {
         scrollTrigger: {
           trigger: heroSection,
           start: "top top",
-          end: "+=100%",
+          end: "+=50%",
           scrub: true,
           pin: true,
         },
