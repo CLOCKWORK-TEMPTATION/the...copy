@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import * as THREE from "three";
 import { CARDS_11 } from "@/components/carousel/cards.config";
 import images from "@/config/images";
@@ -20,7 +27,7 @@ const cardImageMap: Record<string, number> = {
   "arabic-prompt-engineering-studio": 3,
 };
 
-export function OptimizedLandingCardScanner() {
+export const OptimizedLandingCardScanner = forwardRef((props, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const particleCanvasRef = useRef<HTMLCanvasElement>(null);
   const scannerCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -44,6 +51,16 @@ export function OptimizedLandingCardScanner() {
       });
     }, deps);
   };
+
+  const controllerRef = useRef<any>(null);
+
+  useImperativeHandle(ref, () => ({
+    setScrollProgress: (progress: number) => {
+      if (controllerRef.current) {
+        controllerRef.current.setProgress(progress);
+      }
+    },
+  }));
 
   useEffect(() => {
     if (
@@ -69,6 +86,9 @@ export function OptimizedLandingCardScanner() {
       minVelocity: number;
       containerWidth: number;
       cardLineWidth: number;
+
+      // External control
+      isExternalControl: boolean = false;
 
       // Performance optimizations
       private updateClippingThrottled: () => void;
@@ -106,6 +126,25 @@ export function OptimizedLandingCardScanner() {
         this.intersectionObserver = new IntersectionObserver(() => {});
 
         this.init();
+        controllerRef.current = this;
+      }
+
+      setProgress(progress: number) {
+        this.isExternalControl = true;
+        this.isAnimating = false;
+
+        // Calculate position based on progress (0 to 1)
+        // We want to scroll through the entire card line
+        // progress 0 = 0
+        // progress 1 = -this.cardLineWidth + this.containerWidth
+
+        const maxScroll = -(this.cardLineWidth - this.containerWidth);
+        // Ensure we have valid dimensions
+        if (this.cardLineWidth <= this.containerWidth) return;
+
+        this.position = progress * maxScroll;
+        this.updateCardPosition();
+        this.updateCardClipping();
       }
 
       init() {
@@ -265,7 +304,7 @@ export function OptimizedLandingCardScanner() {
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
 
-        if (this.isAnimating && !this.isDragging) {
+        if (this.isAnimating && !this.isDragging && !this.isExternalControl) {
           if (this.velocity > this.minVelocity) {
             this.velocity *= this.friction;
           } else {
@@ -1553,4 +1592,4 @@ export function OptimizedLandingCardScanner() {
       </div>
     </>
   );
-}
+});

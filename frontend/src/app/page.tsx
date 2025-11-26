@@ -18,6 +18,7 @@ export default function Home() {
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const maskContentRef = useRef<HTMLDivElement>(null);
   const textSectionRef = useRef<HTMLDivElement>(null);
+  const scannerRef = useRef<any>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -100,7 +101,13 @@ export default function Home() {
         endTrigger: "body",
         end: "bottom bottom",
         pin: true,
+        pin: true,
         pinSpacing: false,
+        onUpdate: (self) => {
+          if (scannerRef.current) {
+            scannerRef.current.setScrollProgress(self.progress);
+          }
+        },
       });
 
       // Pin text section when it reaches the top and keep it visible
@@ -167,7 +174,7 @@ export default function Home() {
         ref={cardsContainerRef}
         className="relative h-screen bg-black overflow-hidden"
       >
-        <LazyLandingCardScanner />
+        <LazyLandingCardScanner ref={scannerRef} />
       </section>
 
       {/* Footer */}
