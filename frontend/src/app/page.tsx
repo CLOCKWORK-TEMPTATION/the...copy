@@ -121,7 +121,7 @@ export default function Home() {
       {/* Fixed Header - Hidden Initially */}
       <header
         ref={headerRef}
-        className="fixed top-0 left-0 right-0 z-50 bg-black text-white border-b border-white/10"
+        className="fixed top-0 left-0 right-0 z-[100] bg-black text-white border-b border-white/10"
         style={{ opacity: 0 }}
       >
         <div className="container mx-auto flex items-center justify-center px-6 py-4">
