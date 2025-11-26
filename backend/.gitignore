@@ -1,0 +1,40 @@
+# Backend - The Copy
+
+# Dependencies
+node_modules/
+.pnp.*
+
+# Environment
+.env*
+!.env.example
+.env.production
+
+# Build & Cache
+dist/
+build/
+.cache/
+*.tsbuildinfo
+.eslintcache
+
+# Logs & Runtime
+logs/
+*.log
+*-debug.log*
+*-error.log*
+pids/
+*.pid
+
+# Testing
+coverage/
+.nyc_output/
+
+# Database
+*.db
+*.sqlite*
+
+# System
+.DS_Store
+*.pem
+
+# Tools
+.pm2/
