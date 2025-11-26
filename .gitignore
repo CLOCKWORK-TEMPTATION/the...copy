@@ -138,3 +138,26 @@ htmlcov/
 # Cursor IDE global storage
 **/AppData/Roaming/Cursor/User/globalStorage/
 **/globalStorage/
+.agent/chat.md
+.amazonq/عندما اقول لك اكمل فعليك العودة لهذا الملف .md
+.amazonq/rules/TheCopybuilddirective.md
+.amazonq/rules/memory-bank/guidelines.md
+.amazonq/rules/memory-bank/product.md
+.amazonq/rules/memory-bank/structure.md
+.amazonq/rules/memory-bank/tech.md
+.amazonq/rules/memory-bank/guidelines.md
+.amazonq/rules/memory-bank/product.md
+.amazonq/rules/memory-bank/structure.md
+.amazonq/rules/memory-bank/tech.md
+history/COMPLETE_PROJECT_SCAN.md
+history/COMPREHENSIVE_BUILD_DIRECTIVE.md
+history/doc_converter.py
+history/FINAL_COMPLETION_REPORT.md
+history/lour last chat.md
+history/MASTER_PROMPT_FINAL.md
+history/MASTER_PROMPT.md
+history/q-dev-chat-2025-11-23.md
+history/reading-progress.md
+history/الارشيف 1.md
+history/الارشيف 2.md
+3.md
