@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, forwardRef } from "react";
+import { Suspense } from "react";
 
 // Lazy load the optimized LandingCardScanner component
 const LandingCardScanner = dynamic(
@@ -38,7 +38,7 @@ const LandingCardScanner = dynamic(
   }
 );
 
-export const LazyLandingCardScanner = forwardRef((props, ref) => {
+export function LazyLandingCardScanner() {
   return (
     <Suspense
       fallback={
@@ -66,7 +66,7 @@ export const LazyLandingCardScanner = forwardRef((props, ref) => {
         </div>
       }
     >
-      <LandingCardScanner ref={ref} {...props} />
+      <LandingCardScanner />
     </Suspense>
   );
-});
+}
