@@ -1,627 +1,451 @@
-
-
 # Development Guidelines - The Copy
 
-أمر توجيهي للنموذج: سياسة عدم ترحيل المشكلات (No-Deferral, Root-Cause First)
-
-المبدأ الحاكم:
-أي مشكلة تُكتشف في هذه المرحلة يُحظر تأجيلها أو تجاوزها مؤقتًا. يجب حلّها من الجذور (Root Cause) حلًا دائمًا قبل الانتقال لأي مهمة أخرى.
-
-النطاق:
-يسري على جميع الأخطاء والتحذيرات والتدهورات الأداءية ومخاطر الأمان والتقنية الديونية (Tech Debt) التي تظهر أثناء التطوير أو الاختبار أو الدمج.
-
-القواعد الإلزامية:
-
-تشخيص سببي: طبّق منهجية 5 Whys أو Fishbone للوصول للسبب الجذري وتوثيقه بإيجاز.
-
-حل دائم لا مؤقت: يُمنع استخدام الحيل/الـWorkarounds/التجاهل/@ts-ignore دون معالجة السبب.
-
-اختبارات مانعة للتكرار: أضِف اختبار وحدة/تكامل يُثبت عدم تكرار المشكلة (Regression Guard).
-
-حماية أمامية: أضِف تحققات إدخال/تحكم أخطاء/قياسات أداء أو قواعد أمان حيث يلزم.
-
-توثيق موجز: سجّل: وصف المشكلة، السبب الجذري، التعديل، الاختبارات المضافة، وأي تأثيرات جانبية.
-
-تحقق مستقل: نفّذ إعادة اختبار كاملة للمسار المتأثر وراجِع السجلات/القياسات بعد الإصلاح.
-
-مسار التنفيذ عند اكتشاف مشكلة:
-
-(أ) إعادة إنتاج مُوثّقة بخطوات واضحة وبيانات اختبارية.
-
-(ب) عزل السبب الجذري وتأكيده بأدلة (رسائل خطأ، تتبّع، قياسات).
-
-(ج) تنفيذ تعديل يعالج السبب لا العرض.
-
-(د) إضافة اختبارات مانعة + مراقبة (Metrics/Logging) إن لزم.
-
-(هـ) تشغيل الحزمة الاختبارية كاملة وتمريرها دون إنذارات جديدة.
-
-(و) مراجعة سريعة من نظير (Peer Review) قبل الدمج.
-
-معيار الإغلاق (Definition of Done):
-
-السبب الجذري مُوثّق ومُعالج.
-
-اختبارات مانعة مضافة وتنجح.
-
-عدم وجود تحذيرات/ديون مؤجلة مرتبطة بالمشكلة.
-
-لا تدهور في الأداء أو الأمان.
-
-المراقبة لا تُظهر تكرارًا بعد الإصلاح.
-
-الاستثناءات والطوارئ:
-لا يُسمح بتجاوز هذه السياسة إلا بموافقة صريحة مُسبّبة ومؤقتة، مع إنشاء تذكرة مُلزمة بزمن قصير لإزالة أي حلّ مؤقت.
 ## Code Quality Standards
 
-### TypeScript Configuration
-- **Strict Mode**: Enabled throughout the project for maximum type safety
-- **Type Definitions**: Explicit types for function parameters and return values
-- **No Implicit Any**: All variables must have defined types
-- **Interface Over Type**: Prefer interfaces for object shapes, types for unions/intersections
-- **Null Safety**: Use optional chaining (?.) and nullish coalescing (??) operators
+### File Organization
+- **Single Responsibility**: Each file has one clear purpose (5/5 files analyzed)
+- **Modular Structure**: Separate concerns into distinct modules (controllers, services, utils, components)
+- **Explicit Exports**: Use named exports for better tree-shaking and clarity
+- **Barrel Files**: Avoid barrel exports to prevent circular dependencies
 
 ### Naming Conventions
-- **Files**: kebab-case for all files (e.g., `websocket.service.ts`, `metrics.controller.ts`)
-- **Classes**: PascalCase (e.g., `CardStreamController`, `ParticleSystem`, `MetricsController`)
-- **Functions/Methods**: camelCase (e.g., `getSnapshot`, `handleMouseMove`, `updateParticlePhysics`)
-- **Constants**: UPPER_SNAKE_CASE (e.g., `BASELINE`, `STROKE_WIDTH`, `PARTICLE_THRESHOLDS`)
-- **Interfaces/Types**: PascalCase with descriptive names (e.g., `ParticlePosition`, `EffectConfig`)
-- **Private Members**: Prefix with underscore or use TypeScript private keyword
+- **Files**: kebab-case for all files (e.g., `shots.controller.test.ts`, `resource-monitor.service.ts`)
+- **Components**: PascalCase for React components (e.g., `OptimizedParticleAnimation`)
+- **Functions**: camelCase for functions and methods (e.g., `getShots`, `calculateCpuUsage`)
+- **Constants**: SCREAMING_SNAKE_CASE for constants (e.g., `ARABIC_ACTION_VERBS`, `ACTION_START_PATTERNS`)
+- **Types/Interfaces**: PascalCase for TypeScript types (e.g., `ParticlePosition`, `EffectConfig`)
+- **Private Methods**: Prefix with underscore for class private methods (e.g., `_calculateCpuUsage`)
 
-### File Organization
-- **Service Files**: `*.service.ts` for business logic services
-- **Controller Files**: `*.controller.ts` for request handlers
-- **Test Files**: `*.test.ts` or `*.spec.ts` alongside source files
-- **Type Files**: `*.types.ts` for shared type definitions
-- **Config Files**: `*.config.ts` for configuration objects
+### Code Formatting
+- **Indentation**: 2 spaces (consistent across all files)
+- **Line Length**: Keep lines under 100 characters when possible
+- **Semicolons**: Always use semicolons (backend), optional in frontend with consistent style
+- **Quotes**: Single quotes for strings in backend, double quotes in frontend JSX
+- **Trailing Commas**: Use trailing commas in multi-line arrays/objects
 
-### Code Structure
-- **Single Responsibility**: Each class/function has one clear purpose
-- **Separation of Concerns**: Controllers → Services → Database layers
-- **DRY Principle**: Extract repeated logic into utility functions
-- **Small Functions**: Keep functions focused and under 50 lines when possible
-- **Early Returns**: Use guard clauses to reduce nesting
+### Documentation Standards
+- **JSDoc Comments**: Use JSDoc for all public functions and classes (4/5 files have comprehensive JSDoc)
+- **Inline Comments**: Explain complex logic, not obvious code
+- **Arabic Comments**: Use Arabic for user-facing messages and error strings
+- **Section Headers**: Use comment blocks to separate logical sections
 
-## Frontend Patterns (Next.js + React)
+Example from resource-monitor.service.ts:
+```typescript
+/**
+ * Resource Monitor Service
+ *
+ * Monitors system resources and detects backpressure, rate limits, and bottlenecks
+ */
+
+// ===== Resource Monitoring Metrics =====
+
+/**
+ * System CPU usage percentage
+ */
+export const systemCpuUsage = new Gauge({...});
+```
+
+## TypeScript Patterns
+
+### Type Safety
+- **Strict Mode**: Enable strict TypeScript checks
+- **Explicit Types**: Always declare return types for functions (5/5 files follow this)
+- **Type Imports**: Use `import type` for type-only imports
+- **Avoid `any`**: Use `unknown` or proper types instead of `any`
+- **Const Assertions**: Use `as const` for literal types (seen in arabic-action-verbs.ts)
+
+Example:
+```typescript
+export const ARABIC_ACTION_VERBS = [
+  "يدخل",
+  "يخرج",
+  // ...
+] as const;
+```
+
+### Interface vs Type
+- **Interfaces**: For object shapes that may be extended
+- **Types**: For unions, intersections, and complex types
+- **Consistent Usage**: Pick one approach per domain
+
+### Generics
+- **Descriptive Names**: Use meaningful generic names (not just `T`)
+- **Constraints**: Add constraints when needed (`T extends SomeType`)
+
+## React Patterns (Frontend)
 
 ### Component Structure
+- **"use client" Directive**: Add at top of client components (seen in particle-background-optimized.tsx)
+- **Hooks First**: Declare all hooks at component top
+- **Early Returns**: Handle edge cases early (SSR checks, reduced motion)
+- **Cleanup**: Always cleanup effects with return functions
+
+Example from particle-background-optimized.tsx:
 ```typescript
-"use client"; // Only when needed (client components)
-
-import { useEffect, useRef } from "react";
-import type React from "react"; // Type-only imports
-
-export default function ComponentName() {
-  const ref = useRef<HTMLElement>(null);
+export default function OptimizedParticleAnimation() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number | null>(null);
+  
+  // Check for window object (SSR)
+  if (typeof window === "undefined") return null;
+  
+  // Check for reduced motion preference
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+  
+  if (prefersReducedMotion) return null;
   
   useEffect(() => {
-    // Cleanup pattern
-    return () => {
-      // Cleanup logic
-    };
+    // ... setup
+    return cleanup; // Always cleanup
   }, []);
   
-  return <div>...</div>;
+  return <canvas ref={canvasRef} />;
 }
 ```
-
-### React Hooks Usage
-- **useState**: For component-level state
-- **useRef**: For DOM references and mutable values that don't trigger re-renders
-- **useEffect**: For side effects with proper cleanup
-- **Custom Hooks**: Extract reusable logic (e.g., `useDeviceCapabilities`)
-- **Dependency Arrays**: Always specify dependencies explicitly
-
-### Event Handlers
-- **Naming**: Prefix with `handle` (e.g., `handleMouseMove`, `handleClick`)
-- **Type Safety**: Use React event types (e.g., `React.MouseEvent`, `React.TouchEvent`)
-- **Cleanup**: Remove event listeners in useEffect cleanup
-- **Passive Events**: Use `{ passive: false }` when preventing default
 
 ### Performance Optimization
-- **Memoization**: Use React.memo for expensive components
-- **Lazy Loading**: Dynamic imports for large components
-- **Image Optimization**: Use Next.js Image component with proper sizing
-- **Code Splitting**: Separate large features into chunks
-- **requestAnimationFrame**: For smooth animations
-- **requestIdleCallback**: For non-critical background tasks
+- **useMemo**: Memoize expensive calculations
+- **useCallback**: Memoize callback functions passed to children
+- **Lazy Loading**: Use dynamic imports for heavy components
+- **Batch Updates**: Process large datasets in batches (seen in particle generation)
+- **requestIdleCallback**: Use for non-critical work
 
-### Three.js Integration
+Example:
 ```typescript
-// Proper cleanup pattern
-useEffect(() => {
-  const scene = new THREE.Scene();
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  
-  const animate = () => {
-    renderer.render(scene, camera);
-    animationId = requestAnimationFrame(animate);
-  };
-  animate();
-  
-  return () => {
-    cancelAnimationFrame(animationId);
-    renderer.dispose();
-    geometry.dispose();
-    material.dispose();
-  };
-}, []);
+const requestIdle = (
+  callback: (deadline: any) => void,
+  options?: any
+): number => {
+  if (typeof requestIdleCallback !== "undefined") {
+    return requestIdleCallback(callback, options);
+  } else {
+    return setTimeout(
+      () => callback({
+        timeRemaining: () => Math.max(0, 50),
+        didTimeout: false,
+      }),
+      options?.timeout || 0
+    ) as any;
+  }
+};
 ```
 
-## Backend Patterns (Express.js + TypeScript)
+### Accessibility
+- **Reduced Motion**: Respect `prefers-reduced-motion` (implemented in particle component)
+- **Semantic HTML**: Use proper HTML elements
+- **ARIA Labels**: Add when needed for screen readers
+- **Keyboard Navigation**: Ensure all interactive elements are keyboard accessible
 
-### Controller Pattern
+## Backend Patterns (Express/Node.js)
+
+### Controller Structure
+- **Request Validation**: Validate all inputs at controller level
+- **Authorization First**: Check user authentication before processing
+- **Error Handling**: Use try-catch with proper error responses
+- **Consistent Response Format**: Use standard response structure
+
+Example from shots.controller.test.ts:
 ```typescript
-export class ControllerName {
-  async methodName(req: Request, res: Response): Promise<void> {
-    try {
-      // Validation
-      const { param } = req.query;
-      if (!param) {
-        res.status(400).json({ success: false, error: 'رسالة خطأ بالعربية' });
-        return;
-      }
-      
-      // Business logic via service
-      const result = await service.doSomething(param);
-      
-      // Success response
-      res.json({ success: true, data: result });
-    } catch (error) {
-      logger.error('Error description:', error);
-      res.status(500).json({ success: false, error: 'رسالة خطأ بالعربية' });
-    }
-  }
-}
+await shotsController.getShots(
+  mockRequest as any,
+  mockResponse as Response
+);
 
-export const controllerName = new ControllerName();
-```
-
-### Service Pattern
-```typescript
-class ServiceName {
-  private dependency: DependencyType;
-  
-  constructor() {
-    this.dependency = getDependency();
-  }
-  
-  async performAction(params: ParamsType): Promise<ResultType> {
-    // Validation
-    if (!params.required) {
-      throw new Error('Validation error');
-    }
-    
-    // Business logic
-    const result = await this.dependency.execute(params);
-    
-    // Return typed result
-    return result;
-  }
-}
-
-export const serviceName = new ServiceName();
-```
-
-### Error Handling
-- **Try-Catch**: Wrap async operations in try-catch blocks
-- **Logging**: Use logger service for all errors with context
-- **User Messages**: Provide Arabic error messages in responses
-- **HTTP Status Codes**: Use appropriate codes (400, 404, 500, etc.)
-- **Error Types**: Create custom error classes for specific scenarios
-
-### Database Patterns (Drizzle ORM)
-```typescript
-// Query pattern
-const results = await db
-  .select()
-  .from(table)
-  .where(eq(table.userId, userId))
-  .orderBy(desc(table.createdAt))
-  .limit(10);
-
-// Insert pattern
-const [inserted] = await db
-  .insert(table)
-  .values({ ...data })
-  .returning();
-
-// Update pattern
-await db
-  .update(table)
-  .set({ ...updates })
-  .where(eq(table.id, id));
-
-// Transaction pattern
-await db.transaction(async (tx) => {
-  await tx.insert(table1).values(data1);
-  await tx.insert(table2).values(data2);
+expect(mockResponse.json).toHaveBeenCalledWith({
+  success: true,
+  data: mockShots,
 });
 ```
 
-### Caching Strategy
+### Service Layer
+- **Business Logic**: Keep all business logic in services
+- **Dependency Injection**: Pass dependencies to services
+- **Single Responsibility**: Each service handles one domain
+- **Async/Await**: Use async/await for all async operations
+
+### Error Handling
+- **Try-Catch Blocks**: Wrap all async operations
+- **Logging**: Log errors with context using Winston
+- **User-Friendly Messages**: Return Arabic error messages for users
+- **Error Details**: Include details in development, hide in production
+
+Example from resource-monitor.service.ts:
 ```typescript
-// Cache-aside pattern
-async function getData(key: string) {
-  // Try cache first
-  const cached = await cacheService.get(key);
-  if (cached) return cached;
+try {
+  // CPU Usage
+  const cpuUsage = this.calculateCpuUsage();
+  systemCpuUsage.set(cpuUsage);
   
-  // Fetch from database
-  const data = await db.query.table.findFirst({ where: eq(table.id, key) });
-  
-  // Store in cache
-  if (data) {
-    await cacheService.set(key, data, TTL);
+  if (cpuUsage > this.thresholds.cpu.critical) {
+    logger.error('Critical CPU usage', { cpuUsage });
+    backpressureEvents.inc({ type: 'cpu_critical' });
   }
-  
-  return data;
+} catch (error) {
+  logger.error('Failed to update system metrics:', error);
 }
 ```
+
+### Monitoring & Metrics
+- **Prometheus Metrics**: Use prom-client for all metrics
+- **Structured Logging**: Use Winston with JSON format
+- **Performance Tracking**: Monitor critical operations
+- **Resource Monitoring**: Track CPU, memory, event loop lag
 
 ## Testing Patterns
 
-### Unit Test Structure
+### Test Structure (Vitest)
+- **Describe Blocks**: Group related tests
+- **beforeEach**: Reset mocks and state before each test
+- **Clear Test Names**: Use descriptive test names
+- **Arrange-Act-Assert**: Follow AAA pattern
+
+Example from shots.controller.test.ts:
 ```typescript
-describe('ServiceName', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+describe('ShotsController', () => {
+  let mockRequest: Partial<Request>;
+  let mockResponse: Partial<Response>;
+  
+  beforeEach(async () => {
+    mockRequest = {
+      params: {},
+      body: {},
+      user: { id: 'user-123' },
+    };
+    
+    mockResponse = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
+    };
+    
+    vi.clearAllMocks();
   });
   
-  afterEach(() => {
-    // Cleanup
-  });
-  
-  describe('methodName', () => {
-    it('should handle success case', async () => {
+  describe('getShots', () => {
+    it('should return shots for authorized user', async () => {
       // Arrange
-      const input = { test: 'data' };
+      const mockShots = [{ id: 'shot-1', title: 'Shot 1' }];
+      mockDb.select.mockReturnValueOnce({...});
       
       // Act
-      const result = await service.methodName(input);
+      await shotsController.getShots(mockRequest as any, mockResponse as Response);
       
       // Assert
-      expect(result).toBeDefined();
-      expect(result.success).toBe(true);
-    });
-    
-    it('should handle error case', async () => {
-      // Test error scenarios
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        data: mockShots,
+      });
     });
   });
 });
 ```
 
-### Mocking Patterns
+### Test Coverage
+- **Happy Path**: Test successful scenarios
+- **Error Cases**: Test all error conditions
+- **Edge Cases**: Test boundary conditions
+- **Authorization**: Test unauthorized access
+- **Validation**: Test input validation
+
+### Mocking
+- **vi.mock**: Mock external dependencies at module level
+- **Mock Functions**: Use vi.fn() for function mocks
+- **Mock Return Values**: Use mockReturnValue/mockResolvedValue
+- **Clear Mocks**: Always clear mocks between tests
+
+## Data Validation
+
+### Zod Schemas
+- **Input Validation**: Validate all user inputs with Zod
+- **Type Inference**: Use z.infer<typeof schema> for types
+- **Error Messages**: Provide clear validation error messages
+- **Reusable Schemas**: Define schemas once, reuse across app
+
+Example pattern:
 ```typescript
-// Mock modules
-jest.mock('@/utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-  },
-}));
-
-// Mock implementations
-const mockFunction = jest.fn().mockReturnValue('result');
-const mockAsync = jest.fn().mockResolvedValue({ data: 'test' });
-```
-
-## API Design Patterns
-
-### RESTful Endpoints
-- **GET**: Retrieve resources (idempotent)
-- **POST**: Create new resources
-- **PUT/PATCH**: Update existing resources
-- **DELETE**: Remove resources
-- **Naming**: Use plural nouns (`/api/projects`, `/api/scenes`)
-- **Nesting**: Limit to 2 levels (`/api/projects/:id/scenes`)
-
-### Response Format
-```typescript
-// Success response
-{
-  success: true,
-  data: { /* result */ },
-  count?: number, // For lists
-  pagination?: { /* pagination info */ }
-}
-
-// Error response
-{
-  success: false,
-  error: 'رسالة خطأ بالعربية',
-  details?: { /* additional error info */ }
-}
-```
-
-### Query Parameters
-- **Filtering**: `?status=active&type=movie`
-- **Sorting**: `?sort=createdAt&order=desc`
-- **Pagination**: `?page=1&limit=20`
-- **Date Ranges**: `?start=2024-01-01&end=2024-12-31`
-
-## Real-time Communication
-
-### WebSocket Events
-```typescript
-// Event naming: category:action
-socket.emit('job:started', payload);
-socket.emit('analysis:progress', payload);
-socket.emit('system:error', payload);
-
-// Room naming: type:id
-socket.join('user:user-123');
-socket.join('project:project-abc');
-socket.join('queue:ai-analysis');
-```
-
-### Event Payload Structure
-```typescript
-interface RealtimeEvent<T> {
-  event: RealtimeEventType;
-  payload: T & {
-    timestamp: string;
-    eventType: RealtimeEventType;
-    userId?: string;
-  };
-}
-```
-
-## Security Practices
-
-### Input Validation
-- **Zod Schemas**: Validate all user inputs
-- **UUID Validation**: Use regex for UUID format checking
-- **Sanitization**: Clean HTML/SQL inputs with libraries
-- **Type Checking**: Leverage TypeScript for compile-time safety
-
-### Authentication & Authorization
-- **JWT Tokens**: Use for stateless authentication
-- **Token Expiry**: Set reasonable expiration times
-- **Refresh Tokens**: Implement for long-lived sessions
-- **Role-Based Access**: Check permissions before operations
-
-### Rate Limiting
-```typescript
-// Multi-level rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per window
-  message: 'تم تجاوز الحد المسموح من الطلبات',
+const shotSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional(),
+  sceneId: z.string().uuid(),
+  orderIndex: z.number().int().optional(),
 });
+
+// Validate
+const result = shotSchema.safeParse(data);
+if (!result.success) {
+  return res.status(400).json({
+    success: false,
+    error: 'بيانات غير صالحة',
+    details: result.error.issues,
+  });
+}
 ```
 
 ## Performance Best Practices
 
-### Database Optimization
-- **Indexes**: Create composite indexes for common queries
-- **Query Optimization**: Use EXPLAIN to analyze slow queries
-- **Connection Pooling**: Reuse database connections
-- **Batch Operations**: Group multiple inserts/updates
-- **Pagination**: Always paginate large result sets
+### Memory Management
+- **Cleanup Resources**: Always cleanup timers, listeners, subscriptions
+- **Typed Arrays**: Use Float32Array for large numeric datasets (particle positions)
+- **Object Pooling**: Reuse objects when possible
+- **Avoid Memory Leaks**: Clear references in cleanup functions
 
-### Caching Strategy
-- **Cache Keys**: Use descriptive, hierarchical keys (`user:123:profile`)
-- **TTL Values**: Set appropriate expiration times
-- **Cache Invalidation**: Clear cache on data updates
-- **Cache Warming**: Pre-populate frequently accessed data
-
-### Code Optimization
-- **Lazy Loading**: Load resources only when needed
-- **Debouncing**: Limit rapid function calls
-- **Throttling**: Control execution frequency
-- **Memoization**: Cache expensive computations
-- **Worker Threads**: Offload CPU-intensive tasks
-
-## Logging & Monitoring
-
-### Logging Levels
+Example:
 ```typescript
-logger.debug('Detailed debugging information');
-logger.info('General informational messages');
-logger.warn('Warning messages for potential issues');
-logger.error('Error messages with stack traces', error);
+const cleanup = () => {
+  try {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    if (cleanupTimeoutRef.current) {
+      clearTimeout(cleanupTimeoutRef.current);
+    }
+    
+    canvas.removeEventListener('mousemove', handleCanvasMouseMove);
+    
+    if (geometry) geometry.dispose();
+    if (material) material.dispose();
+    if (renderer) renderer.dispose();
+    
+    sceneRef.current = null;
+  } catch (error) {
+    console.error('خطأ في تنظيف موارد الجسيمات:', error);
+  }
+};
 ```
 
-### Structured Logging
+### Batch Processing
+- **Large Datasets**: Process in batches to avoid blocking
+- **requestAnimationFrame**: Use for visual updates
+- **requestIdleCallback**: Use for non-critical work
+- **Progress Tracking**: Track progress for long operations
+
+### Caching
+- **Redis**: Cache frequently accessed data
+- **In-Memory**: Use Map/Set for temporary caching
+- **TTL**: Set appropriate time-to-live for cached data
+- **Cache Invalidation**: Clear cache when data changes
+
+## Security Practices
+
+### Input Validation
+- **Validate Everything**: Never trust user input
+- **UUID Validation**: Validate UUIDs for IDs
+- **Sanitization**: Sanitize HTML/SQL inputs
+- **Rate Limiting**: Implement rate limiting on all endpoints
+
+### Authentication & Authorization
+- **JWT Tokens**: Use JWT for authentication
+- **User Context**: Always check req.user
+- **Ownership Verification**: Verify user owns resources
+- **Early Returns**: Return 401/403 early for unauthorized access
+
+Example pattern:
 ```typescript
-logger.info('User action', {
-  userId: 'user-123',
-  action: 'create_project',
-  projectId: 'project-abc',
-  timestamp: new Date().toISOString(),
-});
-```
-
-### Metrics Collection
-- **Request Metrics**: Track response times, error rates
-- **Resource Metrics**: Monitor CPU, memory, disk usage
-- **Business Metrics**: Count operations, user actions
-- **Custom Metrics**: Application-specific measurements
-
-## Documentation Standards
-
-### Code Comments
-- **JSDoc**: Use for public APIs and complex functions
-- **Inline Comments**: Explain "why" not "what"
-- **TODO Comments**: Mark incomplete work with context
-- **Arabic Support**: Include Arabic descriptions where appropriate
-
-### Function Documentation
-```typescript
-/**
- * Calculate optimal particle count based on device capabilities
- * 
- * @returns {number} Optimal particle count for current device
- * 
- * @example
- * const count = getOptimalParticleCount();
- * // Returns: 3000 (on mid-range device)
- */
-function getOptimalParticleCount(): number {
-  // Implementation
+if (!req.user) {
+  return res.status(401).json({
+    success: false,
+    error: 'غير مصرح',
+  });
 }
 ```
 
-## Git Workflow
-
-### Commit Messages
-- **Format**: `type(scope): description`
-- **Types**: feat, fix, docs, style, refactor, test, chore
-- **Examples**: 
-  - `feat(websocket): add room subscription support`
-  - `fix(cache): resolve memory leak in Redis client`
-  - `docs(readme): update installation instructions`
-
-### Branch Naming
-- **Features**: `feature/description`
-- **Fixes**: `fix/issue-description`
-- **Hotfixes**: `hotfix/critical-issue`
-- **Releases**: `release/v1.0.0`
+### Error Messages
+- **Arabic for Users**: User-facing errors in Arabic
+- **No Sensitive Data**: Don't expose internal details
+- **Log Details**: Log full errors server-side
+- **Consistent Format**: Use consistent error response format
 
 ## Arabic Language Support
 
-### UI Text
-- **RTL Support**: Use CSS `direction: rtl` for Arabic content
-- **Font Selection**: Use Arabic-compatible fonts
-- **Text Alignment**: Right-align Arabic text
-- **Number Formatting**: Use Arabic numerals where appropriate
+### Text Processing
+- **RTL Support**: Design for right-to-left text
+- **Arabic Patterns**: Use regex patterns for Arabic text
+- **Character Sets**: Use Unicode ranges for Arabic (\u0600-\u06FF)
+- **Verb Conjugation**: Handle masculine/feminine verb forms
 
-### Error Messages
-- **User-Facing**: Always in Arabic
-- **Developer Logs**: Can be in English
-- **API Responses**: Arabic for error field
-
-### Content Handling
-- **Encoding**: UTF-8 throughout the stack
-- **Validation**: Support Arabic characters in regex patterns
-- **Sorting**: Use locale-aware sorting for Arabic text
-
-## Common Patterns & Idioms
-
-### Singleton Pattern
+Example from arabic-action-verbs.ts:
 ```typescript
-class ServiceName {
-  private static instance: ServiceName;
+export const ARABIC_ACTION_VERBS = [
+  "يدخل", "تدخل",  // Masculine, Feminine
+  "يخرج", "تخرج",
+  // ...
+] as const;
+
+export const ACTION_VERBS_SET = new Set(ARABIC_ACTION_VERBS);
+
+export function isActionVerb(word: string): boolean {
+  return ACTION_VERBS_SET.has(word);
+}
+```
+
+### User Messages
+- **Arabic Errors**: All user-facing errors in Arabic
+- **Arabic Logs**: Use Arabic for user-visible logs
+- **English Internals**: Use English for internal logs/comments
+- **Consistent Terminology**: Use consistent Arabic terms
+
+## Common Patterns
+
+### Singleton Services
+- **Export Instance**: Export singleton instance of services
+- **Class-based**: Use classes for stateful services
+- **Initialization**: Provide start/stop methods
+
+Example:
+```typescript
+export class ResourceMonitorService {
+  private monitorInterval: NodeJS.Timeout | null = null;
   
-  private constructor() {}
-  
-  static getInstance(): ServiceName {
-    if (!ServiceName.instance) {
-      ServiceName.instance = new ServiceName();
+  startMonitoring(intervalMs: number = 5000): void {
+    if (this.monitorInterval) {
+      logger.warn('Resource monitoring already started');
+      return;
     }
-    return ServiceName.instance;
+    // ... setup
   }
-}
-```
-
-### Factory Pattern
-```typescript
-function createParticle(type: ParticleType): Particle {
-  switch (type) {
-    case 'spark': return new SparkParticle();
-    case 'wave': return new WaveParticle();
-    default: return new DefaultParticle();
-  }
-}
-```
-
-### Observer Pattern
-```typescript
-class EventEmitter {
-  private listeners: Map<string, Function[]> = new Map();
   
-  on(event: string, callback: Function) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
+  stopMonitoring(): void {
+    if (this.monitorInterval) {
+      clearInterval(this.monitorInterval);
+      this.monitorInterval = null;
     }
-    this.listeners.get(event)?.push(callback);
-  }
-  
-  emit(event: string, data: any) {
-    this.listeners.get(event)?.forEach(cb => cb(data));
-  }
-}
-```
-
-### Async/Await Pattern
-```typescript
-// Always use try-catch with async/await
-async function fetchData() {
-  try {
-    const result = await apiCall();
-    return result;
-  } catch (error) {
-    logger.error('Failed to fetch data:', error);
-    throw error;
   }
 }
 
-// Parallel execution
-const [data1, data2] = await Promise.all([
-  fetchData1(),
-  fetchData2(),
-]);
+export const resourceMonitor = new ResourceMonitorService();
+export default resourceMonitor;
 ```
 
-## Frequently Used Annotations
+### Constants Organization
+- **Separate Files**: Extract large constant sets to separate files
+- **Typed Constants**: Use `as const` for type safety
+- **Derived Sets**: Create Sets from arrays for O(1) lookup
+- **Export Utilities**: Export helper functions with constants
 
-### TypeScript Decorators
-- Not heavily used in this codebase
-- Prefer explicit patterns over decorators
+### Async Patterns
+- **Async/Await**: Prefer async/await over promises
+- **Error Handling**: Always wrap in try-catch
+- **Promise.all**: Use for parallel operations
+- **Sequential**: Use for dependent operations
 
-### JSDoc Tags
-```typescript
-/**
- * @param {string} userId - User identifier
- * @returns {Promise<User>} User object
- * @throws {Error} When user not found
- * @deprecated Use getUserById instead
- */
-```
+### Environment Configuration
+- **dotenv**: Use dotenv for environment variables
+- **Type-safe Env**: Create typed env config
+- **Validation**: Validate env vars at startup
+- **Defaults**: Provide sensible defaults
 
-### ESLint Directives
-```typescript
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const data: any = unknownData;
+## Code Review Checklist
 
-// Disable for entire file (use sparingly)
-/* eslint-disable @typescript-eslint/no-unused-vars */
-```
-
-## Build & Deployment
-
-### Environment Variables
-- **Required**: Always provide `.env.example` template
-- **Validation**: Validate on startup using Zod
-- **Secrets**: Never commit actual secrets
-- **Naming**: Use UPPER_SNAKE_CASE
-
-### Build Process
-```bash
-# Development
-pnpm dev
-
-# Production build
-pnpm build
-
-# Type checking
-pnpm typecheck
-
-# Linting
-pnpm lint
-
-# Testing
-pnpm test
-```
-
-### Deployment Checklist
-- ✅ All tests passing
-- ✅ No TypeScript errors
-- ✅ No ESLint warnings
-- ✅ Environment variables configured
-- ✅ Database migrations applied
-- ✅ Redis connection verified
-- ✅ Monitoring enabled
+Before submitting code, ensure:
+- [ ] All functions have JSDoc comments
+- [ ] TypeScript strict mode passes
+- [ ] Tests cover happy path and error cases
+- [ ] No console.log (use logger instead)
+- [ ] Error messages in Arabic for users
+- [ ] Resources cleaned up in useEffect/finally
+- [ ] Input validation with Zod
+- [ ] Authorization checks in place
+- [ ] Performance considerations addressed
+- [ ] Accessibility requirements met
+- [ ] No hardcoded secrets or credentials
