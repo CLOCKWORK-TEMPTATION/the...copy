@@ -11,6 +11,16 @@ import {
 } from "./security-logger.middleware";
 
 export const setupMiddleware = (app: express.Application): void => {
+  // CORS configuration
+  app.use(
+    cors({
+      origin: env.CORS_ORIGIN?.split(",") || ["http://localhost:3000"],
+      credentials: true,
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
+    })
+  );
+
   // Enhanced Security middleware with strict CSP
   app.use(
     helmet({
@@ -42,8 +52,6 @@ export const setupMiddleware = (app: express.Application): void => {
       noSniff: true,
       referrerPolicy: { policy: "strict-origin-when-cross-origin" },
       xssFilter: true,
-      preflightContinue: false,
-      optionsSuccessStatus: 204,
     })
   );
 

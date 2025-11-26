@@ -28,7 +28,7 @@ export const VideoTextMask = forwardRef<HTMLDivElement, VideoTextMaskProps>(
           {/* الطبقة البيضاء مع النص الأسود - z-index: 2 */}
           {/* mix-blend-mode: screen يجعل الأبيض شفاف والأسود يخرق الطبقة */}
           <div
-            className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-white"
+            className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-white overlay-bg"
             style={{
               zIndex: 2,
               mixBlendMode: "screen",

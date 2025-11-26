@@ -63,13 +63,31 @@ export default function Home() {
       // Zoom and fade out effect for video + mask (Top Layer)
       introTimeline.to(maskContent, {
         scale: 1.5,
-        opacity: 0,
         ease: "power2.in",
       });
+
+      // Fade out the white background overlay to reveal text below
+      const whiteOverlay = maskContent.querySelector('.overlay-bg');
+      if (whiteOverlay) {
+        introTimeline.to(whiteOverlay, {
+          opacity: 0,
+          ease: "power2.in",
+        }, "<");
+      }
 
       // Header fade in at the same time
       introTimeline.to(
         header,
+        {
+          opacity: 1,
+          ease: "power1.in",
+        },
+        "<"
+      );
+
+      // Ensure text section is visible and animate it in
+      introTimeline.to(
+        textSection,
         {
           opacity: 1,
           ease: "power1.in",
