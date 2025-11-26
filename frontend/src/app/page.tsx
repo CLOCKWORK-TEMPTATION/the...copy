@@ -87,7 +87,7 @@ export default function Home() {
           scrollTrigger: {
             trigger: cardsSection,
             start: "top bottom",
-            end: "center center",
+            end: "top center",
             scrub: 1.5,
           },
         }
@@ -96,7 +96,7 @@ export default function Home() {
       // Pin cards section when it reaches center - stop movement completely
       ScrollTrigger.create({
         trigger: cardsSection,
-        start: "center center",
+        start: "top center",
         endTrigger: "body",
         end: "bottom bottom",
         pin: true,
@@ -165,7 +165,7 @@ export default function Home() {
 
       <section
         ref={cardsContainerRef}
-        className="relative h-screen bg-black overflow-hidden"
+        className="relative h-[60vh] bg-black overflow-hidden z-[60]"
       >
         <LazyLandingCardScanner />
       </section>

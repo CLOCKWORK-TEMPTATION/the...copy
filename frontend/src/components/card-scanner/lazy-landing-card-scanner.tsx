@@ -17,7 +17,7 @@ const LandingCardScanner = dynamic(
         style={{
           position: "relative",
           width: "100vw",
-          height: "100vh",
+          height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -47,7 +47,7 @@ export function LazyLandingCardScanner() {
           style={{
             position: "relative",
             width: "100vw",
-            height: "100vh",
+            height: "100%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
