@@ -1318,10 +1318,11 @@ export function OptimizedLandingCardScanner() {
           width: 100vw;
           height: 100%;
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
           background: #000000;
           overflow: hidden;
+          padding-top: 2rem;
         }
 
         .card-stream {

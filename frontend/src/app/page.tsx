@@ -165,7 +165,7 @@ export default function Home() {
 
       <section
         ref={cardsContainerRef}
-        className="relative h-[60vh] bg-black overflow-hidden z-[60]"
+        className="relative h-[50vh] bg-black overflow-hidden z-[60]"
       >
         <LazyLandingCardScanner />
       </section>
