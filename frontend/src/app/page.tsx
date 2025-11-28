@@ -17,7 +17,6 @@ if (typeof window !== "undefined") {
 export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
-  const cardsContainerRef = useRef<HTMLDivElement>(null);
   const maskContentRef = useRef<HTMLDivElement>(null);
   const stackingFrameRef = useRef<HTMLDivElement>(null);
   const stackingFrameContainerRef = useRef<HTMLDivElement>(null);
@@ -25,25 +24,23 @@ export default function Home() {
   const [frameScale, setFrameScale] = useState(1);
   const [portalGridVisible, setPortalGridVisible] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  // Animation states
+  const [frameScale, setFrameScale] = useState(1.0);
+  const [portalsVisible, setPortalsVisible] = useState(false);
 
   // GSAP Scroll Animations
   useEffect(() => {
-    if (!isMounted) return;
+    if (typeof window === "undefined") return;
 
     const ctx = gsap.context(() => {
       const heroSection = heroRef.current;
       const header = headerRef.current;
-      const cardsSection = cardsContainerRef.current;
       const maskContent = maskContentRef.current;
       const stackingFrameContainer = stackingFrameContainerRef.current;
 
       if (
         !heroSection ||
         !header ||
-        !cardsSection ||
         !maskContent ||
         !stackingFrameContainer
       ) {
@@ -51,7 +48,7 @@ export default function Home() {
         return;
       }
 
-      // Hero Timeline: Pin section and animate
+      // Hero Timeline: Pin section and animate video mask
       const heroTimeline = gsap.timeline({
         scrollTrigger: {
           trigger: heroSection,
@@ -62,7 +59,7 @@ export default function Home() {
         },
       });
 
-      // Zoom and fade out effect for video + mask
+      // Animate video mask (scale up and fade out)
       heroTimeline.to(maskContent, {
         scale: 1.5,
         y: -200,
@@ -70,25 +67,33 @@ export default function Home() {
         ease: "power2.in",
       });
 
-      // Header fade in at the same time
-      heroTimeline.to(
-        header,
+      // Header fade in animation (separate from hero timeline)
+      gsap.to(header, {
+        opacity: 1,
+        ease: "power1.in",
+        scrollTrigger: {
+          trigger: heroSection,
+          start: "top top",
+          end: "50% top",
+          scrub: true,
+          toggleActions: "play none none none",
+          onLeave: () => {
+            if (header) header.style.opacity = "1";
+          },
+          onEnterBack: () => {
+            if (header) header.style.opacity = "1";
+          },
+        },
+      });
+
+      // Frame fade in - appears as video disappears
+      gsap.fromTo(
+        frame,
+        { opacity: 0, y: 50 },
         {
           opacity: 1,
-          ease: "power1.in",
-        },
-        "<"
-      );
-
-      // Cards section slide in from bottom and stop at center
-      gsap.fromTo(
-        cardsSection,
-        {
-          y: 150,
-        },
-        {
           y: 0,
-          ease: "power3.out",
+          ease: "power2.out",
           scrollTrigger: {
             trigger: cardsSection,
             start: "top bottom",
@@ -156,7 +161,7 @@ export default function Home() {
         }
       );
 
-      // Pin cards section when it reaches center - stop movement completely
+      // Phase 2: Frame scales from 100% to 75% + portals appear
       ScrollTrigger.create({
         trigger: cardsSection,
         start: "top center",
@@ -164,6 +169,16 @@ export default function Home() {
         end: "bottom bottom",
         pin: true,
         pinSpacing: false,
+        onUpdate: (self) => {
+          const progress = self.progress;
+          const newScale = 1.0 - progress * 0.25; // 1.0 → 0.75
+          setFrameScale(newScale);
+
+          // Show portals at 30% progress
+          if (progress > 0.3 && !portalsVisible) {
+            setPortalsVisible(true);
+          }
+        },
       });
 
       // Pin stacking frame section when it reaches the top and keep it visible
@@ -180,34 +195,44 @@ export default function Home() {
   }, [isMounted, portalGridVisible]);
 
   return (
-    <div className="relative min-h-screen bg-black" dir="rtl">
-      {/* Fixed Header - Hidden Initially */}
+    <div
+      className="relative min-h-screen bg-black overflow-x-hidden"
+      dir="rtl"
+      suppressHydrationWarning
+    >
+      {/* Header */}
       <header
         ref={headerRef}
         className="fixed top-0 left-0 right-0 z-[100] bg-black text-white border-b border-white/10"
         style={{ opacity: 0 }}
       >
-        <div className="container mx-auto flex items-center justify-center px-6 py-4">
-          <a
-            href="#"
-            aria-label="العودة للصفحة الرئيسية"
-            className="cursor-pointer"
-          >
-            <h2 className="text-2xl">النسخة</h2>
-          </a>
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">النسخة</h1>
+            <nav className="flex gap-6">
+              <a href="#" className="hover:text-white/80 transition-colors">
+                الرئيسية
+              </a>
+              <a href="#" className="hover:text-white/80 transition-colors">
+                حول
+              </a>
+              <a href="#" className="hover:text-white/80 transition-colors">
+                اتصل بنا
+              </a>
+            </nav>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section with Video Text Mask */}
+      {/* Hero Video Section */}
       <section
         ref={heroRef}
-        className="relative w-full h-screen overflow-hidden bg-white"
+        className="relative h-screen bg-black overflow-hidden"
       >
         <VideoTextMask
-          ref={maskContentRef}
-          videoSrc="https://cdn.pixabay.com/video/2025/11/09/314880.mp4"
-          text="النسخة"
-          className="w-full h-full"
+          videoSrc="/videos/output.webm"
+          maskText="النسخة"
+          maskContentRef={maskContentRef}
         />
       </section>
 
@@ -237,6 +262,14 @@ export default function Home() {
           <p className="text-sm text-white/60">
             &copy; {new Date().getFullYear()} النسخة. جميع الحقوق محفوظة.
           </p>
+          <div className="flex gap-4">
+            <a href="#" className="text-sm text-white/60 hover:text-white">
+              سياسة الخصوصية
+            </a>
+            <a href="#" className="text-sm text-white/60 hover:text-white">
+              الشروط والأحكام
+            </a>
+          </div>
         </div>
       </footer>
     </div>
