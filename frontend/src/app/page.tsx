@@ -7,6 +7,8 @@ import { VideoTextMask } from "@/components/video-text-mask";
 import { StackingFrame } from "@/components/stacking-frame/StackingFrame";
 import { PortalGrid } from "@/components/portal-grid/PortalGrid";
 
+import { LazyLandingCardScanner } from "@/components/card-scanner/lazy-landing-card-scanner";
+
 // Register GSAP plugin
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -16,8 +18,11 @@ export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const maskContentRef = useRef<HTMLDivElement>(null);
-  const stackingContainerRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
+  const stackingFrameRef = useRef<HTMLDivElement>(null);
+  const stackingFrameContainerRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const [frameScale, setFrameScale] = useState(1);
+  const [portalGridVisible, setPortalGridVisible] = useState(false);
 
   // Animation states
   const [frameScale, setFrameScale] = useState(1.0);
@@ -31,15 +36,13 @@ export default function Home() {
       const heroSection = heroRef.current;
       const header = headerRef.current;
       const maskContent = maskContentRef.current;
-      const stackingContainer = stackingContainerRef.current;
-      const frame = frameRef.current;
+      const stackingFrameContainer = stackingFrameContainerRef.current;
 
       if (
         !heroSection ||
         !header ||
         !maskContent ||
-        !stackingContainer ||
-        !frame
+        !stackingFrameContainer
       ) {
         console.error("عنصر واحد أو أكثر مفقود من الصفحة.");
         return;
@@ -50,7 +53,7 @@ export default function Home() {
         scrollTrigger: {
           trigger: heroSection,
           start: "top top",
-          end: "+=100%",
+          end: "+=50%",
           scrub: true,
           pin: true,
         },
@@ -92,20 +95,79 @@ export default function Home() {
           y: 0,
           ease: "power2.out",
           scrollTrigger: {
-            trigger: heroSection,
-            start: "60% top",
-            end: "100% top",
-            scrub: 0.5,
+            trigger: cardsSection,
+            start: "top bottom",
+            end: "top center",
+            scrub: 1.5,
+          },
+        }
+      );
+
+      // ============= STACKING FRAME ANIMATIONS =============
+
+      // Entry Phase: Fade in StackingFrame after hero section
+      const entryTimeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: cardsSection,
+          start: "top bottom",
+          end: "top center",
+          onEnter: () => {
+            setFrameScale(1);
+            gsap.to(stackingFrameContainer, {
+              opacity: 1,
+              duration: 0.5,
+              ease: "power1.inOut",
+            });
+          },
+        },
+      });
+
+      // Immersion Phase (0-50% of cards scroll): Scale 1.0 → 0.75 and reveal portals
+      gsap.to(
+        {},
+        {
+          scrollTrigger: {
+            trigger: cardsSection,
+            start: "top center",
+            end: "center center",
+            scrub: 1.5,
+            onUpdate: (self) => {
+              const scale = 1 - self.progress * 0.25; // 1.0 → 0.75
+              setFrameScale(scale);
+
+              // Fade in portal grid during immersion
+              if (self.progress > 0.1 && !portalGridVisible) {
+                setPortalGridVisible(true);
+              }
+            },
+          },
+        }
+      );
+
+      // Branding Phase (50-100% of cards scroll): Scale 0.75 → 0.3
+      gsap.to(
+        {},
+        {
+          scrollTrigger: {
+            trigger: cardsSection,
+            start: "center center",
+            end: "bottom center",
+            scrub: 1.5,
+            onUpdate: (self) => {
+              const scale = 0.75 - self.progress * 0.45; // 0.75 → 0.3
+              setFrameScale(Math.max(scale, 0.3));
+            },
           },
         }
       );
 
       // Phase 2: Frame scales from 100% to 75% + portals appear
       ScrollTrigger.create({
-        trigger: stackingContainer,
-        start: "top top",
-        end: "50% top",
-        pin: frame,
+        trigger: cardsSection,
+        start: "top center",
+        endTrigger: "body",
+        end: "bottom bottom",
+        pin: true,
         pinSpacing: false,
         onUpdate: (self) => {
           const progress = self.progress;
@@ -119,21 +181,18 @@ export default function Home() {
         },
       });
 
-      // Phase 3: Frame scales from 75% to 30% (logo style)
+      // Pin stacking frame section when it reaches the top and keep it visible
       ScrollTrigger.create({
-        trigger: stackingContainer,
-        start: "50% top",
-        end: "100% top",
-        onUpdate: (self) => {
-          const progress = self.progress;
-          const newScale = 0.75 - progress * 0.45; // 0.75 → 0.3
-          setFrameScale(newScale);
-        },
+        trigger: stackingFrameContainer,
+        start: "top top",
+        end: () => `+=${cardsSection.offsetHeight * 2}`,
+        pin: true,
+        pinSpacing: false,
       });
     });
 
     return () => ctx.revert();
-  }, [portalsVisible]);
+  }, [isMounted, portalGridVisible]);
 
   return (
     <div
@@ -177,29 +236,31 @@ export default function Home() {
         />
       </section>
 
-      {/* Stacking Animation Container */}
+      {/* Stacking Frame Section */}
       <section
-        ref={stackingContainerRef}
-        className="relative min-h-[400vh] bg-black"
+        ref={stackingFrameContainerRef}
+        className="relative w-full h-screen flex items-center justify-center bg-black z-50"
+        style={{ opacity: 0 }}
       >
-        {/* Central Frame - Sticky positioned */}
-        <div
-          ref={frameRef}
-          className="sticky top-0 h-screen w-full z-30"
-          style={{ opacity: 0 }}
-        >
-          <StackingFrame scale={frameScale} />
-        </div>
-
-        {/* Portal Grid - Fixed positioned around frame */}
-        <PortalGrid visible={portalsVisible} frameScale={frameScale} />
+        <StackingFrame ref={stackingFrameRef} scale={frameScale} />
       </section>
+
+      <section
+        ref={cardsContainerRef}
+        className="relative h-[50vh] bg-black overflow-hidden z-[60]"
+      >
+        <LazyLandingCardScanner />
+      </section>
+
+      {/* Portal Grid - Portals reveal around StackingFrame */}
+      <PortalGrid visible={portalGridVisible} frameScale={frameScale} />
 
       {/* Footer */}
       <footer className="relative bg-black border-t border-white/10 px-4 py-8">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:flex-row">
-          <p className="text-sm text-white/60" suppressHydrationWarning>
-            © {new Date().getFullYear()} النسخة. جميع الحقوق محفوظة.
+          <span className="text-2xl text-white">النسخ��</span>
+          <p className="text-sm text-white/60">
+            &copy; {new Date().getFullYear()} النسخة. جميع الحقوق محفوظة.
           </p>
           <div className="flex gap-4">
             <a href="#" className="text-sm text-white/60 hover:text-white">

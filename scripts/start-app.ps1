@@ -22,13 +22,13 @@ if (Test-Path "$root\backend\dist") {
 }
 
 # Start Redis
-Write-Host "   Starting Redis..." -ForegroundColor Cyan
-try {
-    Start-Process -FilePath "$root\redis\redis-server.exe" -WindowStyle Minimized
-    Write-Host "   Redis started" -ForegroundColor Green
-} catch {
-    Write-Host "   Redis failed to start" -ForegroundColor Yellow
-}
+# Write-Host "   Starting Redis..." -ForegroundColor Cyan
+# try {
+#     Start-Process -FilePath "$root\redis\redis-server.exe" -WindowStyle Minimized
+#     Write-Host "   Redis started" -ForegroundColor Green
+# } catch {
+#     Write-Host "   Redis failed to start" -ForegroundColor Yellow
+# }
 
 Start-Sleep -Seconds 2
 

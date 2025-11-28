@@ -1316,12 +1316,13 @@ export function OptimizedLandingCardScanner() {
         .card-scanner-container {
           position: relative;
           width: 100vw;
-          height: 100vh;
+          height: 100%;
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
           background: #000000;
           overflow: hidden;
+          padding-top: 2rem;
         }
 
         .card-stream {

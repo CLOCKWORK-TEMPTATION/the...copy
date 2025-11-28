@@ -16,11 +16,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <meta
           httpEquiv="Content-Security-Policy"
-          content="media-src 'self' https://cdn.pixabay.com https://*.pixabay.com blob: data:;"
+          content="default-src 'self'; img-src 'self' https://cdn.pixabay.com https://*.pixabay.com data: blob:; media-src 'self' https://cdn.pixabay.com https://*.pixabay.com blob: data:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:;"
         />
         <meta
           httpEquiv="Cache-Control"
@@ -39,7 +39,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased">
+      <body className="antialiased" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>
