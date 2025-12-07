@@ -7,21 +7,11 @@ import {
 import { LITERARY_QUALITY_ANALYZER_AGENT_CONFIG } from "./agent";
 import { LITERARY_QUALITY_ANALYZER_INSTRUCTIONS } from "./instructions";
 
-interface LiteraryQualityContext {
-  originalText?: string;
-  excerpt?: string;
-  referenceAuthors?: string[];
-  evaluationFocus?: string[];
-  tonalGoals?: string[];
-  culturalContext?: string;
-  previousStations?: Record<string, unknown>;
-  comparativeTitles?: string[];
-  critiqueHistory?: string;
-}
-
 /**
- * Literary Quality Analyzer Agent - وكيل تقييم الجودة الأدبية
- * يضيف قياسات كمية للأركان الخمسة (البلاغة، الأصالة، التماسك، التأثير، المقارنة).
+ * Literary Quality Analyzer Agent - وكيل محلل الجودة الأدبية
+ * الوحدة 10 - قاضي الجماليات الأدبية
+ * يطبق النمط القياسي: RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
+ * إخراج نصي فقط - لا JSON
  */
 export class LiteraryQualityAnalyzerAgent extends BaseAgent {
   constructor() {
@@ -31,296 +21,345 @@ export class LiteraryQualityAnalyzerAgent extends BaseAgent {
       LITERARY_QUALITY_ANALYZER_AGENT_CONFIG.systemPrompt || ""
     );
 
-    this.confidenceFloor = 0.85;
+    // Set agent-specific confidence floor (high due to critical nature)
+    this.confidenceFloor = 0.88;
   }
 
+  /**
+   * Build prompt for literary quality analysis
+   */
   protected buildPrompt(input: StandardAgentInput): string {
     const { input: taskInput, context } = input;
-    const ctx = this.normalizeContext(context);
 
-    let prompt = `أنت ${this.name}، ناقد أدبي يحلل النصوص عبر خمسة محاور رئيسية.\n\n`;
-    prompt += `### المهمة الأساسية\n${taskInput}\n\n`;
+    // Extract relevant context
+    const contextObj =
+      typeof context === "object" && context !== null ? context : {};
+    const originalText = (contextObj as Record<string, unknown>)?.originalText as string || "";
+    const styleAnalysis = (contextObj as Record<string, unknown>)?.styleAnalysis as string || "";
+    const thematicAnalysis = (contextObj as Record<string, unknown>)?.thematicAnalysis as string || "";
+    const previousStations = (contextObj as Record<string, unknown>)?.previousStations as Record<string, string> || {};
 
-    if (ctx.originalText || ctx.excerpt) {
-      prompt += `### مادة التحليل\n${this.truncate(
-        ctx.excerpt || ctx.originalText || "",
-        3200
-      )}\n\n`;
+    // Build structured prompt
+    let prompt = `${LITERARY_QUALITY_ANALYZER_INSTRUCTIONS}\n\n`;
+    prompt += `[مهمة محلل الجودة الأدبية - AestheticsJudge AI]\n\n`;
+
+    // Add original text
+    if (originalText) {
+      prompt += `النص الأصلي للتقييم:\n${originalText}\n\n`;
     }
 
-    const metadata = this.buildMetadataSection(ctx);
-    if (metadata) {
-      prompt += `${metadata}\n`;
+    // Add style analysis if available
+    if (styleAnalysis) {
+      prompt += `تحليل الأسلوب السابق:\n${styleAnalysis}\n\n`;
     }
 
-    if (ctx.previousStations) {
-      prompt += `### خلاصات سابقة\n${this.summarizeStations(
-        ctx.previousStations
-      )}\n\n`;
+    // Add thematic analysis if available
+    if (thematicAnalysis) {
+      prompt += `التحليل الموضوعي:\n${thematicAnalysis}\n\n`;
     }
 
-    if (ctx.critiqueHistory) {
-      prompt += `### ملاحظات نقدية سابقة\n${this.truncate(ctx.critiqueHistory, 800)}\n\n`;
+    // Add previous stations context
+    if (Object.keys(previousStations).length > 0) {
+      prompt += `سياق التحليلات السابقة:\n`;
+      for (const [station, analysis] of Object.entries(previousStations)) {
+        if (analysis) {
+          prompt += `- ${station}: ${String(analysis).substring(0, 300)}...\n`;
+        }
+      }
+      prompt += "\n";
     }
 
-    prompt += `### تعليمات الوحدة\n${LITERARY_QUALITY_ANALYZER_INSTRUCTIONS}\n\n`;
+    // Add the specific task
+    prompt += `المهمة المحددة:\n${taskInput}\n\n`;
 
-    prompt += `### متطلبات التقرير النهائي\n`;
-    prompt += `1. ملخص افتتاحي يحدد مزاج النص والأثر العام.\n`;
-    prompt += `2. تحليل مفصل لكل ركن (البلاغة، الأصالة، التماسك، التأثير، المعايير المرجعية).\n`;
-    prompt += `3. درجات نسبية (0-100) لكل ركن مع تفسير.\n`;
-    prompt += `4. توصيات لتحسين الجودة الأدبية.\n`;
-    prompt += `5. ملاحظات ختامية تربط التحليل بأهداف الكاتب.\n`;
-    prompt += `\nيُمنع استخدام JSON في المخرجات النهائية؛ استخدم أقساماً نصية واضحة فقط.`;
+    // Add generation instructions
+    prompt += `قدم تقييماً أدبياً شاملاً يتضمن خمسة محاور أساسية:
+
+1. **الجمال اللغوي والبلاغي:**
+   - تقييم استخدام اللغة والأساليب البلاغية
+   - تحليل بنية الجمل والإيقاع اللغوي
+   - تقييم الصور البيانية والاستعارات
+
+2. **الأصالة والابتكار الأسلوبي:**
+   - تقييم تفرد الصوت الأدبي
+   - كشف الكليشيهات والعبارات المبتذلة
+   - تحديد عناصر الابتكار الأسلوبي
+
+3. **التماسك السردي والبنيوي:**
+   - تقييم سلامة الحبكة
+   - تحليل الإيقاع والتدفق السردي
+   - تقييم البنية الدرامية العامة
+
+4. **التأثير العاطفي والفني:**
+   - تقييم القدرة على إثارة المشاعر
+   - تحديد اللحظات العاطفية المؤثرة
+   - قياس عمق الصدى العاطفي
+
+5. **المقارنة بالمعايير الأدبية:**
+   - موقع العمل من المعايير الأدبية العالمية
+   - نقاط القوة والضعف مقارنة بأعمال مشابهة
+   - تقييم شامل للجودة الأدبية
+
+قدم درجة تقييم (من 10) لكل محور مع تبرير واضح.
+اكتب بلغة نقدية موضوعية ومهنية.
+لا تستخدم تنسيق JSON أو كتل برمجية.`;
 
     return prompt;
   }
 
+  /**
+   * Post-process the literary quality output
+   */
   protected override async postProcess(
     output: StandardAgentOutput
   ): Promise<StandardAgentOutput> {
-    const cleanedText = this.sanitizeToText(output.text);
-    const linguistic = this.scoreLinguisticBeauty(cleanedText);
-    const originality = this.scoreOriginality(cleanedText);
-    const cohesion = this.scoreCohesion(cleanedText);
-    const emotional = this.scoreEmotionalImpact(cleanedText);
-    const benchmark = this.scoreBenchmarking(cleanedText);
+    // Clean up text formatting
+    let processedText = this.cleanupText(output.text);
 
-    const overallQuality =
-      linguistic * 0.22 +
-      originality * 0.2 +
-      cohesion * 0.2 +
-      emotional * 0.23 +
-      benchmark * 0.15;
+    // Assess evaluation quality
+    const qualityMetrics = await this.assessEvaluationQuality(processedText);
 
-    const adjustedConfidence = Math.min(
-      1,
-      output.confidence * 0.4 + overallQuality * 0.6
-    );
+    // Adjust confidence based on quality
+    const adjustedConfidence =
+      output.confidence * 0.5 +
+      qualityMetrics.linguisticDepth * 0.15 +
+      qualityMetrics.criticalRigor * 0.2 +
+      qualityMetrics.comprehensiveness * 0.15;
 
     return {
       ...output,
-      text: cleanedText,
-      confidence: adjustedConfidence,
-      notes: this.generateCriticNotes(
-        output.notes,
-        overallQuality,
-        emotional,
-        originality
-      ),
+      text: processedText,
+      confidence: Math.min(1, adjustedConfidence),
+      notes: this.generateEvaluationNotes(output, qualityMetrics),
       metadata: {
         ...output.metadata,
-        literaryScores: {
-          linguistic,
-          originality,
-          cohesion,
-          emotional,
-          benchmark,
-          overall: overallQuality,
-        },
+        literaryEvaluationQuality: qualityMetrics,
+        linguisticDepth: qualityMetrics.linguisticDepth,
+        criticalRigor: qualityMetrics.criticalRigor,
+        comprehensiveness: qualityMetrics.comprehensiveness,
       },
     };
   }
 
-  private normalizeContext(context: StandardAgentInput["context"]): LiteraryQualityContext {
-    if (context && typeof context === "object") {
-      return context as LiteraryQualityContext;
+  /**
+   * Clean up text formatting
+   */
+  private cleanupText(text: string): string {
+    // Remove any JSON artifacts
+    text = text.replace(/```json[\s\S]*?```/g, "");
+    text = text.replace(/```[\s\S]*?```/g, "");
+    text = text.replace(/\{[\s\S]*?"[^"]*"\s*:[\s\S]*?\}/g, "");
+
+    // Remove excessive whitespace
+    text = text.replace(/\n{3,}/g, "\n\n");
+    text = text.trim();
+
+    // Ensure proper section separation
+    const lines = text.split("\n");
+    const cleaned: string[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        cleaned.push(trimmed);
+      } else if (cleaned.length > 0 && cleaned[cleaned.length - 1] !== "") {
+        cleaned.push("");
+      }
     }
-    return {};
+
+    return cleaned.join("\n");
   }
 
-  private buildMetadataSection(ctx: LiteraryQualityContext): string {
-    const sections: string[] = [];
-
-    if (ctx.referenceAuthors?.length) {
-      sections.push(
-        `### مرجعيات الأسلوب المرجوة\n${ctx.referenceAuthors
-          .map((author) => `- ${author}`)
-          .join("\n")}\n`
-      );
-    }
-
-    if (ctx.evaluationFocus?.length) {
-      sections.push(
-        `### محاور التقييم المفضّلة\n${ctx.evaluationFocus
-          .map((focus) => `- ${focus}`)
-          .join("\n")}\n`
-      );
-    }
-
-    if (ctx.tonalGoals?.length) {
-      sections.push(
-        `### الأهداف النغمية\n${ctx.tonalGoals.map((goal) => `- ${goal}`).join("\n")}\n`
-      );
-    }
-
-    if (ctx.culturalContext) {
-      sections.push(`### السياق الثقافي\n${ctx.culturalContext}\n`);
-    }
-
-    if (ctx.comparativeTitles?.length) {
-      sections.push(
-        `### أعمال للمقارنة النقدية\n${ctx.comparativeTitles
-          .map((title) => `- ${title}`)
-          .join("\n")}\n`
-      );
-    }
-
-    return sections.join("\n");
-  }
-
-  private summarizeStations(previousStations: Record<string, unknown>): string {
-    return Object.entries(previousStations)
-      .map(([key, value]) => {
-        const normalized =
-          typeof value === "string"
-            ? this.truncate(value, 250)
-            : JSON.stringify(value);
-        return `- ${key}: ${normalized}`;
-      })
-      .slice(0, 5)
-      .join("\n");
-  }
-
-  private sanitizeToText(text: string): string {
-    let sanitized = text;
-    sanitized = sanitized.replace(/```json[\s\S]*?```/g, "");
-    sanitized = sanitized.replace(/```[\s\S]*?```/g, "");
-    sanitized = sanitized.replace(/\{[\s\S]*?\}/g, (match) => {
-      return match.includes(":") ? "" : match;
-    });
-    sanitized = sanitized.replace(/\|.*?\|/g, "");
-    sanitized = sanitized.replace(/\n{3,}/g, "\n\n");
-    return sanitized.trim();
-  }
-
-  private scoreLinguisticBeauty(text: string): number {
-    const rhetoricalTerms = [
+  /**
+   * Assess the quality of literary evaluation
+   */
+  private async assessEvaluationQuality(text: string): Promise<{
+    linguisticDepth: number;
+    criticalRigor: number;
+    comprehensiveness: number;
+    overallScore: number;
+  }> {
+    // Linguistic analysis indicators
+    const linguisticTerms = [
       "استعارة",
       "تشبيه",
       "كناية",
-      "جناس",
-      "إيقاع",
-      "تنغيم",
       "بلاغة",
-      "تكرار",
+      "أسلوب",
+      "إيقاع",
+      "جملة",
+      "تركيب",
+      "صورة بيانية",
+      "سجع",
+      "جناس",
     ];
+    const linguisticDepth = this.calculateCoverage(text, linguisticTerms);
 
-    const occurrences = rhetoricalTerms.reduce((total, term) => {
-      return total + (text.match(new RegExp(term, "gi")) ?? []).length;
-    }, 0);
-
-    return Math.min(1, 0.45 + occurrences * 0.04);
-  }
-
-  private scoreOriginality(text: string): number {
-    const innovationMarkers = ["فريد", "مبتكر", "جديد", "طازج", "غير مسبوق"];
-    const clichéMarkers = ["مستهلك", "تقليدي", "متوقع", "مكرر"];
-
-    const innovation = innovationMarkers.reduce((total, term) => {
-      return total + (text.match(new RegExp(term, "gi")) ?? []).length;
-    }, 0);
-
-    const cliches = clichéMarkers.reduce((total, term) => {
-      return total + (text.match(new RegExp(term, "gi")) ?? []).length;
-    }, 0);
-
-    return Math.min(1, 0.5 + innovation * 0.05 - cliches * 0.04);
-  }
-
-  private scoreCohesion(text: string): number {
-    const structureTerms = [
-      "الحبكة",
-      "الإيقاع",
-      "البنية",
-      "التماسك",
-      "التتابع",
-      "تطور",
-      "جسر",
+    // Critical rigor indicators
+    const criticalTerms = [
+      "تقييم",
+      "تحليل",
+      "نقد",
+      "ملاحظة",
+      "قوة",
+      "ضعف",
+      "مقارنة",
+      "معيار",
+      "موضوعي",
+      "دليل",
     ];
-    const sections = (text.match(/###|####/g) ?? []).length;
-    const termMatches = structureTerms.reduce((total, term) => {
-      return total + (text.match(new RegExp(term, "gi")) ?? []).length;
-    }, 0);
+    const criticalRigor = this.calculateCoverage(text, criticalTerms);
 
-    return Math.min(1, 0.45 + termMatches * 0.03 + sections * 0.02);
-  }
-
-  private scoreEmotionalImpact(text: string): number {
-    const emotionTerms = [
+    // Comprehensiveness indicators (checking all five pillars)
+    const pillarTerms = [
+      "لغوي",
+      "بلاغي",
+      "أصالة",
+      "ابتكار",
+      "تماسك",
+      "سردي",
       "عاطفي",
-      "تأثير",
-      "صدًى",
-      "إحساس",
-      "انفعال",
-      "تجربة",
-      "أثر",
+      "فني",
+      "معايير",
     ];
-    const crescendoMentions =
-      (text.match(/الذروة|الانفراج|التحول العاطفي/gi) ?? []).length;
-    const termMatches = emotionTerms.reduce((total, term) => {
-      return total + (text.match(new RegExp(term, "gi")) ?? []).length;
-    }, 0);
+    const comprehensiveness = this.calculateCoverage(text, pillarTerms);
 
-    return Math.min(1, 0.5 + termMatches * 0.03 + crescendoMentions * 0.04);
+    const overallScore =
+      (linguisticDepth + criticalRigor + comprehensiveness) / 3;
+
+    return {
+      linguisticDepth,
+      criticalRigor,
+      comprehensiveness,
+      overallScore,
+    };
   }
 
-  private scoreBenchmarking(text: string): number {
-    const references =
-      (text.match(/أدب|معيار|مدرسة|روائي|شاعري|تقليد|أسلوب عالمي/gi) ?? []).length;
-    const numericMentions = (text.match(/\d{1,3}%/g) ?? []).length;
-    return Math.min(1, 0.4 + references * 0.04 + numericMentions * 0.05);
+  /**
+   * Calculate coverage of terms in text
+   */
+  private calculateCoverage(text: string, terms: string[]): number {
+    const lowerText = text.toLowerCase();
+    let matchCount = 0;
+
+    for (const term of terms) {
+      if (lowerText.includes(term.toLowerCase())) {
+        matchCount++;
+      }
+    }
+
+    return Math.min(1, (matchCount / terms.length) * 1.5);
   }
 
-  private generateCriticNotes(
-    existingNotes: string[] | undefined,
-    overall: number,
-    emotional: number,
-    originality: number
+  /**
+   * Check for clichés in text
+   */
+  private detectClicheAnalysis(text: string): boolean {
+    const clicheIndicators = [
+      "كليشيه",
+      "مبتذل",
+      "مكرر",
+      "نمطي",
+      "تقليدي",
+      "شائع",
+    ];
+
+    return clicheIndicators.some((indicator) =>
+      text.toLowerCase().includes(indicator)
+    );
+  }
+
+  /**
+   * Generate notes about the evaluation
+   */
+  private generateEvaluationNotes(
+    output: StandardAgentOutput,
+    qualityMetrics: {
+      linguisticDepth: number;
+      criticalRigor: number;
+      comprehensiveness: number;
+      overallScore: number;
+    }
   ): string[] {
-    const notes = [...(existingNotes ?? [])];
+    const notes: string[] = [];
 
-    if (overall > 0.85) notes.push("مستوى أدبي ممتاز قابل للنشر فوراً.");
-    else if (overall > 0.7) notes.push("جودة أدبية قوية مع فرص تحسين محدودة.");
-    else notes.push("يُنصح بدورة تحسين أدبية مركزة.");
-
-    if (emotional < 0.6) {
-      notes.push("التأثير العاطفي يحتاج تعزيزاً بمشاهد محورية.");
+    // Confidence assessment
+    if (output.confidence > 0.9) {
+      notes.push("ثقة عالية في التقييم الأدبي");
+    } else if (output.confidence > 0.75) {
+      notes.push("ثقة جيدة في التقييم");
+    } else {
+      notes.push("ثقة متوسطة - يُنصح بمراجعة نقدية إضافية");
     }
 
-    if (originality < 0.6) {
-      notes.push("يجب مراجعة العناصر المكررة لتأكيد الأصالة.");
+    // Linguistic depth
+    if (qualityMetrics.linguisticDepth > 0.7) {
+      notes.push("تحليل لغوي وبلاغي عميق");
+    } else if (qualityMetrics.linguisticDepth < 0.4) {
+      notes.push("يمكن تعزيز التحليل اللغوي");
     }
 
-    return Array.from(new Set(notes));
+    // Critical rigor
+    if (qualityMetrics.criticalRigor > 0.7) {
+      notes.push("دقة نقدية عالية");
+    } else if (qualityMetrics.criticalRigor < 0.4) {
+      notes.push("يمكن تعميق الحجج النقدية");
+    }
+
+    // Comprehensiveness
+    if (qualityMetrics.comprehensiveness > 0.8) {
+      notes.push("تغطية شاملة للمحاور الخمسة");
+    }
+
+    // Cliché detection
+    if (this.detectClicheAnalysis(output.text)) {
+      notes.push("تم تضمين تحليل الكليشيهات");
+    }
+
+    // Add original notes
+    if (output.notes) {
+      notes.push(...output.notes);
+    }
+
+    return notes;
   }
 
-  private truncate(text: string, limit = 2000): string {
-    if (text.length <= limit) return text;
-    return `${text.substring(0, limit)}...`;
-  }
-
+  /**
+   * Generate fallback response specific to literary quality analysis
+   */
   protected override async getFallbackResponse(
     input: StandardAgentInput
   ): Promise<string> {
-    return `تقييم أدبي تمهيدي:
-تم تحليل النص وفق الأعمدة الخمسة بالرغم من تعذر المسار القياسي.
+    return `التقييم الأدبي الأولي:
 
-البلاغة والصوت:
-- اللغة تظهر ملامح خاصة لكنها تحتاج ضبطاً في الإيقاع.
+بناءً على النص المقدم، يمكن تقديم ملاحظات أولية حول الجودة الأدبية:
 
-الأصالة:
-- توجد أفكار واعدة، إلا أن بعض الحبكات تحمل طابعاً تقليدياً.
+**1. الجمال اللغوي والبلاغي:**
+- النص يحتاج إلى تحليل أعمق للأساليب البلاغية المستخدمة
+- تقييم أولي: يتطلب مراجعة تفصيلية
 
-التماسك السردي:
-- الهيكل يعمل بصورة منطقية، مع حاجة لتحسين الانتقالات.
+**2. الأصالة والابتكار:**
+- يحتاج تقييم مدى تفرد الصوت الأدبي
+- ضرورة فحص العناصر المبتذلة إن وجدت
 
-التأثير العاطفي:
-- الذروة تصل بوضوح لكن يمكن تعميق التوتر الشعوري تدريجياً.
+**3. التماسك السردي:**
+- تقييم مبدئي للبنية الدرامية
+- يتطلب تحليلاً أعمق للإيقاع والتدفق
 
-التوصية:
-ركز على تقوية لغة الحوار وإزالة الكليشيهات لإبراز الهوية الأدبية المطلوبة.`;
+**4. التأثير العاطفي:**
+- تحديد نقاط التأثير العاطفي الرئيسية
+- قياس الصدى العاطفي المتوقع
+
+**5. المعايير الأدبية:**
+- مقارنة أولية بالمعايير المعروفة
+- تحديد موقع العمل من الجودة الأدبية العامة
+
+**توصية:**
+للحصول على تقييم أدبي شامل ودقيق، يُنصح بتفعيل جميع خيارات التحليل المتقدمة.
+
+ملاحظة: حدث خطأ تقني مؤقت. يُرجى المحاولة مرة أخرى.`;
   }
 }
 
+// Export singleton instance
 export const literaryQualityAnalyzerAgent = new LiteraryQualityAnalyzerAgent();

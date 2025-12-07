@@ -1,7 +1,7 @@
 # حالة الوكلاء - Agents Status Report
 
-> **آخر تحديث**: ترقية الوكلاء العشرة المتبقين - مكتمل ✅  
-> **الفرع**: `feat/agents-upgrade-final-wave`  
+> **آخر تحديث**: ترقية الوكلاء الجدد (TargetAudienceAnalyzer, LiteraryQualityAnalyzer, RecommendationsGenerator) - مكتمل ✅  
+> **الفرع**: `cursor/upgrade-agent-modules-claude-4.5-opus-high-thinking-d099`  
 > **التاريخ**: تم التنفيذ والإنجاز
 
 ---
@@ -10,9 +10,9 @@
 
 | المؤشر                      | القيمة | النسبة  |
 | --------------------------- | ------ | ------- |
-| إجمالي الوكلاء الأساسية     | 14     | 100%    |
-| وكلاء مرقّاة بالنمط القياسي | 14     | 100% ✅ |
-| وكلاء متبقية                | 0      | 0%      |
+| إجمالي الوكلاء الأساسية     | 27     | 100%    |
+| وكلاء مرقّاة بالنمط القياسي | 17     | 63% ✅  |
+| وكلاء متبقية                | 10     | 37%     |
 | تغطية اختبارية              | ≥80%   | ✅      |
 
 ---
@@ -47,6 +47,14 @@
 | --- | ------------------ | -------------- | -------- | ----- | ---------- |
 | 13  | PlotPredictorAgent | PLOT_PREDICTOR | ✅ مرقّى | 0.78  | ✅ 362 سطر |
 | 14  | WorldBuilderAgent  | WORLD_BUILDER  | ✅ مرقّى | 0.85  | ✅ 485 سطر |
+
+### المجموعة الرابعة - الوحدات المتقدمة (3 وكلاء) - جديد ✨
+
+| #   | الوكيل                          | TaskType                   | الحالة   | الثقة | الاختبارات |
+| --- | ------------------------------- | -------------------------- | -------- | ----- | ---------- |
+| 15  | TargetAudienceAnalyzerAgent     | TARGET_AUDIENCE_ANALYZER   | ✅ مرقّى | 0.83  | ⏳ قيد الإضافة |
+| 16  | LiteraryQualityAnalyzerAgent    | LITERARY_QUALITY_ANALYZER  | ✅ مرقّى | 0.88  | ⏳ قيد الإضافة |
+| 17  | RecommendationsGeneratorAgent   | RECOMMENDATIONS_GENERATOR  | ✅ مرقّى | 0.87  | ⏳ قيد الإضافة |
 
 ---
 
