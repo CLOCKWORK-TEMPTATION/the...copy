@@ -1,0 +1,11 @@
+# pnpm approvals file - auto-generated
+# These packages are approved to run build scripts
+@firebase/util: approve
+@sentry-internal/node-cpu-profiler: approve
+bcrypt: approve
+msgpackr-extract: approve
+protobufjs: approve
+unrs-resolver: approve
+@sentry/cli: approve
+esbuild: approve
+sharp: approve
