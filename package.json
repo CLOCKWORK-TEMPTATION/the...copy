@@ -46,7 +46,13 @@
       "esbuild": "^0.25.0"
     },
     "onlyBuiltDependencies": [
-      "@pnpm/exe"
+      "@pnpm/exe",
+      "@firebase/util",
+      "@sentry-internal/node-cpu-profiler",
+      "bcrypt",
+      "msgpackr-extract",
+      "protobufjs",
+      "unrs-resolver"
     ],
     "ignoredBuiltDependencies": [
       "@sentry/cli",
