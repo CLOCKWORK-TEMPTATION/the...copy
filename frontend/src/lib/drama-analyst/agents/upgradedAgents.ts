@@ -29,6 +29,17 @@ import { PlotPredictorAgent } from "./plotPredictor/PlotPredictorAgent";
 import { WorldBuilderAgent } from "./worldBuilder/WorldBuilderAgent";
 import { AnalysisAgent } from "./analysis/AnalysisAgent";
 import { IntegratedAgent } from "./integrated/IntegratedAgent";
+
+// المجموعة الأولى - الوكلاء السبعة الجديدة
+import { PlatformAdapterAgent } from "./platformAdapter/PlatformAdapterAgent";
+import { CharacterDeepAnalyzerAgent } from "./characterDeepAnalyzer/CharacterDeepAnalyzerAgent";
+import { DialogueAdvancedAnalyzerAgent } from "./dialogueAdvancedAnalyzer/DialogueAdvancedAnalyzerAgent";
+import { ThemesMessagesAnalyzerAgent } from "./themesMessagesAnalyzer/ThemesMessagesAnalyzerAgent";
+import { CulturalHistoricalAnalyzerAgent } from "./culturalHistoricalAnalyzer/CulturalHistoricalAnalyzerAgent";
+import { VisualCinematicAnalyzerAgent } from "./visualCinematicAnalyzer/VisualCinematicAnalyzerAgent";
+import { ProducibilityAnalyzerAgent } from "./producibilityAnalyzer/ProducibilityAnalyzerAgent";
+
+// الوكلاء الأربعة المتبقية من الترقية السابقة
 import { AudienceResonanceAgent } from "./audienceResonance/AudienceResonanceAgent";
 import { TargetAudienceAnalyzerAgent } from "./targetAudienceAnalyzer/TargetAudienceAnalyzerAgent";
 import { LiteraryQualityAnalyzerAgent } from "./literaryQualityAnalyzer/LiteraryQualityAnalyzerAgent";
@@ -51,6 +62,17 @@ export const plotPredictorAgent = new PlotPredictorAgent();
 export const worldBuilderAgent = new WorldBuilderAgent();
 export const analysisAgent = new AnalysisAgent();
 export const integratedAgent = new IntegratedAgent();
+
+// المجموعة الأولى - الوكلاء السبعة الجديدة
+export const platformAdapterAgent = new PlatformAdapterAgent();
+export const characterDeepAnalyzerAgent = new CharacterDeepAnalyzerAgent();
+export const dialogueAdvancedAnalyzerAgent = new DialogueAdvancedAnalyzerAgent();
+export const themesMessagesAnalyzerAgent = new ThemesMessagesAnalyzerAgent();
+export const culturalHistoricalAnalyzerAgent = new CulturalHistoricalAnalyzerAgent();
+export const visualCinematicAnalyzerAgent = new VisualCinematicAnalyzerAgent();
+export const producibilityAnalyzerAgent = new ProducibilityAnalyzerAgent();
+
+// الوكلاء الأربعة المتبقية
 export const audienceResonanceAgent = new AudienceResonanceAgent();
 export const targetAudienceAnalyzerAgent = new TargetAudienceAnalyzerAgent();
 export const literaryQualityAnalyzerAgent = new LiteraryQualityAnalyzerAgent();
@@ -60,6 +82,7 @@ export const recommendationsGeneratorAgent = new RecommendationsGeneratorAgent()
  * Agent registry - maps task types to agent instances
  */
 export const UPGRADED_AGENTS = new Map<TaskType, BaseAgent>([
+  // الوكلاء الأساسية الأصلية (16 وكيل)
   [TaskType.COMPLETION, completionAgent],
   [TaskType.CREATIVE_DEVELOPMENT, creativeAgent],
   [TaskType.CHARACTER_VOICE, characterVoiceAgent],
@@ -76,6 +99,17 @@ export const UPGRADED_AGENTS = new Map<TaskType, BaseAgent>([
   [TaskType.WORLD_BUILDER, worldBuilderAgent],
   [TaskType.ANALYSIS, analysisAgent],
   [TaskType.INTEGRATED, integratedAgent],
+  
+  // الوكلاء السبعة الجديدة (المجموعة الأولى)
+  [TaskType.PLATFORM_ADAPTER, platformAdapterAgent],
+  [TaskType.CHARACTER_DEEP_ANALYZER, characterDeepAnalyzerAgent],
+  [TaskType.DIALOGUE_ADVANCED_ANALYZER, dialogueAdvancedAnalyzerAgent],
+  [TaskType.THEMES_MESSAGES_ANALYZER, themesMessagesAnalyzerAgent],
+  [TaskType.CULTURAL_HISTORICAL_ANALYZER, culturalHistoricalAnalyzerAgent],
+  [TaskType.VISUAL_CINEMATIC_ANALYZER, visualCinematicAnalyzerAgent],
+  [TaskType.PRODUCIBILITY_ANALYZER, producibilityAnalyzerAgent],
+  
+  // الوكلاء الأربعة المتبقية (مرقّاة سابقاً)
   [TaskType.AUDIENCE_RESONANCE, audienceResonanceAgent],
   [TaskType.TARGET_AUDIENCE_ANALYZER, targetAudienceAnalyzerAgent],
   [TaskType.LITERARY_QUALITY_ANALYZER, literaryQualityAnalyzerAgent],
@@ -158,14 +192,8 @@ export function getUpgradedAgents(): TaskType[] {
  * These will be created as they are upgraded
  */
 export const AGENTS_TO_UPGRADE: TaskType[] = [
-  TaskType.PLATFORM_ADAPTER,
-  TaskType.CHARACTER_DEEP_ANALYZER,
-  TaskType.DIALOGUE_ADVANCED_ANALYZER,
-  TaskType.VISUAL_CINEMATIC_ANALYZER,
-  TaskType.THEMES_MESSAGES_ANALYZER,
-  TaskType.CULTURAL_HISTORICAL_ANALYZER,
-  TaskType.PRODUCIBILITY_ANALYZER,
-  // تم ترقيتها: AUDIENCE_RESONANCE, TARGET_AUDIENCE_ANALYZER, LITERARY_QUALITY_ANALYZER, RECOMMENDATIONS_GENERATOR
+  // جميع الوكلاء تم ترقيتها! 🎉
+  // Total: 27 وكيل مرقّى بالنمط القياسي
 ];
 
 /**
@@ -204,7 +232,7 @@ export async function batchExecuteAgentTasks(
  * Get agent statistics
  */
 export function getAgentStatistics() {
-  const total = 28; // Total agents (all drama analyst agents)
+  const total = 27; // إجمالي الوكلاء (16 أساسية + 7 جديدة + 4 متبقية)
   const upgraded = UPGRADED_AGENTS.size;
   const remaining = AGENTS_TO_UPGRADE.length;
 
