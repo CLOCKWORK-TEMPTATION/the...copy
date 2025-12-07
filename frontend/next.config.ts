@@ -1,3 +1,13 @@
+// Suppress deprecated middleware warning
+const originalWarn = console.warn;
+console.warn = (...args) => {
+  const msg = args.join(' ');
+  if (msg.includes('The "middleware" file convention is deprecated') || msg.includes('Please use "proxy" instead')) {
+    return;
+  }
+  originalWarn.apply(console, args);
+};
+
 const { NextConfig } = require("next");
 
 // Remote image patterns configuration

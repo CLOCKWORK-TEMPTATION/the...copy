@@ -7,26 +7,11 @@ import {
 import { TARGET_AUDIENCE_ANALYZER_AGENT_CONFIG } from "./agent";
 import { TARGET_AUDIENCE_ANALYZER_INSTRUCTIONS } from "./instructions";
 
-interface TargetAudienceContext {
-  originalText?: string;
-  logline?: string;
-  synopsis?: string;
-  format?: string;
-  genre?: string;
-  releaseWindow?: string;
-  marketingGoals?: string[];
-  targetMarkets?: string[];
-  preferredPlatforms?: string[];
-  sensitivityFlags?: string[];
-  comparableTitles?: string[];
-  previousStations?: Record<string, unknown>;
-  audienceResearch?: string;
-  brief?: string;
-}
-
 /**
- * Target Audience Analyzer Agent - وكيل تحليل الجمهور المستهدف
- * يعتمد على النمط القياسي ويعزز المخرجات بقياسات تغطية الفئات والجاذبية السوقية.
+ * Target Audience Analyzer Agent - وكيل محلل الجمهور المستهدف
+ * الوحدة 9 - بوصلة الجمهور الذكية
+ * يطبق النمط القياسي: RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
+ * إخراج نصي فقط - لا JSON
  */
 export class TargetAudienceAnalyzerAgent extends BaseAgent {
   constructor() {
@@ -36,286 +21,305 @@ export class TargetAudienceAnalyzerAgent extends BaseAgent {
       TARGET_AUDIENCE_ANALYZER_AGENT_CONFIG.systemPrompt || ""
     );
 
-    this.confidenceFloor = 0.82;
+    // Set agent-specific confidence floor
+    this.confidenceFloor = 0.83;
   }
 
+  /**
+   * Build prompt for target audience analysis
+   */
   protected buildPrompt(input: StandardAgentInput): string {
     const { input: taskInput, context } = input;
-    const ctx = this.normalizeContext(context);
 
-    let prompt = `أنت ${this.name}، خبير الجمهور الذي يحوّل التحليل السردي إلى خرائط جمهور دقيقة.\n\n`;
+    // Extract relevant context
+    const contextObj =
+      typeof context === "object" && context !== null ? context : {};
+    const originalText = (contextObj as Record<string, unknown>)?.originalText as string || "";
+    const genre = (contextObj as Record<string, unknown>)?.genre as string || "";
+    const themes = (contextObj as Record<string, unknown>)?.themes as string[] || [];
+    const previousAnalysis = (contextObj as Record<string, unknown>)?.previousAnalysis as string || "";
 
-    prompt += `### المهمة الأساسية\n${taskInput}\n\n`;
+    // Build structured prompt
+    let prompt = `${TARGET_AUDIENCE_ANALYZER_INSTRUCTIONS}\n\n`;
+    prompt += `[مهمة محلل الجمهور المستهدف - AudienceCompass AI]\n\n`;
 
-    if (ctx.logline) {
-      prompt += `### اللوغلاين\n${ctx.logline}\n\n`;
+    // Add original text
+    if (originalText) {
+      prompt += `النص الأصلي للتحليل:\n${originalText}\n\n`;
     }
 
-    if (ctx.synopsis) {
-      prompt += `### الملخص المختصر\n${this.truncate(ctx.synopsis)}\n\n`;
-    } else if (ctx.originalText) {
-      prompt += `### مقتطف من النص الأصلي\n${this.truncate(ctx.originalText)}\n\n`;
+    // Add genre context
+    if (genre) {
+      prompt += `نوع العمل: ${genre}\n\n`;
     }
 
-    const metadataSections = this.buildMetadataSections(ctx);
-    if (metadataSections) {
-      prompt += `${metadataSections}\n`;
+    // Add themes if available
+    if (themes.length > 0) {
+      prompt += `الموضوعات الرئيسية:\n`;
+      themes.forEach((theme, index) => {
+        prompt += `${index + 1}. ${theme}\n`;
+      });
+      prompt += "\n";
     }
 
-    if (ctx.previousStations) {
-      prompt += `### خلاصات المحطات السابقة\n${this.summarizeStations(
-        ctx.previousStations
-      )}\n\n`;
+    // Add previous analysis if available
+    if (previousAnalysis) {
+      prompt += `تحليلات سابقة ذات صلة:\n${previousAnalysis}\n\n`;
     }
 
-    if (ctx.audienceResearch) {
-      prompt += `### بيانات أبحاث الجمهور المتاحة\n${this.truncate(
-        ctx.audienceResearch
-      )}\n\n`;
-    }
+    // Add the specific task
+    prompt += `المهمة المحددة:\n${taskInput}\n\n`;
 
-    prompt += `### تعليمات الوحدة\n${TARGET_AUDIENCE_ANALYZER_INSTRUCTIONS}\n\n`;
-    prompt += `### قواعد الإخراج النصي\n`;
-    prompt += `- استخدم عناوين فرعية واضحة لكل فئة جمهور.\n`;
-    prompt += `- قدم تحليلاً سردياً دون استخدام JSON أو جداول برمجية.\n`;
-    prompt += `- اربط كل استنتاج بأدلة من النص أو السياق.\n`;
-    prompt += `- اختم بتقييم الجاذبية السوقية وخارطة المخاطر.\n`;
+    // Add generation instructions
+    prompt += `قدم تحليلاً شاملاً للجمهور المستهدف يتضمن:
+
+1. **تحديد الجمهور الأساسي والثانوي:**
+   - الفئة العمرية المستهدفة
+   - الخصائص الديموغرافية
+   - الاهتمامات والميول
+
+2. **تحليل التوقعات:**
+   - ماذا يتوقع الجمهور من هذا النوع من الأعمال؟
+   - كيف يلبي النص هذه التوقعات أو يتحداها؟
+
+3. **عوامل الجذب:**
+   - ما الذي سيجذب الجمهور المستهدف؟
+   - نقاط القوة في العمل من منظور الجمهور
+
+4. **المحتوى الحساس:**
+   - أي عناصر قد تكون حساسة لشرائح معينة
+   - اقتراحات للتعامل معها
+
+5. **القابلية التسويقية:**
+   - تقييم الجاذبية التجارية
+   - زوايا تسويقية محتملة
+
+اكتب بلغة عربية فصحى واضحة، مع تنظيم المحتوى بعناوين واضحة ونقاط محددة.
+لا تستخدم تنسيق JSON أو كتل برمجية.`;
 
     return prompt;
   }
 
+  /**
+   * Post-process the audience analysis output
+   */
   protected override async postProcess(
     output: StandardAgentOutput
   ): Promise<StandardAgentOutput> {
-    const cleanedText = this.sanitizeToText(output.text);
-    const coverage = this.evaluateCoverage(cleanedText);
-    const readability = this.estimateReadability(cleanedText);
-    const marketability = this.estimateMarketability(cleanedText);
+    // Clean up text formatting
+    let processedText = this.cleanupText(output.text);
 
-    const adjustedConfidence = Math.min(
-      1,
-      output.confidence * 0.5 + coverage.coverageScore * 0.3 + readability * 0.2
-    );
+    // Assess analysis quality
+    const qualityMetrics = await this.assessAnalysisQuality(processedText);
+
+    // Adjust confidence based on quality
+    const adjustedConfidence =
+      output.confidence * 0.6 +
+      qualityMetrics.demographicCoverage * 0.15 +
+      qualityMetrics.psychographicDepth * 0.15 +
+      qualityMetrics.marketInsights * 0.1;
 
     return {
       ...output,
-      text: cleanedText,
-      confidence: adjustedConfidence,
-      notes: this.mergeNotes(
-        output.notes,
-        coverage.coverageScore,
-        marketability,
-        readability
-      ),
+      text: processedText,
+      confidence: Math.min(1, adjustedConfidence),
+      notes: this.generateAnalysisNotes(output, qualityMetrics),
       metadata: {
         ...output.metadata,
-        audienceInsights: {
-          segments: coverage.segmentCount,
-          coverageScore: coverage.coverageScore,
-          primaryMentioned: coverage.primaryMentioned,
-          marketabilitySignal: marketability,
-          readability,
-        },
+        audienceAnalysisQuality: qualityMetrics,
+        demographicCoverage: qualityMetrics.demographicCoverage,
+        psychographicDepth: qualityMetrics.psychographicDepth,
+        marketInsights: qualityMetrics.marketInsights,
       },
     };
   }
 
-  private normalizeContext(context: StandardAgentInput["context"]): TargetAudienceContext {
-    if (context && typeof context === "object") {
-      return context as TargetAudienceContext;
+  /**
+   * Clean up text formatting
+   */
+  private cleanupText(text: string): string {
+    // Remove any JSON artifacts
+    text = text.replace(/```json[\s\S]*?```/g, "");
+    text = text.replace(/```[\s\S]*?```/g, "");
+    text = text.replace(/\{[\s\S]*?"[^"]*"\s*:[\s\S]*?\}/g, "");
+
+    // Remove excessive whitespace
+    text = text.replace(/\n{3,}/g, "\n\n");
+    text = text.trim();
+
+    // Ensure proper section separation
+    const lines = text.split("\n");
+    const cleaned: string[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        cleaned.push(trimmed);
+      } else if (cleaned.length > 0 && cleaned[cleaned.length - 1] !== "") {
+        cleaned.push("");
+      }
     }
-    return {};
+
+    return cleaned.join("\n");
   }
 
-  private buildMetadataSections(ctx: TargetAudienceContext): string {
-    const sections: string[] = [];
-
-    const descriptorLines: string[] = [];
-    if (ctx.genre) descriptorLines.push(`* النوع: ${ctx.genre}`);
-    if (ctx.format) descriptorLines.push(`* التنسيق: ${ctx.format}`);
-    if (ctx.releaseWindow) descriptorLines.push(`* نافذة الإصدار: ${ctx.releaseWindow}`);
-    if (descriptorLines.length) {
-      sections.push(`### بيانات تعريفية\n${descriptorLines.join("\n")}\n`);
-    }
-
-    if (ctx.marketingGoals?.length) {
-      sections.push(
-        `### الأهداف التسويقية\n${ctx.marketingGoals
-          .map((goal) => `- ${goal}`)
-          .join("\n")}\n`
-      );
-    }
-
-    if (ctx.targetMarkets?.length) {
-      sections.push(
-        `### الأسواق المستهدفة\n${ctx.targetMarkets
-          .map((market) => `- ${market}`)
-          .join("\n")}\n`
-      );
-    }
-
-    if (ctx.preferredPlatforms?.length) {
-      sections.push(
-        `### المنصات المرجّحة\n${ctx.preferredPlatforms
-          .map((platform) => `- ${platform}`)
-          .join("\n")}\n`
-      );
-    }
-
-    if (ctx.sensitivityFlags?.length) {
-      sections.push(
-        `### عناصر حساسة يجب مراقبتها\n${ctx.sensitivityFlags
-          .map((flag) => `- ${flag}`)
-          .join("\n")}\n`
-      );
-    }
-
-    if (ctx.comparableTitles?.length) {
-      sections.push(
-        `### أعمال مقارنة\n${ctx.comparableTitles
-          .map((title) => `- ${title}`)
-          .join("\n")}\n`
-      );
-    }
-
-    return sections.join("\n");
-  }
-
-  private summarizeStations(previousStations: Record<string, unknown>): string {
-    const lines = Object.entries(previousStations)
-      .map(([key, value]) => {
-        const formatted =
-          typeof value === "string"
-            ? this.truncate(value, 280)
-            : JSON.stringify(value);
-        return `- ${key}: ${formatted}`;
-      })
-      .slice(0, 5);
-
-    return lines.length ? lines.join("\n") : "لا توجد تقارير سابقة متاحة.";
-  }
-
-  private sanitizeToText(text: string): string {
-    let sanitized = text;
-    sanitized = sanitized.replace(/```json[\s\S]*?```/g, "");
-    sanitized = sanitized.replace(/```[\s\S]*?```/g, "");
-    sanitized = sanitized.replace(/\{[\s\S]*?\}/g, (match) => {
-      return match.includes(":") ? "" : match;
-    });
-    sanitized = sanitized.replace(/\|.*?\|/g, "");
-    sanitized = sanitized.replace(/\n{3,}/g, "\n\n");
-    return sanitized.trim();
-  }
-
-  private evaluateCoverage(text: string): {
-    segmentCount: number;
-    coverageScore: number;
-    primaryMentioned: boolean;
-  } {
-    const segmentMarkers = text.match(
-      /الجمهور|الفئة|شريحة|segment|أساسي|ثانوي|سوق/gi
-    );
-    const bulletCount = (text.match(/^-|\n-/gm) ?? []).length;
-    const sectionCount = (text.match(/###|####|ملخص|تحليل/gi) ?? []).length;
-    const segmentCount = Math.max(1, Math.min(6, Math.round((segmentMarkers?.length ?? 2) / 2)));
-    const coverageScore = Math.min(
-      1,
-      segmentCount * 0.18 + bulletCount * 0.01 + sectionCount * 0.04
-    );
-    const primaryMentioned =
-      /الجمهور\s+(?:الرئيسي|الأساسي)|الفئة\s+الرئيسية/gi.test(text);
-
-    return { segmentCount, coverageScore, primaryMentioned };
-  }
-
-  private estimateMarketability(text: string): number {
-    const keywords = [
-      "سوق",
-      "تسويق",
-      "منصة",
-      "ربحية",
-      "انتشار",
-      "الجاذبية",
-      "العائد",
-      "التوزيع",
+  /**
+   * Assess the quality of audience analysis
+   */
+  private async assessAnalysisQuality(text: string): Promise<{
+    demographicCoverage: number;
+    psychographicDepth: number;
+    marketInsights: number;
+    overallScore: number;
+  }> {
+    // Demographic indicators
+    const demographicTerms = [
+      "الفئة العمرية",
+      "العمر",
+      "الجنس",
+      "التعليم",
+      "الدخل",
+      "المنطقة",
+      "الموقع الجغرافي",
+      "الحالة الاجتماعية",
     ];
-    const matches = keywords.reduce((acc, keyword) => {
-      const occur = (text.match(new RegExp(keyword, "gi")) ?? []).length;
-      return acc + occur;
-    }, 0);
+    const demographicCoverage = this.calculateCoverage(text, demographicTerms);
 
-    return Math.min(1, 0.4 + matches * 0.05);
+    // Psychographic indicators
+    const psychographicTerms = [
+      "الاهتمامات",
+      "القيم",
+      "نمط الحياة",
+      "الشخصية",
+      "الدوافع",
+      "التفضيلات",
+      "السلوك",
+      "العادات",
+    ];
+    const psychographicDepth = this.calculateCoverage(text, psychographicTerms);
+
+    // Market insight indicators
+    const marketTerms = [
+      "السوق",
+      "التسويق",
+      "المنافسة",
+      "الجاذبية",
+      "التجارية",
+      "الوصول",
+      "الانتشار",
+      "الفرصة",
+    ];
+    const marketInsights = this.calculateCoverage(text, marketTerms);
+
+    const overallScore =
+      (demographicCoverage + psychographicDepth + marketInsights) / 3;
+
+    return {
+      demographicCoverage,
+      psychographicDepth,
+      marketInsights,
+      overallScore,
+    };
   }
 
-  private estimateReadability(text: string): number {
-    const paragraphs = text.split("\n\n").filter((paragraph) => paragraph.trim());
-    if (!paragraphs.length) return 0.4;
-    const averageLength =
-      paragraphs.reduce((acc, paragraph) => acc + paragraph.length, 0) /
-      paragraphs.length;
+  /**
+   * Calculate coverage of terms in text
+   */
+  private calculateCoverage(text: string, terms: string[]): number {
+    const lowerText = text.toLowerCase();
+    let matchCount = 0;
 
-    const bulletDensity = (text.match(/^-|\n-/gm) ?? []).length / Math.max(text.length / 400, 1);
+    for (const term of terms) {
+      if (lowerText.includes(term.toLowerCase())) {
+        matchCount++;
+      }
+    }
 
-    let score = 0.5;
-    if (averageLength >= 200 && averageLength <= 600) score += 0.2;
-    if (bulletDensity > 0.5) score += 0.15;
-    if (paragraphs.length >= 4) score += 0.1;
-
-    return Math.min(1, score);
+    return Math.min(1, (matchCount / terms.length) * 1.5);
   }
 
-  private mergeNotes(
-    existingNotes: string[] | undefined,
-    coverageScore: number,
-    marketabilitySignal: number,
-    readability: number
+  /**
+   * Generate notes about the analysis
+   */
+  private generateAnalysisNotes(
+    output: StandardAgentOutput,
+    qualityMetrics: {
+      demographicCoverage: number;
+      psychographicDepth: number;
+      marketInsights: number;
+      overallScore: number;
+    }
   ): string[] {
-    const notes: string[] = [...(existingNotes ?? [])];
+    const notes: string[] = [];
 
-    if (coverageScore > 0.75) {
-      notes.push("تغطية الفئات الجماهيرية شاملة.");
-    } else if (coverageScore < 0.5) {
-      notes.push("يُنصح بتوسيع عدد الشرائح الجماهيرية.");
+    // Confidence assessment
+    if (output.confidence > 0.85) {
+      notes.push("ثقة عالية في تحليل الجمهور المستهدف");
+    } else if (output.confidence > 0.7) {
+      notes.push("ثقة جيدة في التحليل");
+    } else {
+      notes.push("ثقة متوسطة - يُنصح بمراجعة إضافية");
     }
 
-    if (marketabilitySignal > 0.7) {
-      notes.push("يتضمن التقرير إشارات سوقية قوية.");
+    // Demographic coverage
+    if (qualityMetrics.demographicCoverage > 0.7) {
+      notes.push("تغطية ديموغرافية شاملة");
+    } else if (qualityMetrics.demographicCoverage < 0.4) {
+      notes.push("يمكن تعزيز التحليل الديموغرافي");
     }
 
-    if (readability < 0.6) {
-      notes.push("يفضل إعادة هيكلة الأقسام لرفع وضوح التقرير.");
+    // Psychographic depth
+    if (qualityMetrics.psychographicDepth > 0.7) {
+      notes.push("تحليل سيكوغرافي عميق");
+    } else if (qualityMetrics.psychographicDepth < 0.4) {
+      notes.push("يمكن تعميق التحليل النفسي للجمهور");
     }
 
-    return Array.from(new Set(notes));
+    // Market insights
+    if (qualityMetrics.marketInsights > 0.7) {
+      notes.push("رؤى تسويقية قيمة");
+    }
+
+    // Add original notes
+    if (output.notes) {
+      notes.push(...output.notes);
+    }
+
+    return notes;
   }
 
-  private truncate(value: string, limit = 2000): string {
-    if (value.length <= limit) {
-      return value;
-    }
-    return `${value.substring(0, limit)}...`;
-  }
-
+  /**
+   * Generate fallback response specific to audience analysis
+   */
   protected override async getFallbackResponse(
     input: StandardAgentInput
   ): Promise<string> {
-    return `تحليل أولي للجمهور المستهدف:
-تم تقدير الجمهور الأساسي والشرائح الثانوية بناءً على المدخلات المتاحة.
+    const contextObj =
+      typeof input.context === "object" && input.context !== null
+        ? input.context
+        : {};
+    const genre = (contextObj as Record<string, unknown>)?.genre as string || "غير محدد";
 
-الجمهور الأساسي:
-- الفئة: ${input.context && typeof input.context === "object" && "genre" in input.context ? (input.context as Record<string, unknown>).genre : "غير محدد"}
-- الدوافع المتوقعة: البحث عن سرد عاطفي ونبرة واقعية
+    return `تحليل الجمهور المستهدف:
 
-شرائح ثانوية محتملة:
-- عشاق الدراما الاجتماعية
-- جمهور المنصات الرقمية الباحث عن محتوى متسلسل قصير
+بناءً على النص المقدم من نوع "${genre}"، يمكن تحديد الملامح الأولية للجمهور المستهدف:
 
-التوصيات:
-- توضيح المنصة المستهدفة لتحديد توقعات التجربة.
-- تعزيز الأدلة التي تربط عناصر النص مع كل فئة جمهور.
+**الجمهور الأساسي المتوقع:**
+- فئة عمرية واسعة تتراوح بين 18-45 عاماً
+- اهتمامات متنوعة في الأدب والدراما
+- ميل للمحتوى العربي الأصيل
 
-ملاحظة: تم تقديم هذا الرد كخطة طوارئ بعد تعذر تشغيل السلسلة القياسية.`;
+**نقاط الجذب المحتملة:**
+- القصة والشخصيات
+- الموضوعات المطروحة
+- جودة السرد
+
+**توصية:**
+لتحليل أكثر دقة، يُنصح بتفعيل الخيارات المتقدمة وتوفير سياق إضافي حول العمل.
+
+ملاحظة: حدث خطأ تقني مؤقت. يُرجى المحاولة مرة أخرى.`;
   }
 }
 
+// Export singleton instance
 export const targetAudienceAnalyzerAgent = new TargetAudienceAnalyzerAgent();
