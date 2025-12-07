@@ -7,6 +7,10 @@
 
 import { TaskType } from "@core/types";
 import { BaseAgent } from "./shared/BaseAgent";
+import {
+  StandardAgentInput,
+  StandardAgentOutput,
+} from "./shared/standardAgentPattern";
 
 // Import upgraded agents
 import { CompletionAgent } from "./completion/CompletionAgent";
@@ -23,9 +27,8 @@ import { TensionOptimizerAgent } from "./tensionOptimizer/TensionOptimizerAgent"
 import { RhythmMappingAgent } from "./rhythmMapping/RhythmMappingAgent";
 import { PlotPredictorAgent } from "./plotPredictor/PlotPredictorAgent";
 import { WorldBuilderAgent } from "./worldBuilder/WorldBuilderAgent";
-import { TargetAudienceAnalyzerAgent } from "./targetAudienceAnalyzer/TargetAudienceAnalyzerAgent";
-import { LiteraryQualityAnalyzerAgent } from "./literaryQualityAnalyzer/LiteraryQualityAnalyzerAgent";
-import { RecommendationsGeneratorAgent } from "./recommendationsGenerator/RecommendationsGeneratorAgent";
+import { AnalysisAgent } from "./analysis/AnalysisAgent";
+import { IntegratedAgent } from "./integrated/IntegratedAgent";
 
 // Agent instances (singleton pattern)
 export const completionAgent = new CompletionAgent();
@@ -42,9 +45,8 @@ export const tensionOptimizerAgent = new TensionOptimizerAgent();
 export const rhythmMappingAgent = new RhythmMappingAgent();
 export const plotPredictorAgent = new PlotPredictorAgent();
 export const worldBuilderAgent = new WorldBuilderAgent();
-export const targetAudienceAnalyzerAgent = new TargetAudienceAnalyzerAgent();
-export const literaryQualityAnalyzerAgent = new LiteraryQualityAnalyzerAgent();
-export const recommendationsGeneratorAgent = new RecommendationsGeneratorAgent();
+export const analysisAgent = new AnalysisAgent();
+export const integratedAgent = new IntegratedAgent();
 
 /**
  * Agent registry - maps task types to agent instances
@@ -64,15 +66,9 @@ export const UPGRADED_AGENTS = new Map<TaskType, BaseAgent>([
   [TaskType.RHYTHM_MAPPING, rhythmMappingAgent],
   [TaskType.PLOT_PREDICTOR, plotPredictorAgent],
   [TaskType.WORLD_BUILDER, worldBuilderAgent],
-  [TaskType.TARGET_AUDIENCE_ANALYZER, targetAudienceAnalyzerAgent],
-  [TaskType.LITERARY_QUALITY_ANALYZER, literaryQualityAnalyzerAgent],
-  [TaskType.RECOMMENDATIONS_GENERATOR, recommendationsGeneratorAgent],
+  [TaskType.ANALYSIS, analysisAgent],
+  [TaskType.INTEGRATED, integratedAgent],
 ]);
-
-import {
-  StandardAgentInput,
-  StandardAgentOutput,
-} from "./shared/standardAgentPattern";
 
 /**
  * Execute agent task with standard pattern
@@ -150,8 +146,6 @@ export function getUpgradedAgents(): TaskType[] {
  * These will be created as they are upgraded
  */
 export const AGENTS_TO_UPGRADE: TaskType[] = [
-  TaskType.ANALYSIS,
-  TaskType.INTEGRATED,
   TaskType.AUDIENCE_RESONANCE,
   TaskType.PLATFORM_ADAPTER,
   TaskType.CHARACTER_DEEP_ANALYZER,
@@ -199,7 +193,7 @@ export async function batchExecuteAgentTasks(
  * Get agent statistics
  */
 export function getAgentStatistics() {
-  const total = 17; // Total core agents (14 original + 3 new: TargetAudience, LiteraryQuality, Recommendations)
+  const total = 16; // Total core agents (14 original + 2 new: ANALYSIS, INTEGRATED)
   const upgraded = UPGRADED_AGENTS.size;
   const remaining = AGENTS_TO_UPGRADE.length;
 
