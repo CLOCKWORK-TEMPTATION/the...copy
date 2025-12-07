@@ -24,6 +24,9 @@ import { RhythmMappingAgent } from "./rhythmMapping/RhythmMappingAgent";
 import { PlotPredictorAgent } from "./plotPredictor/PlotPredictorAgent";
 import { WorldBuilderAgent } from "./worldBuilder/WorldBuilderAgent";
 import { AudienceResonanceAgent } from "./audienceResonance/AudienceResonanceAgent";
+import { TargetAudienceAnalyzerAgent } from "./targetAudienceAnalyzer/TargetAudienceAnalyzerAgent";
+import { LiteraryQualityAnalyzerAgent } from "./literaryQualityAnalyzer/LiteraryQualityAnalyzerAgent";
+import { RecommendationsGeneratorAgent } from "./recommendationsGenerator/RecommendationsGeneratorAgent";
 
 // Agent instances (singleton pattern)
 export const completionAgent = new CompletionAgent();
@@ -41,6 +44,9 @@ export const rhythmMappingAgent = new RhythmMappingAgent();
 export const plotPredictorAgent = new PlotPredictorAgent();
 export const worldBuilderAgent = new WorldBuilderAgent();
 export const audienceResonanceAgent = new AudienceResonanceAgent();
+export const targetAudienceAnalyzerAgent = new TargetAudienceAnalyzerAgent();
+export const literaryQualityAnalyzerAgent = new LiteraryQualityAnalyzerAgent();
+export const recommendationsGeneratorAgent = new RecommendationsGeneratorAgent();
 
 /**
  * Agent registry - maps task types to agent instances
@@ -61,6 +67,9 @@ export const UPGRADED_AGENTS = new Map<TaskType, BaseAgent>([
   [TaskType.PLOT_PREDICTOR, plotPredictorAgent],
   [TaskType.WORLD_BUILDER, worldBuilderAgent],
   [TaskType.AUDIENCE_RESONANCE, audienceResonanceAgent],
+  [TaskType.TARGET_AUDIENCE_ANALYZER, targetAudienceAnalyzerAgent],
+  [TaskType.LITERARY_QUALITY_ANALYZER, literaryQualityAnalyzerAgent],
+  [TaskType.RECOMMENDATIONS_GENERATOR, recommendationsGeneratorAgent],
 ]);
 
 import {
@@ -153,9 +162,7 @@ export const AGENTS_TO_UPGRADE: TaskType[] = [
   TaskType.THEMES_MESSAGES_ANALYZER,
   TaskType.CULTURAL_HISTORICAL_ANALYZER,
   TaskType.PRODUCIBILITY_ANALYZER,
-  TaskType.TARGET_AUDIENCE_ANALYZER,
-  TaskType.LITERARY_QUALITY_ANALYZER,
-  TaskType.RECOMMENDATIONS_GENERATOR,
+  // تم ترقيتها: AUDIENCE_RESONANCE, TARGET_AUDIENCE_ANALYZER, LITERARY_QUALITY_ANALYZER, RECOMMENDATIONS_GENERATOR
 ];
 
 /**
@@ -194,9 +201,9 @@ export async function batchExecuteAgentTasks(
  * Get agent statistics
  */
 export function getAgentStatistics() {
-  const total = 15; // Total core agents for creative development (14 original + audienceResonance)
+  const total = 18; // Total core agents (14 original + 4 new: audienceResonance, targetAudience, literaryQuality, recommendations)
   const upgraded = UPGRADED_AGENTS.size;
-  const remaining = total - upgraded;
+  const remaining = AGENTS_TO_UPGRADE.length;
 
   return {
     total,
