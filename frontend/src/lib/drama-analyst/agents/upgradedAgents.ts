@@ -29,6 +29,10 @@ import { PlotPredictorAgent } from "./plotPredictor/PlotPredictorAgent";
 import { WorldBuilderAgent } from "./worldBuilder/WorldBuilderAgent";
 import { AnalysisAgent } from "./analysis/AnalysisAgent";
 import { IntegratedAgent } from "./integrated/IntegratedAgent";
+import { AudienceResonanceAgent } from "./audienceResonance/AudienceResonanceAgent";
+import { TargetAudienceAnalyzerAgent } from "./targetAudienceAnalyzer/TargetAudienceAnalyzerAgent";
+import { LiteraryQualityAnalyzerAgent } from "./literaryQualityAnalyzer/LiteraryQualityAnalyzerAgent";
+import { RecommendationsGeneratorAgent } from "./recommendationsGenerator/RecommendationsGeneratorAgent";
 
 // Agent instances (singleton pattern)
 export const completionAgent = new CompletionAgent();
@@ -47,6 +51,10 @@ export const plotPredictorAgent = new PlotPredictorAgent();
 export const worldBuilderAgent = new WorldBuilderAgent();
 export const analysisAgent = new AnalysisAgent();
 export const integratedAgent = new IntegratedAgent();
+export const audienceResonanceAgent = new AudienceResonanceAgent();
+export const targetAudienceAnalyzerAgent = new TargetAudienceAnalyzerAgent();
+export const literaryQualityAnalyzerAgent = new LiteraryQualityAnalyzerAgent();
+export const recommendationsGeneratorAgent = new RecommendationsGeneratorAgent();
 
 /**
  * Agent registry - maps task types to agent instances
@@ -68,6 +76,10 @@ export const UPGRADED_AGENTS = new Map<TaskType, BaseAgent>([
   [TaskType.WORLD_BUILDER, worldBuilderAgent],
   [TaskType.ANALYSIS, analysisAgent],
   [TaskType.INTEGRATED, integratedAgent],
+  [TaskType.AUDIENCE_RESONANCE, audienceResonanceAgent],
+  [TaskType.TARGET_AUDIENCE_ANALYZER, targetAudienceAnalyzerAgent],
+  [TaskType.LITERARY_QUALITY_ANALYZER, literaryQualityAnalyzerAgent],
+  [TaskType.RECOMMENDATIONS_GENERATOR, recommendationsGeneratorAgent],
 ]);
 
 /**
@@ -146,7 +158,6 @@ export function getUpgradedAgents(): TaskType[] {
  * These will be created as they are upgraded
  */
 export const AGENTS_TO_UPGRADE: TaskType[] = [
-  TaskType.AUDIENCE_RESONANCE,
   TaskType.PLATFORM_ADAPTER,
   TaskType.CHARACTER_DEEP_ANALYZER,
   TaskType.DIALOGUE_ADVANCED_ANALYZER,
@@ -154,7 +165,7 @@ export const AGENTS_TO_UPGRADE: TaskType[] = [
   TaskType.THEMES_MESSAGES_ANALYZER,
   TaskType.CULTURAL_HISTORICAL_ANALYZER,
   TaskType.PRODUCIBILITY_ANALYZER,
-  // تم ترقيتها: TARGET_AUDIENCE_ANALYZER, LITERARY_QUALITY_ANALYZER, RECOMMENDATIONS_GENERATOR
+  // تم ترقيتها: AUDIENCE_RESONANCE, TARGET_AUDIENCE_ANALYZER, LITERARY_QUALITY_ANALYZER, RECOMMENDATIONS_GENERATOR
 ];
 
 /**
@@ -193,7 +204,7 @@ export async function batchExecuteAgentTasks(
  * Get agent statistics
  */
 export function getAgentStatistics() {
-  const total = 16; // Total core agents (14 original + 2 new: ANALYSIS, INTEGRATED)
+  const total = 28; // Total agents (all drama analyst agents)
   const upgraded = UPGRADED_AGENTS.size;
   const remaining = AGENTS_TO_UPGRADE.length;
 
