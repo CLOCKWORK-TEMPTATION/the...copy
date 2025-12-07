@@ -57,9 +57,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
@@ -235,7 +232,14 @@ const nextConfig = {
     remotePatterns: remoteImagePatterns,
   },
 
+  // Turbopack configuration for Next.js 16
+  turbopack: {
+    // Turbopack handles most webpack configurations automatically
+    // Add specific turbopack configs here if needed
+  },
+
   // Webpack configuration for handling Node.js built-in modules and critical dependency warnings
+  // Note: In Next.js 16, Turbopack is default. Webpack config is kept for fallback compatibility.
   webpack: (config: any, { isServer }: { isServer: boolean }) => {
     if (!isServer) {
       // Don't resolve Node.js modules on client side
