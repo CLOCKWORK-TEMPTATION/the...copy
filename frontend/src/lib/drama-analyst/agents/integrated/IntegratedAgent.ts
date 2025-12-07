@@ -197,8 +197,8 @@ export class IntegratedAgent extends BaseAgent {
     let inSection = false;
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      const nextLine = lines[i + 1]?.trim() || "";
+      const line = lines[i]?.trim() ?? "";
+      const nextLine = lines[i + 1]?.trim() ?? "";
 
       // Detect section headers
       if (
