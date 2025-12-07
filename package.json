@@ -52,12 +52,11 @@
       "bcrypt",
       "msgpackr-extract",
       "protobufjs",
-      "unrs-resolver"
-    ],
-    "ignoredBuiltDependencies": [
+      "unrs-resolver",
       "@sentry/cli",
       "esbuild",
       "sharp"
     ]
+
   }
 }
