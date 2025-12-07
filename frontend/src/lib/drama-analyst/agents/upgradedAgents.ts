@@ -7,6 +7,10 @@
 
 import { TaskType } from "@core/types";
 import { BaseAgent } from "./shared/BaseAgent";
+import {
+  StandardAgentInput,
+  StandardAgentOutput,
+} from "./shared/standardAgentPattern";
 
 // Import upgraded agents
 import { CompletionAgent } from "./completion/CompletionAgent";
@@ -65,11 +69,6 @@ export const UPGRADED_AGENTS = new Map<TaskType, BaseAgent>([
   [TaskType.ANALYSIS, analysisAgent],
   [TaskType.INTEGRATED, integratedAgent],
 ]);
-
-import {
-  StandardAgentInput,
-  StandardAgentOutput,
-} from "./shared/standardAgentPattern";
 
 /**
  * Execute agent task with standard pattern
