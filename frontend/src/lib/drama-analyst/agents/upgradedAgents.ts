@@ -23,6 +23,7 @@ import { TensionOptimizerAgent } from "./tensionOptimizer/TensionOptimizerAgent"
 import { RhythmMappingAgent } from "./rhythmMapping/RhythmMappingAgent";
 import { PlotPredictorAgent } from "./plotPredictor/PlotPredictorAgent";
 import { WorldBuilderAgent } from "./worldBuilder/WorldBuilderAgent";
+import { AudienceResonanceAgent } from "./audienceResonance/AudienceResonanceAgent";
 
 // Agent instances (singleton pattern)
 export const completionAgent = new CompletionAgent();
@@ -39,6 +40,7 @@ export const tensionOptimizerAgent = new TensionOptimizerAgent();
 export const rhythmMappingAgent = new RhythmMappingAgent();
 export const plotPredictorAgent = new PlotPredictorAgent();
 export const worldBuilderAgent = new WorldBuilderAgent();
+export const audienceResonanceAgent = new AudienceResonanceAgent();
 
 /**
  * Agent registry - maps task types to agent instances
@@ -58,6 +60,7 @@ export const UPGRADED_AGENTS = new Map<TaskType, BaseAgent>([
   [TaskType.RHYTHM_MAPPING, rhythmMappingAgent],
   [TaskType.PLOT_PREDICTOR, plotPredictorAgent],
   [TaskType.WORLD_BUILDER, worldBuilderAgent],
+  [TaskType.AUDIENCE_RESONANCE, audienceResonanceAgent],
 ]);
 
 import {
@@ -143,7 +146,6 @@ export function getUpgradedAgents(): TaskType[] {
 export const AGENTS_TO_UPGRADE: TaskType[] = [
   TaskType.ANALYSIS,
   TaskType.INTEGRATED,
-  TaskType.AUDIENCE_RESONANCE,
   TaskType.PLATFORM_ADAPTER,
   TaskType.CHARACTER_DEEP_ANALYZER,
   TaskType.DIALOGUE_ADVANCED_ANALYZER,
@@ -192,7 +194,7 @@ export async function batchExecuteAgentTasks(
  * Get agent statistics
  */
 export function getAgentStatistics() {
-  const total = 14; // Total core agents for creative development
+  const total = 15; // Total core agents for creative development (14 original + audienceResonance)
   const upgraded = UPGRADED_AGENTS.size;
   const remaining = total - upgraded;
 
