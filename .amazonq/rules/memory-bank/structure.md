@@ -1,293 +1,236 @@
 # Project Structure - The Copy
 
-## Repository Organization
+## Architecture Overview
+The Copy is a **monorepo** using pnpm workspaces with three main packages:
+- **frontend**: Next.js 14 application (App Router)
+- **backend**: Express.js REST API with TypeScript
+- **monitoring**: Prometheus + Grafana observability stack
 
-This is a **pnpm monorepo** with two main packages:
-
-```
-theeeecopy/
-├── backend/          # Express.js API server
-├── frontend/         # Next.js web application
-├── docs/            # Project documentation
-├── scripts/         # Build and deployment scripts
-├── monitoring/      # Prometheus & Grafana configs
-├── redis/           # Redis Windows binaries
-└── pnpm-workspace.yaml
-```
-
-## Backend Structure (`/backend`)
-
-### Core Directories
+## Directory Structure
 
 ```
-backend/
-├── src/
-│   ├── config/           # Configuration files (database, redis, queues)
-│   ├── controllers/      # Request handlers (projects, scenes, characters, shots, analysis, metrics, realtime)
-│   ├── db/              # Database schema and connection (Drizzle ORM)
-│   ├── middleware/      # Express middleware (auth, validation, rate limiting, error handling)
-│   ├── queues/          # BullMQ job processors (AI analysis, document processing)
-│   ├── services/        # Business logic (AI, cache, websocket, SSE, document parsing)
-│   ├── types/           # TypeScript type definitions
-│   ├── utils/           # Utility functions (validation, logging, security)
-│   ├── server.ts        # Main Express server
-│   └── mcp-server.ts    # Model Context Protocol server
-├── db-performance-analysis/  # Database optimization tools and reports
-├── migrations/          # SQL migration files
-├── drizzle/            # Drizzle ORM metadata
-└── docs/               # Backend-specific documentation
+the-copy/
+├── frontend/              # Next.js 14 frontend application
+│   ├── src/
+│   │   ├── app/          # Next.js App Router pages
+│   │   │   ├── (main)/  # Main application routes
+│   │   │   │   ├── directors-studio/    # Production management UI
+│   │   │   │   ├── editor/              # Screenplay editor
+│   │   │   │   └── actorai-arabic/      # Seven stations analysis
+│   │   │   └── api/     # Next.js API routes
+│   │   ├── components/   # Reusable React components
+│   │   ├── hooks/        # Custom React hooks
+│   │   ├── lib/          # Utility libraries
+│   │   ├── ai/           # Genkit AI integration
+│   │   ├── orchestration/ # Multi-agent AI orchestration
+│   │   ├── types/        # TypeScript type definitions
+│   │   └── workers/      # Web Workers for heavy processing
+│   ├── public/           # Static assets
+│   └── tests/            # Frontend tests (Vitest, Playwright)
+│
+├── backend/              # Express.js backend API
+│   ├── src/
+│   │   ├── controllers/  # Request handlers
+│   │   ├── services/     # Business logic layer
+│   │   ├── db/           # Database schema (Drizzle ORM)
+│   │   ├── queues/       # BullMQ job processors
+│   │   ├── middleware/   # Express middleware
+│   │   ├── config/       # Configuration management
+│   │   ├── utils/        # Helper functions
+│   │   ├── types/        # TypeScript types
+│   │   └── server.ts     # Express app entry point
+│   ├── drizzle/          # Database migrations
+│   └── scripts/          # Utility scripts
+│
+├── monitoring/           # Observability stack
+│   ├── grafana/         # Grafana dashboards
+│   └── prometheus.yml   # Prometheus configuration
+│
+├── docs/                # Documentation
+│   ├── performance-optimization/  # Performance guides
+│   ├── operations/      # Runbooks and operational docs
+│   └── adrs/            # Architecture Decision Records
+│
+├── scripts/             # Root-level utility scripts
+├── redis/               # Redis configuration files
+└── dev-tools/           # Development utilities
+    └── db-analysis/     # Database performance tools
 ```
 
-### Key Components
-
-**Database Layer** (`src/db/`)
-- `schema.ts`: Drizzle ORM schema definitions (users, projects, scenes, characters, shots, analyses)
-- `index.ts`: Database connection and query helpers
-- Uses PostgreSQL (Neon Serverless) with connection pooling
-
-**Services** (`src/services/`)
-- `ai.service.ts`: Google Gemini API integration for analysis
-- `cache.service.ts`: Redis caching with TTL management
-- `websocket.service.ts`: Socket.IO WebSocket management
-- `sse.service.ts`: Server-Sent Events streaming
-- `document.service.ts`: PDF/DOCX parsing (pdfjs-dist, mammoth)
-
-**Queue System** (`src/queues/`)
-- `ai-analysis.queue.ts`: Background AI analysis jobs
-- `document-processing.queue.ts`: Async document parsing
-- Uses BullMQ with Redis backend
-- Bull Board dashboard at `/admin/queues`
-
-**Controllers** (`src/controllers/`)
-- RESTful API endpoints for CRUD operations
-- Real-time endpoints for WebSocket/SSE connections
-- Metrics endpoints for Prometheus
-
-**Middleware** (`src/middleware/`)
-- `auth.middleware.ts`: JWT authentication
-- `validation.middleware.ts`: Zod schema validation
-- `rate-limit.middleware.ts`: Multi-level rate limiting
-- `error.middleware.ts`: Centralized error handling
-- `security.middleware.ts`: Helmet, CORS, CSP
-
-## Frontend Structure (`/frontend`)
-
-### Core Directories
-
-```
-frontend/
-├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── (main)/            # Main application routes
-│   │   │   ├── directors-studio/    # Directors Studio feature
-│   │   │   ├── actorai-arabic/      # Seven Stations Analysis
-│   │   │   └── ...
-│   │   ├── api/               # API route handlers
-│   │   └── layout.tsx         # Root layout
-│   ├── components/            # React components
-│   │   ├── ui/               # shadcn/ui components (button, dialog, card, etc.)
-│   │   ├── landing/          # Landing page components
-│   │   └── ...               # Feature-specific components
-│   ├── lib/                  # Utility libraries
-│   │   ├── api.ts           # API client functions
-│   │   ├── utils.ts         # Helper functions
-│   │   └── validations.ts   # Zod schemas
-│   ├── hooks/               # Custom React hooks
-│   ├── types/               # TypeScript type definitions
-│   ├── config/              # Configuration files
-│   ├── styles/              # Global styles and Tailwind
-│   ├── ai/                  # Genkit AI integration
-│   ├── orchestration/       # Multi-agent orchestration
-│   └── middleware.ts        # Next.js middleware
-├── public/                  # Static assets
-│   ├── images/
-│   ├── fonts/
-│   └── directors-studio/
-├── tests/                   # Test files
-│   ├── unit/
-│   └── e2e/
-└── scripts/                 # Build and utility scripts
-```
-
-### Key Components
-
-**App Router** (`src/app/`)
-- Server and client components
-- Nested layouts for different sections
-- API routes for backend communication
-- Parallel routes for complex UIs
-
-**UI Components** (`src/components/ui/`)
-- shadcn/ui component library
-- Radix UI primitives
-- Tailwind CSS styling
-- Accessible and customizable
-
-**Directors Studio** (`src/app/(main)/directors-studio/`)
-- Project management interface
-- Scene breakdown tools
-- Character tracking
-- Shot list generation
-- Tab-based navigation (Overview, Scenes, Characters, Shots)
-
-**Seven Stations Analysis** (`src/app/(main)/actorai-arabic/`)
-- Script upload and parsing
-- AI analysis interface
-- Real-time progress tracking
-- Results visualization
-
-**API Integration** (`src/lib/api.ts`)
-- Centralized API client
-- Error handling
-- Request/response typing
-- Authentication headers
-
-## Documentation Structure (`/docs`)
-
-```
-docs/
-├── performance-optimization/    # Performance guides
-│   ├── README.md
-│   ├── QUICK_START.md
-│   ├── IMPLEMENTATION_PLAN.md
-│   └── ...
-├── operations/                 # Operational runbooks
-│   ├── REDIS_WINDOWS.md
-│   ├── ROLLBACK_PLAN.md
-│   └── RUNBOOKS.md
-├── adrs/                      # Architecture Decision Records
-│   └── 001-multi-agent-ai-architecture.md
-├── realtime-communication.md  # WebSocket/SSE guide
-├── METRICS_DASHBOARD.md       # Monitoring guide
-└── CDN_SETUP.md              # CDN configuration
-```
-
-## Configuration Files
-
-### Root Level
-- `pnpm-workspace.yaml`: Monorepo workspace configuration
-- `package.json`: Root package with shared scripts
-- `.env`: Environment variables (not committed)
-- `.env.example`: Environment variable template
-
-### Backend
-- `tsconfig.json`: TypeScript configuration
-- `drizzle.config.ts`: Drizzle ORM configuration
-- `vitest.config.ts`: Test configuration
-- `docker-compose.yml`: Docker services (Redis, PostgreSQL)
-- `.eslintrc.js`: ESLint rules
-
-### Frontend
-- `next.config.ts`: Next.js configuration
-- `tailwind.config.ts`: Tailwind CSS configuration
-- `tsconfig.json`: TypeScript configuration
-- `vitest.config.ts`: Vitest configuration
-- `playwright.config.ts`: E2E test configuration
-- `sentry.client.config.ts`: Sentry monitoring
-
-## Architectural Patterns
-
-### Backend Architecture
-- **Layered Architecture**: Controllers → Services → Database
-- **Repository Pattern**: Database access abstraction via Drizzle ORM
-- **Service Layer**: Business logic separation
-- **Middleware Pipeline**: Request processing chain
-- **Queue-Based Processing**: Async jobs with BullMQ
-- **Caching Strategy**: Redis for frequently accessed data
+## Core Components
 
 ### Frontend Architecture
-- **App Router**: File-based routing with layouts
-- **Server Components**: Default server-side rendering
-- **Client Components**: Interactive UI with 'use client'
-- **API Routes**: Backend communication layer
-- **Component Composition**: Reusable UI components
-- **State Management**: React Hooks + Zustand for global state
 
-### Communication Patterns
-- **REST API**: Standard CRUD operations
-- **WebSocket**: Bidirectional real-time updates
-- **SSE**: Server-to-client streaming (logs, progress)
-- **Job Queues**: Background processing with status updates
+#### App Router Structure
+- **(main)**: Main application layout with shared navigation
+  - **directors-studio**: Project management, scenes, shots, characters
+  - **editor**: Screenplay editing with real-time analysis
+  - **actorai-arabic**: Seven stations dramatic analysis interface
 
-### Data Flow
-1. **User Request** → Frontend (Next.js)
-2. **API Call** → Backend (Express.js)
-3. **Authentication** → JWT Middleware
-4. **Validation** → Zod Schema Validation
-5. **Business Logic** → Service Layer
-6. **Data Access** → Drizzle ORM → PostgreSQL
-7. **Caching** → Redis (read-through/write-through)
-8. **Background Jobs** → BullMQ → Worker Processes
-9. **Real-time Updates** → WebSocket/SSE → Frontend
-10. **Response** → JSON → Frontend → UI Update
+#### Key Frontend Modules
+- **components/**: shadcn/ui + custom Radix UI components
+- **hooks/**: React hooks for state management and side effects
+- **ai/**: Genkit integration for AI features
+- **orchestration/**: Multi-agent AI coordination system
+- **workers/**: Web Workers for PDF parsing and heavy computations
 
-## Database Schema
+### Backend Architecture
 
-### Core Tables
-- `users`: User accounts and authentication
-- `projects`: Film/TV projects
-- `scenes`: Individual scenes within projects
-- `characters`: Character definitions and tracking
-- `shots`: Shot lists with camera details
-- `analyses`: AI analysis results
-- `sessions`: User session management
+#### Layered Structure
+1. **Controllers**: HTTP request/response handling, validation
+2. **Services**: Business logic, database operations, AI integration
+3. **Queues**: Background job processing (analysis, exports)
+4. **Middleware**: Authentication, rate limiting, error handling
 
-### Relationships
+#### Key Backend Modules
+- **db/schema/**: Drizzle ORM schema definitions
+  - projects, scenes, shots, characters tables
+  - User authentication and sessions
+- **queues/**: BullMQ processors
+  - Analysis queue for AI processing
+  - Export queue for PDF/DOCX generation
+- **services/**: Core business logic
+  - gemini.service.ts: AI analysis integration
+  - cache.service.ts: Redis caching layer
+  - websocket.service.ts: Real-time updates
+
+### Database Schema (PostgreSQL)
+
+#### Core Tables
+- **users**: User accounts and authentication
+- **projects**: Top-level screenplay projects
+- **scenes**: Individual scenes within projects
+- **shots**: Camera shots within scenes
+- **characters**: Character definitions and tracking
+- **analysis_results**: Cached AI analysis outputs
+- **sessions**: User session management
+
+#### Relationships
 - Projects → Scenes (one-to-many)
-- Projects → Characters (one-to-many)
 - Scenes → Shots (one-to-many)
-- Projects → Analyses (one-to-many)
-- Users → Projects (one-to-many, via userId)
+- Projects → Characters (many-to-many)
+- Scenes → Characters (many-to-many)
 
-### Indexes
-- Composite indexes on (userId, projectId) for fast filtering
-- Indexes on foreign keys for join performance
-- Partial indexes for active records
-- See `backend/migrations/add-performance-indexes.sql`
+### Queue System (BullMQ + Redis)
 
-## Deployment Architecture
+#### Job Types
+1. **analysis-jobs**: Long-running AI analysis tasks
+2. **export-jobs**: PDF/DOCX generation
+3. **extraction-jobs**: Scene/character extraction from scripts
+4. **notification-jobs**: User notifications and emails
 
-### Frontend (Vercel)
-- Automatic deployments from Git
-- Edge network distribution
-- Serverless functions for API routes
-- Image optimization
-- Analytics and monitoring
+#### Queue Features
+- Priority-based processing
+- Retry logic with exponential backoff
+- Progress tracking via WebSocket
+- Bull Board admin UI at `/admin/queues`
 
-### Backend (Custom/VPS)
-- Node.js process with PM2
-- Nginx reverse proxy
-- Redis for caching and queues
-- PostgreSQL (Neon Serverless)
-- SSL/TLS termination
+## Data Flow
 
-### Monitoring Stack
-- Sentry: Error tracking and performance
-- Prometheus: Metrics collection
-- Grafana: Metrics visualization
-- Bull Board: Queue monitoring
-- Custom health checks
+### Script Analysis Flow
+1. User uploads script (PDF/DOCX) via frontend
+2. Frontend sends to `/api/projects/:id/analyze`
+3. Backend validates and queues analysis job
+4. BullMQ worker processes with Gemini API
+5. Results cached in Redis and PostgreSQL
+6. WebSocket pushes updates to frontend
+7. Frontend displays analysis results
 
-## Development Workflow
+### Real-Time Updates Flow
+1. Client connects via WebSocket on page load
+2. Backend subscribes client to project channel
+3. Any project update triggers Redis pub/sub
+4. WebSocket broadcasts to all subscribed clients
+5. Frontend updates UI reactively
 
-### Local Development
-1. Start Redis: `pnpm start:redis`
-2. Start Backend: `cd backend && pnpm dev`
-3. Start Frontend: `cd frontend && pnpm dev`
-4. Access: Frontend (localhost:5000), Backend (localhost:3001)
+## Configuration Management
 
-### Testing
-- Unit tests: Vitest
-- E2E tests: Playwright
-- Coverage: Vitest coverage
-- Linting: ESLint
-- Type checking: TypeScript compiler
+### Environment Variables
+- **frontend/.env**: Next.js config, API URLs, Sentry DSN
+- **backend/.env**: Database URLs, Redis, API keys, JWT secrets
+- **Root .env**: Shared configuration (deprecated, being phased out)
 
-### Build Process
-1. Type checking
-2. Linting
-3. Unit tests
-4. Build (TypeScript → JavaScript)
-5. Bundle optimization
-6. E2E tests
-7. Deployment
+### Configuration Files
+- **next.config.ts**: Next.js build and runtime config
+- **drizzle.config.ts**: Database connection and migrations
+- **tsconfig.json**: TypeScript compiler options (per package)
+- **pnpm-workspace.yaml**: Monorepo workspace definition
+
+## Build & Deployment
+
+### Development
+- Frontend: `pnpm dev` (port 5000)
+- Backend: `pnpm dev` (port 3001)
+- Redis: Docker Compose or Windows service
+
+### Production
+- Frontend: Vercel deployment (automatic from main branch)
+- Backend: Custom deployment (Render/Railway/VPS)
+- Database: Neon Serverless PostgreSQL
+- Redis: Upstash or self-hosted
+
+### CI/CD
+- GitHub Actions workflows (optional)
+- Pre-commit hooks via Husky
+- Automated testing on push
+- Bundle size monitoring
+
+## Security Architecture
+
+### Authentication
+- JWT-based authentication
+- HTTP-only cookies for token storage
+- Session management via PostgreSQL
+
+### Authorization
+- Role-based access control (RBAC)
+- Project-level permissions
+- API key validation for external access
+
+### Security Layers
+1. **Helmet**: Security headers (CSP, HSTS)
+2. **CORS**: Strict origin validation
+3. **Rate Limiting**: Multi-tier limits (IP, user, endpoint)
+4. **Input Validation**: Zod schemas on all endpoints
+5. **SQL Injection Prevention**: Parameterized queries via Drizzle
+6. **XSS Protection**: DOMPurify on frontend
+
+## Monitoring & Observability
+
+### Error Tracking
+- Sentry for both frontend and backend
+- Source maps for production debugging
+- Performance monitoring and profiling
+
+### Metrics
+- Prometheus metrics at `/metrics`
+- Custom business metrics (analysis count, user activity)
+- Grafana dashboards for visualization
+
+### Logging
+- Winston logger in backend
+- Structured JSON logs
+- Log levels: error, warn, info, debug
+- Security event logging
+
+## Performance Optimizations
+
+### Frontend
+- Code splitting via Next.js dynamic imports
+- Image optimization with next/image
+- Bundle analysis and tree shaking
+- Service Worker for offline support
+- React.memo and useMemo for expensive renders
+
+### Backend
+- Redis caching (60% query reduction)
+- Database indexes (8 composite indexes)
+- Connection pooling (Neon serverless)
+- Response compression (gzip/brotli)
+- Query optimization (N+1 prevention)
+
+### Database
+- Composite indexes on frequently queried columns
+- Partial indexes for filtered queries
+- Query result caching in Redis
+- Connection pooling and reuse
