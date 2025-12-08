@@ -40,6 +40,10 @@ export enum TaskType {
   RHYTHM_MAPPING = "rhythm-mapping",
   STYLE_FINGERPRINT = "style-fingerprint",
 
+  // Predictive tasks
+  AUDIENCE_RESONANCE = "audience-resonance",
+  PLATFORM_ADAPTER = "platform-adapter",
+
   // Other tasks
   INTEGRATED = "integrated",
   RECOMMENDATIONS_GENERATOR = "recommendations-generator",
@@ -48,8 +52,11 @@ export enum TaskType {
 }
 
 export enum TaskCategory {
+  CORE = "core",
   ANALYSIS = "analysis",
   CREATIVE = "creative",
+  PREDICTIVE = "predictive",
+  ADVANCED_MODULES = "advanced_modules",
   INTEGRATED = "integrated",
   TECHNICAL = "technical",
   RESEARCH = "research",

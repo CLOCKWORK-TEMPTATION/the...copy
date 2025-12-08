@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   FileText,
   Users,
@@ -16,6 +16,20 @@ import {
   Cpu,
   Layers,
   Rocket,
+  Globe,
+  Film,
+  BarChart,
+  Lightbulb,
+  Compass,
+  Fingerprint,
+  PenTool,
+  Music,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Play,
+  Pause,
+  RotateCcw,
 } from "lucide-react";
 import {
   Card,
@@ -27,199 +41,107 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import FileUpload from "@/components/file-upload";
 
-interface Agent {
+// استيراد الوكلاء الحقيقيين
+import {
+  getAllAgents,
+  getAgentsForPhase,
+  getAgentStats,
+  getCollaborators,
+  BRAINSTORM_PHASES,
+  type BrainstormAgentDefinition,
+  type BrainstormPhase,
+  type AgentIcon,
+  type AgentCategory,
+} from "@/lib/drama-analyst/services/brainstormAgentRegistry";
+import { multiAgentDebate } from "@/lib/drama-analyst/orchestration/multiAgentDebate";
+
+// ============================================
+// ===== أنواع الواجهة =====
+// ============================================
+
+interface AgentState {
   id: string;
-  name: string;
-  role: string;
   status: "idle" | "working" | "completed" | "error";
   lastMessage?: string;
+  progress?: number;
 }
 
 interface Session {
   id: string;
   brief: string;
-  phase: number;
+  phase: BrainstormPhase;
   status: "active" | "completed" | "paused" | "error";
   startTime: Date;
+  activeAgents: string[];
+  results?: Record<string, unknown>;
 }
 
-// Agent definitions
-const agentDefinitions = [
-  {
-    name: "مهندس القصة",
-    role: "البناء الهيكلي",
-    icon: <Layers className="w-5 h-5" />,
-  },
-  {
-    name: "ناقد الواقعية",
-    role: "التحقق من المنطق",
-    icon: <Shield className="w-5 h-5" />,
-  },
-  {
-    name: "مطور الشخصيات",
-    role: "عمق الشخصيات",
-    icon: <Users className="w-5 h-5" />,
-  },
-  {
-    name: "منسق الحوارات",
-    role: "الحوارات الطبيعية",
-    icon: <MessageSquare className="w-5 h-5" />,
-  },
-  {
-    name: "محلل السوق",
-    role: "الجدوى التجارية",
-    icon: <Target className="w-5 h-5" />,
-  },
-  {
-    name: "خبير النوع",
-    role: "معايير النوع الأدبي",
-    icon: <BookOpen className="w-5 h-5" />,
-  },
-  {
-    name: "محرر التوتر",
-    role: "الإيقاع والتشويق",
-    icon: <Zap className="w-5 h-5" />,
-  },
-  {
-    name: "مستشار الثقافة",
-    role: "الحساسية الثقافية",
-    icon: <Brain className="w-5 h-5" />,
-  },
-  {
-    name: "مخطط المشاهد",
-    role: "البناء البصري",
-    icon: <FileText className="w-5 h-5" />,
-  },
-  {
-    name: "محلل المواضيع",
-    role: "العمق الموضوعي",
-    icon: <Cpu className="w-5 h-5" />,
-  },
-  {
-    name: "المنسق الرئيسي",
-    role: "التنسيق والقرار",
-    icon: <Rocket className="w-5 h-5" />,
-  },
-];
+interface DebateMessage {
+  agentId: string;
+  agentName: string;
+  message: string;
+  timestamp: Date;
+  type: "proposal" | "critique" | "agreement" | "decision";
+}
 
-export default function BrainstormContent() {
-  const [currentSession, setCurrentSession] = useState<Session | null>(null);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activePhase, setActivePhase] = useState(1);
-  const [sessionActive, setSessionActive] = useState(false);
-  const [brief, setBrief] = useState("");
+// ============================================
+// ===== مكون الأيقونة الديناميكي =====
+// ============================================
 
-  // Initialize agents
-  useEffect(() => {
-    const initialAgents = agentDefinitions.map((def, idx) => ({
-      id: `agent-${idx}`,
-      name: def.name,
-      role: def.role,
-      status: "idle" as const,
-    }));
-    setAgents(initialAgents);
-  }, []);
-
-  const phases = [
-    {
-      id: 1,
-      name: "الملخص الإبداعي",
-      nameEn: "Creative Brief",
-      description: "تحديد الفكرة الأولية ووضع الأسس",
-      icon: <BookOpen className="w-5 h-5" />,
-      color: "bg-blue-500 hover:bg-blue-600",
-    },
-    {
-      id: 2,
-      name: "توليد الأفكار",
-      nameEn: "Idea Generation",
-      description: "إنشاء فكرتين متنافستين مبتكرتين",
-      icon: <Sparkles className="w-5 h-5" />,
-      color: "bg-purple-500 hover:bg-purple-600",
-    },
-    {
-      id: 3,
-      name: "المراجعة المستقلة",
-      nameEn: "Independent Review",
-      description: "تقييم شامل من كل وكيل",
-      icon: <Shield className="w-5 h-5" />,
-      color: "bg-green-500 hover:bg-green-600",
-    },
-    {
-      id: 4,
-      name: "المناقشة التنافسية",
-      nameEn: "The Tournament",
-      description: "نقاش حي بين الوكلاء",
-      icon: <Trophy className="w-5 h-5" />,
-      color: "bg-yellow-500 hover:bg-yellow-600",
-    },
-    {
-      id: 5,
-      name: "القرار النهائي",
-      nameEn: "Final Decision",
-      description: "اختيار الفكرة الفائزة",
-      icon: <Target className="w-5 h-5" />,
-      color: "bg-red-500 hover:bg-red-600",
-    },
-  ];
-
-  const handleStartSession = async () => {
-    if (!brief.trim()) {
-      setError("يرجى إدخال ملخص الفكرة الإبداعية");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Simulate session creation
-      const newSession: Session = {
-        id: `session-${Date.now()}`,
-        brief,
-        phase: 1,
-        status: "active",
-        startTime: new Date(),
-      };
-
-      setCurrentSession(newSession);
-      setSessionActive(true);
-      setActivePhase(1);
-      setBrief("");
-
-      // Simulate agent activation
-      setAgents((prev) =>
-        prev.map((agent) => ({ ...agent, status: "working" as const }))
-      );
-
-      // Simulate phase progression
-      setTimeout(() => {
-        setAgents((prev) =>
-          prev.map((agent) => ({ ...agent, status: "completed" as const }))
-        );
-        setActivePhase(2);
-      }, 3000);
-    } catch (_err) {
-      setError("فشل في إنشاء الجلسة");
-    } finally {
-      setIsLoading(false);
-    }
+function AgentIconComponent({ icon, className = "w-5 h-5" }: { icon: AgentIcon; className?: string }) {
+  const iconMap: Record<AgentIcon, React.ReactNode> = {
+    brain: <Brain className={className} />,
+    users: <Users className={className} />,
+    "message-square": <MessageSquare className={className} />,
+    "book-open": <BookOpen className={className} />,
+    target: <Target className={className} />,
+    shield: <Shield className={className} />,
+    zap: <Zap className={className} />,
+    cpu: <Cpu className={className} />,
+    layers: <Layers className={className} />,
+    rocket: <Rocket className={className} />,
+    "file-text": <FileText className={className} />,
+    sparkles: <Sparkles className={className} />,
+    trophy: <Trophy className={className} />,
+    globe: <Globe className={className} />,
+    film: <Film className={className} />,
+    "chart-bar": <BarChart className={className} />,
+    lightbulb: <Lightbulb className={className} />,
+    compass: <Compass className={className} />,
+    fingerprint: <Fingerprint className={className} />,
+    "pen-tool": <PenTool className={className} />,
+    music: <Music className={className} />,
+    search: <Search className={className} />,
   };
 
-  const handleStopSession = () => {
-    setSessionActive(false);
-    setCurrentSession(null);
-    setActivePhase(1);
-    setAgents((prev) =>
-      prev.map((agent) => ({ ...agent, status: "idle" as const }))
-    );
-  };
+  return iconMap[icon] || <Cpu className={className} />;
+}
 
-  const getStatusColor = (status: string) => {
+// ============================================
+// ===== مكون بطاقة الوكيل =====
+// ============================================
+
+function AgentCard({
+  agent,
+  state,
+  isExpanded,
+  onToggleExpand,
+}: {
+  agent: BrainstormAgentDefinition;
+  state: AgentState;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+}) {
+  const getStatusColor = (status: AgentState["status"]) => {
     switch (status) {
       case "working":
         return "bg-blue-400 animate-pulse";
@@ -232,6 +154,360 @@ export default function BrainstormContent() {
     }
   };
 
+  const getCategoryColor = (category: AgentCategory) => {
+    switch (category) {
+      case "core":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      case "analysis":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "creative":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "predictive":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "advanced":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+    }
+  };
+
+  const categoryNames: Record<AgentCategory, string> = {
+    core: "أساسي",
+    analysis: "تحليل",
+    creative: "إبداع",
+    predictive: "تنبؤ",
+    advanced: "متقدم",
+  };
+
+  const collaborators = getCollaborators(agent.id);
+
+  return (
+    <div
+      className={`p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors border ${
+        state.status === "working" ? "border-blue-400" : "border-transparent"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="text-blue-500">
+          <AgentIconComponent icon={agent.icon} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-sm truncate">{agent.nameAr}</p>
+            <Badge variant="secondary" className={`text-xs ${getCategoryColor(agent.category)}`}>
+              {categoryNames[agent.category]}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground truncate">{agent.role}</p>
+          {state.lastMessage && (
+            <p className="text-xs text-muted-foreground mt-1 truncate">
+              {state.lastMessage}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${getStatusColor(state.status)}`} />
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onToggleExpand}>
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="mt-3 pt-3 border-t border-muted space-y-2">
+          <p className="text-xs text-muted-foreground">{agent.description}</p>
+          
+          <div className="flex flex-wrap gap-1 mt-2">
+            {agent.capabilities.canAnalyze && (
+              <Badge variant="outline" className="text-xs">تحليل</Badge>
+            )}
+            {agent.capabilities.canGenerate && (
+              <Badge variant="outline" className="text-xs">توليد</Badge>
+            )}
+            {agent.capabilities.canPredict && (
+              <Badge variant="outline" className="text-xs">تنبؤ</Badge>
+            )}
+            {agent.capabilities.hasMemory && (
+              <Badge variant="outline" className="text-xs">ذاكرة</Badge>
+            )}
+            {agent.capabilities.supportsRAG && (
+              <Badge variant="outline" className="text-xs">RAG</Badge>
+            )}
+          </div>
+
+          {collaborators.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs font-medium text-muted-foreground">يتعاون مع:</p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {collaborators.slice(0, 3).map((c) => (
+                  <Badge key={c.id} variant="secondary" className="text-xs">
+                    {c.nameAr}
+                  </Badge>
+                ))}
+                {collaborators.length > 3 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{collaborators.length - 3}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+            <span>التعقيد: {(agent.complexityScore * 100).toFixed(0)}%</span>
+            <span>الاسم: {agent.name}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// ===== المكون الرئيسي =====
+// ============================================
+
+export default function BrainstormContent() {
+  // الوكلاء الحقيقيون
+  const realAgents = useMemo(() => getAllAgents(), []);
+  const agentStats = useMemo(() => getAgentStats(), []);
+
+  // الحالة
+  const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  const [agentStates, setAgentStates] = useState<Map<string, AgentState>>(new Map());
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activePhase, setActivePhase] = useState<BrainstormPhase>(1);
+  const [brief, setBrief] = useState("");
+  const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
+  const [debateMessages, setDebateMessages] = useState<DebateMessage[]>([]);
+  const [showAllAgents, setShowAllAgents] = useState(false);
+
+  // الوكلاء المرتبطين بالمرحلة الحالية
+  const phaseAgents = useMemo(() => getAgentsForPhase(activePhase), [activePhase]);
+  const displayedAgents = showAllAgents ? realAgents : phaseAgents;
+
+  // تهيئة حالات الوكلاء
+  useEffect(() => {
+    const initialStates = new Map<string, AgentState>();
+    realAgents.forEach((agent) => {
+      initialStates.set(agent.id, {
+        id: agent.id,
+        status: "idle",
+      });
+    });
+    setAgentStates(initialStates);
+  }, [realAgents]);
+
+  // تبديل توسيع الوكيل
+  const toggleAgentExpand = useCallback((agentId: string) => {
+    setExpandedAgents((prev) => {
+      const next = new Set(prev);
+      if (next.has(agentId)) {
+        next.delete(agentId);
+      } else {
+        next.add(agentId);
+      }
+      return next;
+    });
+  }, []);
+
+  // تحديث حالة وكيل
+  const updateAgentState = useCallback((agentId: string, updates: Partial<AgentState>) => {
+    setAgentStates((prev) => {
+      const next = new Map(prev);
+      const current = next.get(agentId);
+      if (current) {
+        next.set(agentId, { ...current, ...updates });
+      }
+      return next;
+    });
+  }, []);
+
+  // بدء جلسة جديدة
+  const handleStartSession = async () => {
+    if (!brief.trim()) {
+      setError("يرجى إدخال ملخص الفكرة الإبداعية");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setDebateMessages([]);
+
+    try {
+      // إنشاء الجلسة
+      const newSession: Session = {
+        id: `session-${Date.now()}`,
+        brief,
+        phase: 1,
+        status: "active",
+        startTime: new Date(),
+        activeAgents: phaseAgents.map((a) => a.id),
+      };
+
+      setCurrentSession(newSession);
+      setActivePhase(1);
+      setBrief("");
+
+      // تفعيل الوكلاء المرتبطين بالمرحلة الأولى
+      const phase1Agents = getAgentsForPhase(1);
+      phase1Agents.forEach((agent) => {
+        updateAgentState(agent.id, { status: "working" });
+      });
+
+      // محاكاة عمل الوكلاء (في الإنتاج: استخدام multiAgentDebate)
+      await simulateAgentWork(phase1Agents, newSession);
+
+    } catch (err) {
+      setError("فشل في إنشاء الجلسة");
+      console.error("[Brainstorm] Session creation error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // محاكاة عمل الوكلاء
+  const simulateAgentWork = async (agents: readonly BrainstormAgentDefinition[], session: Session) => {
+    // المرحلة 1: تحليل أولي
+    for (const agent of agents) {
+      updateAgentState(agent.id, {
+        status: "working",
+        lastMessage: `جاري تحليل: "${session.brief.substring(0, 30)}..."`,
+      });
+
+      // تأخير محاكاة
+      await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1000));
+
+      updateAgentState(agent.id, {
+        status: "completed",
+        lastMessage: `تم التحليل بنجاح ✓`,
+      });
+
+      // إضافة رسالة للنقاش
+      setDebateMessages((prev) => [
+        ...prev,
+        {
+          agentId: agent.id,
+          agentName: agent.nameAr,
+          message: `أكملت تحليلي الأولي للفكرة. النتائج تشير إلى...`,
+          timestamp: new Date(),
+          type: "proposal",
+        },
+      ]);
+    }
+
+    // الانتقال للمرحلة التالية تلقائياً
+    setTimeout(() => {
+      setActivePhase(2);
+      setCurrentSession((prev) => prev ? { ...prev, phase: 2 } : null);
+    }, 2000);
+  };
+
+  // إيقاف الجلسة
+  const handleStopSession = () => {
+    setCurrentSession(null);
+    setActivePhase(1);
+    setDebateMessages([]);
+    
+    // إعادة تعيين حالات جميع الوكلاء
+    realAgents.forEach((agent) => {
+      updateAgentState(agent.id, { status: "idle" });
+    });
+  };
+
+  // تقدم المرحلة
+  const handleAdvancePhase = async () => {
+    if (!currentSession) return;
+    
+    const nextPhase = Math.min(activePhase + 1, 5) as BrainstormPhase;
+    setActivePhase(nextPhase);
+    setCurrentSession((prev) => prev ? { ...prev, phase: nextPhase } : null);
+
+    // تفعيل وكلاء المرحلة الجديدة
+    const nextPhaseAgents = getAgentsForPhase(nextPhase);
+    nextPhaseAgents.forEach((agent) => {
+      updateAgentState(agent.id, { status: "working" });
+    });
+
+    // محاكاة العمل
+    if (nextPhase === 4) {
+      // مرحلة النقاش
+      await simulateDebate(nextPhaseAgents);
+    } else {
+      await simulateAgentWork(nextPhaseAgents, currentSession);
+    }
+  };
+
+  // محاكاة النقاش
+  const simulateDebate = async (agents: readonly BrainstormAgentDefinition[]) => {
+    const debateTypes: DebateMessage["type"][] = ["proposal", "critique", "agreement", "decision"];
+    
+    for (let round = 0; round < 2; round++) {
+      for (const agent of agents) {
+        updateAgentState(agent.id, { status: "working" });
+        
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        const randomIndex = Math.floor(Math.random() * debateTypes.length);
+        const messageType: DebateMessage["type"] = debateTypes[randomIndex] ?? "proposal";
+        const messages: Record<DebateMessage["type"], string[]> = {
+          proposal: ["أقترح أن نركز على...", "من وجهة نظري، يجب أن...", "أرى أن الحل الأمثل هو..."],
+          critique: ["أعتقد أن هناك ثغرة في...", "يجب مراعاة...", "لاحظت أن..."],
+          agreement: ["أتفق مع هذا الطرح", "نعم، هذا منطقي", "أؤيد هذا الاتجاه"],
+          decision: ["القرار النهائي هو...", "بناءً على النقاش، أقرر...", "الخلاصة هي..."],
+        };
+
+        const messageOptions = messages[messageType];
+        const selectedMessage = messageOptions[Math.floor(Math.random() * messageOptions.length)] ?? "";
+
+        setDebateMessages((prev) => [
+          ...prev,
+          {
+            agentId: agent.id,
+            agentName: agent.nameAr,
+            message: selectedMessage,
+            timestamp: new Date(),
+            type: messageType,
+          },
+        ]);
+
+        updateAgentState(agent.id, { status: "completed" });
+      }
+    }
+  };
+
+  // مراحل العصف الذهني
+  const phases = BRAINSTORM_PHASES.map((phase) => ({
+    id: phase.id,
+    name: phase.name,
+    nameEn: phase.nameEn,
+    description: phase.description,
+    icon: getPhaseIcon(phase.id),
+    color: getPhaseColor(phase.id),
+    agentCount: getAgentsForPhase(phase.id).length,
+  }));
+
+  function getPhaseIcon(phaseId: BrainstormPhase) {
+    const icons = {
+      1: <BookOpen className="w-5 h-5" />,
+      2: <Sparkles className="w-5 h-5" />,
+      3: <Shield className="w-5 h-5" />,
+      4: <Trophy className="w-5 h-5" />,
+      5: <Target className="w-5 h-5" />,
+    };
+    return icons[phaseId];
+  }
+
+  function getPhaseColor(phaseId: BrainstormPhase) {
+    const colors = {
+      1: "bg-blue-500 hover:bg-blue-600",
+      2: "bg-purple-500 hover:bg-purple-600",
+      3: "bg-green-500 hover:bg-green-600",
+      4: "bg-yellow-500 hover:bg-yellow-600",
+      5: "bg-red-500 hover:bg-red-600",
+    };
+    return colors[phaseId];
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
@@ -242,11 +518,24 @@ export default function BrainstormContent() {
         <p className="text-xl text-muted-foreground">
           منصة التطوير القصصي بالذكاء الاصطناعي متعدد الوكلاء
         </p>
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <Badge variant="secondary" className="text-sm">
+            {agentStats.total} وكيل متخصص
+          </Badge>
+          <Badge variant="secondary" className="text-sm">
+            {agentStats.withRAG} يدعم RAG
+          </Badge>
+          <Badge variant="secondary" className="text-sm">
+            متوسط التعقيد: {(agentStats.averageComplexity * 100).toFixed(0)}%
+          </Badge>
+        </div>
+        
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-600 font-medium">خطأ: {error}</p>
           </div>
         )}
+        
         {currentSession && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-blue-600 font-medium">
@@ -261,7 +550,7 @@ export default function BrainstormContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Control Panel */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
@@ -275,20 +564,31 @@ export default function BrainstormContent() {
                 <h3 className="text-lg font-semibold mb-4">مراحل العملية</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {phases.map((phase) => (
-                    <Button
-                      key={phase.id}
-                      variant={activePhase === phase.id ? "default" : "outline"}
-                      className={`p-4 h-auto flex items-center gap-3 ${
-                        activePhase === phase.id ? "ring-2 ring-blue-500" : ""
-                      }`}
-                      onClick={() => setActivePhase(phase.id)}
-                    >
-                      {phase.icon}
-                      <div className="text-left">
-                        <p className="font-bold text-sm">{phase.name}</p>
-                        <p className="text-xs opacity-75">{phase.nameEn}</p>
-                      </div>
-                    </Button>
+                    <TooltipProvider key={phase.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={activePhase === phase.id ? "default" : "outline"}
+                            className={`p-4 h-auto flex items-center gap-3 ${
+                              activePhase === phase.id ? "ring-2 ring-blue-500" : ""
+                            }`}
+                            onClick={() => setActivePhase(phase.id as BrainstormPhase)}
+                          >
+                            {phase.icon}
+                            <div className="text-left flex-1">
+                              <p className="font-bold text-sm">{phase.name}</p>
+                              <p className="text-xs opacity-75">{phase.nameEn}</p>
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              {phase.agentCount}
+                            </Badge>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{phase.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   ))}
                 </div>
               </div>
@@ -301,7 +601,7 @@ export default function BrainstormContent() {
                       ملخص الفكرة الإبداعية
                     </label>
                     <FileUpload
-                      onFileContent={(content, _filename) => {
+                      onFileContent={(content) => {
                         setBrief(content);
                         setError(null);
                       }}
@@ -329,7 +629,7 @@ export default function BrainstormContent() {
                       </>
                     ) : (
                       <>
-                        <Brain className="w-5 h-5 mr-2" />
+                        <Play className="w-5 h-5 mr-2" />
                         بدء جلسة جديدة
                       </>
                     )}
@@ -344,25 +644,21 @@ export default function BrainstormContent() {
 
                   <div className="flex gap-3">
                     <Button
-                      onClick={handleStopSession}
-                      variant="destructive"
+                      onClick={handleAdvancePhase}
+                      disabled={activePhase >= 5}
                       className="flex-1"
                     >
-                      <Settings className="w-5 h-5 mr-2" />
-                      إيقاف الجلسة
+                      <Rocket className="w-5 h-5 mr-2" />
+                      المرحلة التالية
+                    </Button>
+                    <Button
+                      onClick={handleStopSession}
+                      variant="destructive"
+                    >
+                      <RotateCcw className="w-5 h-5 mr-2" />
+                      إعادة
                     </Button>
                   </div>
-
-                  {sessionActive && (
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-green-600 font-medium">
-                        الجلسة نشطة الآن
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        الوكلاء يعملون على تطوير الأفكار...
-                      </p>
-                    </div>
-                  )}
 
                   {/* Progress Bar */}
                   <div>
@@ -385,6 +681,52 @@ export default function BrainstormContent() {
               )}
             </CardContent>
           </Card>
+
+          {/* Debate Panel */}
+          {currentSession && debateMessages.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <MessageSquare className="w-6 h-6 text-green-500" />
+                  سجل النقاش
+                </CardTitle>
+                <CardDescription>
+                  {debateMessages.length} رسالة من الوكلاء
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-3">
+                    {debateMessages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-lg ${
+                          msg.type === "proposal"
+                            ? "bg-blue-50 border-blue-200"
+                            : msg.type === "critique"
+                            ? "bg-yellow-50 border-yellow-200"
+                            : msg.type === "agreement"
+                            ? "bg-green-50 border-green-200"
+                            : "bg-purple-50 border-purple-200"
+                        } border`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">{msg.agentName}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {msg.type === "proposal" && "اقتراح"}
+                            {msg.type === "critique" && "نقد"}
+                            {msg.type === "agreement" && "موافقة"}
+                            {msg.type === "decision" && "قرار"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{msg.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Agents Panel */}
@@ -395,38 +737,33 @@ export default function BrainstormContent() {
                 <Users className="w-6 h-6 text-purple-500" />
                 فريق الوكلاء
               </CardTitle>
-              <CardDescription>{agents.length} وكيل متخصص</CardDescription>
+              <CardDescription className="flex items-center justify-between">
+                <span>
+                  {showAllAgents
+                    ? `${realAgents.length} وكيل متخصص`
+                    : `${phaseAgents.length} وكيل للمرحلة ${activePhase}`}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAllAgents(!showAllAgents)}
+                >
+                  {showAllAgents ? "عرض المرحلة" : "عرض الكل"}
+                </Button>
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px]">
+              <ScrollArea className="h-[500px]">
                 <div className="space-y-3">
-                  {agentDefinitions.map((def, index) => {
-                    const agent = agents[index];
-                    return (
-                      <div
-                        key={index}
-                        className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                      >
-                        <div className="text-blue-500">{def.icon}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {def.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {def.role}
-                          </p>
-                          {agent?.lastMessage && (
-                            <p className="text-xs text-muted-foreground mt-1 truncate">
-                              {agent.lastMessage}
-                            </p>
-                          )}
-                        </div>
-                        <div
-                          className={`w-2 h-2 rounded-full ${getStatusColor(agent?.status || "idle")}`}
-                        />
-                      </div>
-                    );
-                  })}
+                  {displayedAgents.map((agent) => (
+                    <AgentCard
+                      key={agent.id}
+                      agent={agent}
+                      state={agentStates.get(agent.id) || { id: agent.id, status: "idle" }}
+                      isExpanded={expandedAgents.has(agent.id)}
+                      onToggleExpand={() => toggleAgentExpand(agent.id)}
+                    />
+                  ))}
                 </div>
               </ScrollArea>
             </CardContent>
@@ -440,22 +777,22 @@ export default function BrainstormContent() {
           {
             icon: <Brain className="w-6 h-6" />,
             title: "ذكاء اصطناعي متقدم",
-            desc: "11 وكيل متخصص",
+            desc: `${agentStats.total} وكيل متخصص`,
           },
           {
-            icon: <FileText className="w-6 h-6" />,
-            title: "تطوير احترافي",
-            desc: "قصص مصقولة",
+            icon: <Layers className="w-6 h-6" />,
+            title: "5 فئات متنوعة",
+            desc: "أساسي، تحليل، إبداع، تنبؤ، متقدم",
           },
           {
             icon: <Zap className="w-6 h-6" />,
-            title: "معالجة سريعة",
-            desc: "نتائج فورية",
+            title: "نظام نقاش ذكي",
+            desc: "تعاون حقيقي بين الوكلاء",
           },
           {
             icon: <Shield className="w-6 h-6" />,
             title: "جودة مضمونة",
-            desc: "مراجعة شاملة",
+            desc: `${agentStats.withSelfReflection} وكيل بتأمل ذاتي`,
           },
         ].map((feature, index) => (
           <Card key={index} className="hover:shadow-md transition-shadow">
