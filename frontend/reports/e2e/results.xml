@@ -1,0 +1,18 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="29.53042">
+<testsuite name="scroll-animation-audit.spec.ts" timestamp="2025-12-12T18:21:02.749Z" hostname="chromium" tests="1" failures="0" skipped="0" time="5.592" errors="0">
+<testcase name="الأنيميشن السينمائي: تحقق رقمي من الثبات (≤ 0.5px)" classname="scroll-animation-audit.spec.ts" time="5.592">
+<system-out>
+<![CDATA[[AUDIT_PROOF] {
+  "baselineLabel": "phase4_end_t3_5",
+  "tolerancePx": 0.5,
+  "maxAbsDelta": {
+    "dx": 0,
+    "dy": 0
+  },
+  "failures": []
+}
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>
