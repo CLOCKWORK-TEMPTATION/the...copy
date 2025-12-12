@@ -2,9 +2,11 @@
 
 import type React from "react";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import * as THREE from "three";
+
+import { log } from "@/lib/drama-analyst/services/loggerService";
 
 import {
   BASELINE,
@@ -29,6 +31,8 @@ import {
 const performanceMonitor = new PerformanceMonitor();
 
 type Effect = "default" | "spark" | "wave" | "vortex";
+
+type WebGLStatus = "initializing" | "ready" | "unavailable" | "context_lost";
 
 interface ParticlePosition {
   px: number;
@@ -657,7 +661,10 @@ const dist_all = (px: number, py: number): number => {
 const dist = (px: number, py: number): number => dist_all(px, py);
 
 export default function V0ParticleAnimation() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [webglStatus, setWebglStatus] = useState<WebGLStatus>("initializing");
+  const webglStatusRef = useRef<WebGLStatus>("initializing");
 
   const sceneRef = useRef<{
     scene: THREE.Scene;
@@ -679,6 +686,74 @@ export default function V0ParticleAnimation() {
 
   const currentEffect: Effect = "spark";
 
+  const auditTargets = useMemo(() => ({ component: "V0ParticleAnimation" }), []);
+
+  const auditElement = (label: string, el: Element | null) => {
+    if (!el || typeof window === "undefined") return;
+    try {
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      log.info(
+        `AUDIT[${auditTargets.component}] ${label}`,
+        {
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            top: rect.top,
+            left: rect.left,
+            right: rect.right,
+            bottom: rect.bottom,
+            width: rect.width,
+            height: rect.height,
+          },
+          style: {
+            display: style.display,
+            position: style.position,
+            opacity: style.opacity,
+            transform: style.transform,
+            willChange: style.willChange,
+            zIndex: style.zIndex,
+            pointerEvents: style.pointerEvents,
+          },
+        },
+        "webgl-audit"
+      );
+    } catch (error) {
+      log.warn(
+        `AUDIT[${auditTargets.component}] فشل تدقيق العنصر`,
+        { label, error: error instanceof Error ? error.message : String(error) },
+        "webgl-audit"
+      );
+    }
+  };
+
+  const tryCreateWebGLContext = (
+    canvas: HTMLCanvasElement
+  ): WebGL2RenderingContext | WebGLRenderingContext | null => {
+    try {
+      const attrs: WebGLContextAttributes = {
+        alpha: true,
+        antialias: true,
+        powerPreference: "low-power",
+        failIfMajorPerformanceCaveat: true,
+        preserveDrawingBuffer: false,
+        depth: true,
+        stencil: false,
+      };
+      // Avoid OR-ing with the generic "experimental-webgl" overload because it widens the type to
+      // RenderingContext in TS. We keep types precise for safe passing to Three.js.
+      const gl2 = canvas.getContext("webgl2", attrs);
+      if (gl2) return gl2;
+
+      const gl = canvas.getContext("webgl", attrs);
+      if (gl) return gl;
+
+      return canvas.getContext("experimental-webgl", attrs) as WebGLRenderingContext | null;
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -698,7 +773,64 @@ export default function V0ParticleAnimation() {
       0.1,
       1000
     );
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    const setStatus = (next: WebGLStatus) => {
+      webglStatusRef.current = next;
+      setWebglStatus(next);
+    };
+
+    // Guard: do not attempt Three.js renderer when WebGL context is unavailable.
+    const gl = tryCreateWebGLContext(canvas);
+    if (!gl) {
+      setStatus("unavailable");
+      log.warn(
+        "تعذّر إنشاء WebGL context. تم تعطيل خلفية الجسيمات لتجنّب كسر الصفحة.",
+        {
+          component: auditTargets.component,
+          canvas: { width: canvas.width, height: canvas.height },
+        },
+        "webgl"
+      );
+      auditElement("container (webgl unavailable)", containerRef.current);
+      auditElement("canvas (webgl unavailable)", canvas);
+      return;
+    }
+
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, context: gl });
+      setStatus("ready");
+    } catch (error) {
+      setStatus("unavailable");
+      log.warn(
+        "فشل إنشاء THREE.WebGLRenderer. تم تعطيل الجسيمات لتجنّب خطأ WebGL.",
+        {
+          component: auditTargets.component,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        "webgl"
+      );
+      auditElement("container (renderer failed)", containerRef.current);
+      auditElement("canvas (renderer failed)", canvas);
+      return;
+    }
+
+    const handleContextLost = (event: Event) => {
+      if (event && "preventDefault" in event) {
+        (event as WebGLContextEvent).preventDefault();
+      }
+      setStatus("context_lost");
+      log.warn(
+        "تم فقدان WebGL context (webglcontextlost). تم تعطيل خلفية الجسيمات.",
+        { component: auditTargets.component },
+        "webgl"
+      );
+      auditElement("container (context lost)", containerRef.current);
+      auditElement("canvas (context lost)", canvas);
+    };
+
+    canvas.addEventListener("webglcontextlost", handleContextLost as EventListener, {
+      passive: false,
+    });
 
     renderer.setSize(canvas.width, canvas.height);
     renderer.setClearColor(0x000000);
@@ -900,7 +1032,11 @@ export default function V0ParticleAnimation() {
 
     generateParticlesInBatches()
       .then((finalCount) => {
-        console.log("[v0] Generated particles:", finalCount);
+        log.info(
+          "[v0] Generated particles",
+          { component: auditTargets.component, finalCount },
+          "webgl"
+        );
         if (!sceneRef.current) return;
 
         sceneRef.current.particleCount = finalCount;
@@ -939,10 +1075,18 @@ export default function V0ParticleAnimation() {
         sceneRef.current.geometry = geometry;
         sceneRef.current.points = points;
 
-        console.log("[v0] Particles added to scene");
+        log.info(
+          "[v0] Particles added to scene",
+          { component: auditTargets.component },
+          "webgl"
+        );
       })
       .catch((error) => {
-        console.error("Failed to generate particles:", error);
+        log.warn(
+          "Failed to generate particles",
+          { component: auditTargets.component, error },
+          "webgl"
+        );
       });
 
     const cleanup = () => {
@@ -958,7 +1102,15 @@ export default function V0ParticleAnimation() {
             material.dispose();
           }
         }
-        if (renderer) renderer.dispose();
+        try {
+          renderer.dispose();
+        } catch (error) {
+          log.warn(
+            "تعذّر تنظيف WebGL renderer بشكل كامل",
+            { component: auditTargets.component, error },
+            "webgl"
+          );
+        }
 
         // Cleanup performance monitor
         performanceMonitor.reset();
@@ -971,7 +1123,11 @@ export default function V0ParticleAnimation() {
           sceneRef.current = null;
         }
       } catch (error) {
-        console.error("Cleanup error:", error);
+        log.warn(
+          "Cleanup error",
+          { component: auditTargets.component, error },
+          "webgl"
+        );
       }
     };
 
@@ -979,9 +1135,19 @@ export default function V0ParticleAnimation() {
 
     return () => {
       clearTimeout(safetyCleanup);
+      canvas.removeEventListener(
+        "webglcontextlost",
+        handleContextLost as EventListener
+      );
       cleanup();
     };
   }, []);
+
+  // Audit on every status transition (state change proof)
+  useEffect(() => {
+    auditElement(`status=${webglStatus}`, containerRef.current);
+    auditElement(`status=${webglStatus}`, canvasRef.current);
+  }, [webglStatus]);
 
   const handleMouseDown = (event: React.MouseEvent) => {
     if (!sceneRef.current) return;
@@ -1037,7 +1203,11 @@ export default function V0ParticleAnimation() {
   };
 
   return (
-    <div className="relative flex items-center justify-center w-full h-full bg-black">
+    <div
+      ref={containerRef}
+      className="relative flex items-center justify-center w-full h-full bg-black"
+      data-webgl-status={webglStatusRef.current}
+    >
       <canvas
         ref={canvasRef}
         width={1400}

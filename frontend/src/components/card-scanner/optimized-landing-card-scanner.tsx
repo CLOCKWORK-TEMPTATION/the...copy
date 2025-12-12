@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useMemo } from "react";
 import * as THREE from "three";
 import { CARDS_11 } from "@/components/carousel/cards.config";
 import images from "@/config/images";
+import { log } from "@/lib/drama-analyst/services/loggerService";
 
 // Map cards to their images
 const cardImageMap: Record<string, number> = {
@@ -577,7 +578,7 @@ export function OptimizedLandingCardScanner() {
     class OptimizedParticleSystem {
       scene: THREE.Scene;
       camera: THREE.OrthographicCamera;
-      renderer: THREE.WebGLRenderer;
+      renderer: THREE.WebGLRenderer | null;
       particles: THREE.Points | null;
       particleCount: number;
       canvas: HTMLCanvasElement;
@@ -585,6 +586,7 @@ export function OptimizedLandingCardScanner() {
       alphas: Float32Array;
       private animationId: number | null = null;
       private isVisible: boolean = true;
+      private isDisabled: boolean = false;
 
       constructor(canvas: HTMLCanvasElement) {
         this.scene = new THREE.Scene();
@@ -597,19 +599,65 @@ export function OptimizedLandingCardScanner() {
           1000
         );
         this.camera.position.z = 100;
-        this.renderer = new THREE.WebGLRenderer({
-          canvas: canvas,
-          alpha: true,
-          antialias: false, // Performance: Disable antialiasing
-          powerPreference: "high-performance", // Performance: Request high performance
-        });
-        this.renderer.setSize(window.innerWidth, 250);
-        this.renderer.setClearColor(0x000000, 0);
+        this.renderer = null;
         this.particles = null;
         this.particleCount = 300; // Performance: Reduced from 400
         this.velocities = new Float32Array(0);
         this.alphas = new Float32Array(0);
         this.canvas = canvas;
+
+        // WebGL Guard: disable particles if WebGL is unavailable instead of throwing.
+        const attrs: WebGLContextAttributes = {
+          alpha: true,
+          antialias: false,
+          powerPreference: "high-performance",
+          failIfMajorPerformanceCaveat: true,
+          preserveDrawingBuffer: false,
+          depth: true,
+          stencil: false,
+        };
+        // Keep WebGL context typed as WebGLRenderingContext for Three.js' type definitions.
+        // (The "experimental-webgl" overload widens to RenderingContext, so we cast explicitly.)
+        const gl =
+          (canvas.getContext("webgl", attrs) as WebGLRenderingContext | null) ||
+          (canvas.getContext(
+            "experimental-webgl",
+            attrs
+          ) as WebGLRenderingContext | null);
+
+        if (!gl) {
+          this.isDisabled = true;
+          log.warn(
+            "تعذّر إنشاء WebGL context داخل LandingCardScanner. تم تعطيل خلفية الجسيمات فقط.",
+            { component: "OptimizedLandingCardScanner" },
+            "webgl"
+          );
+          return;
+        }
+
+        try {
+          this.renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            context: gl,
+            alpha: true,
+            antialias: false, // Performance: Disable antialiasing
+            powerPreference: "high-performance", // Performance: Request high performance
+          });
+          this.renderer.setSize(window.innerWidth, 250);
+          this.renderer.setClearColor(0x000000, 0);
+        } catch (error) {
+          this.isDisabled = true;
+          log.warn(
+            "فشل إنشاء THREE.WebGLRenderer داخل LandingCardScanner. تم تعطيل خلفية الجسيمات فقط.",
+            {
+              component: "OptimizedLandingCardScanner",
+              error: error instanceof Error ? error.message : String(error),
+            },
+            "webgl"
+          );
+          this.renderer = null;
+          return;
+        }
 
         this.setupVisibilityObserver();
         this.createParticles();
@@ -742,6 +790,7 @@ export function OptimizedLandingCardScanner() {
       }
 
       animate() {
+        if (this.isDisabled || !this.renderer) return;
         if (!this.isVisible) {
           this.animationId = requestAnimationFrame(() => this.animate());
           return;
@@ -817,6 +866,7 @@ export function OptimizedLandingCardScanner() {
       }
 
       onWindowResize() {
+        if (this.isDisabled || !this.renderer) return;
         this.camera.left = -window.innerWidth / 2;
         this.camera.right = window.innerWidth / 2;
         this.camera.updateProjectionMatrix();
@@ -828,8 +878,14 @@ export function OptimizedLandingCardScanner() {
         if (this.animationId) {
           cancelAnimationFrame(this.animationId);
         }
-        if (this.renderer) {
-          this.renderer.dispose();
+        try {
+          this.renderer?.dispose();
+        } catch (error) {
+          log.warn(
+            "تعذّر تنظيف WebGL renderer (LandingCardScanner)",
+            { component: "OptimizedLandingCardScanner", error },
+            "webgl"
+          );
         }
         if (this.particles) {
           this.scene.remove(this.particles);
@@ -1283,18 +1339,81 @@ export function OptimizedLandingCardScanner() {
     }
 
     // Initialize all systems with optimized versions
+    const auditElement = (label: string, el: Element | null) => {
+      if (!el || typeof window === "undefined") return;
+      try {
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        log.info(
+          `AUDIT[OptimizedLandingCardScanner] ${label}`,
+          {
+            rect: {
+              x: rect.x,
+              y: rect.y,
+              top: rect.top,
+              left: rect.left,
+              right: rect.right,
+              bottom: rect.bottom,
+              width: rect.width,
+              height: rect.height,
+            },
+            style: {
+              display: style.display,
+              position: style.position,
+              opacity: style.opacity,
+              transform: style.transform,
+              willChange: style.willChange,
+              zIndex: style.zIndex,
+              pointerEvents: style.pointerEvents,
+            },
+          },
+          "ui-audit"
+        );
+      } catch (error) {
+        log.warn(
+          "فشل تدقيق عنصر (LandingCardScanner)",
+          { label, error },
+          "ui-audit"
+        );
+      }
+    };
+
+    const auditAll = (label: string) => {
+      auditElement(`${label} | container`, containerRef.current);
+      auditElement(`${label} | particleCanvas`, particleCanvasRef.current);
+      auditElement(`${label} | scannerCanvas`, scannerCanvasRef.current);
+      auditElement(`${label} | cardStream`, cardStreamRef.current);
+      auditElement(`${label} | cardLine`, cardLineRef.current);
+    };
+
     const cardStream = new OptimizedCardStreamController(
       cardStreamRef.current!,
       cardLineRef.current!
     );
-    const particleSystem = new OptimizedParticleSystem(
-      particleCanvasRef.current!
-    );
+    let particleSystem: OptimizedParticleSystem | null = null;
+    try {
+      particleSystem = new OptimizedParticleSystem(particleCanvasRef.current!);
+      auditAll("webgl init success");
+    } catch (error) {
+      // Extra safety: constructor already guards, but keep the page resilient.
+      log.warn(
+        "استثناء غير متوقّع أثناء تهيئة نظام الجسيمات (سيتم تعطيله).",
+        { error },
+        "webgl"
+      );
+      auditAll("webgl init exception");
+      particleSystem = null;
+    }
     const particleScanner = new OptimizedParticleScanner(
       scannerCanvasRef.current!
     );
 
+    let lastScanningActive: boolean | null = null;
     (window as any).setScannerScanning = (active: boolean) => {
+      if (lastScanningActive !== active) {
+        lastScanningActive = active;
+        auditAll(`scanner scanningActive=${active}`);
+      }
       if (particleScanner) {
         particleScanner.setScanningActive(active);
       }
@@ -1303,7 +1422,7 @@ export function OptimizedLandingCardScanner() {
     // Cleanup
     return () => {
       cardStream.destroy();
-      particleSystem.destroy();
+      particleSystem?.destroy();
       particleScanner.destroy();
     };
   }, [memoizedCardImageMap]);
