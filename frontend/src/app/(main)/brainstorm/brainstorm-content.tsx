@@ -181,9 +181,8 @@ function AgentCard({
 
   return (
     <div
-      className={`p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors border ${
-        state.status === "working" ? "border-blue-400" : "border-transparent"
-      }`}
+      className={`p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors border ${state.status === "working" ? "border-blue-400" : "border-transparent"
+        }`}
     >
       <div className="flex items-center gap-3">
         <div className="text-blue-500">
@@ -214,7 +213,7 @@ function AgentCard({
       {isExpanded && (
         <div className="mt-3 pt-3 border-t border-muted space-y-2">
           <p className="text-xs text-muted-foreground">{agent.description}</p>
-          
+
           <div className="flex flex-wrap gap-1 mt-2">
             {agent.capabilities.canAnalyze && (
               <Badge variant="outline" className="text-xs">تحليل</Badge>
@@ -354,8 +353,8 @@ export default function BrainstormContent() {
         updateAgentState(agent.id, { status: "working" });
       });
 
-      // محاكاة عمل الوكلاء (في الإنتاج: استخدام multiAgentDebate)
-      await simulateAgentWork(phase1Agents, newSession);
+      // تنفيذ نقاش الوكلاء الحقيقي
+      await executeAgentDebate(phase1Agents, newSession, `تحليل البريف الإبداعي الأولي: ${newSession.brief}`);
 
     } catch (err) {
       setError("فشل في إنشاء الجلسة");
@@ -365,41 +364,117 @@ export default function BrainstormContent() {
     }
   };
 
-  // محاكاة عمل الوكلاء
-  const simulateAgentWork = async (agents: readonly BrainstormAgentDefinition[], session: Session) => {
-    // المرحلة 1: تحليل أولي
-    for (const agent of agents) {
+  /**
+   * تنفيذ نقاش الوكلاء الفعلي باستخدام multiAgentDebate
+   * Execute real agent debate using multiAgentDebate system
+   */
+  const executeAgentDebate = async (
+    agents: readonly BrainstormAgentDefinition[],
+    session: Session,
+    task?: string
+  ) => {
+    const agentIds = agents.map((a) => a.id);
+    const debateTask = task || `تحليل الفكرة الإبداعية: ${session.brief}`;
+
+    // تفعيل جميع الوكلاء المشاركين
+    agents.forEach((agent) => {
       updateAgentState(agent.id, {
         status: "working",
-        lastMessage: `جاري تحليل: "${session.brief.substring(0, 30)}..."`,
+        lastMessage: `جاري المشاركة في النقاش...`,
       });
+    });
 
-      // تأخير محاكاة
-      await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1000));
-
-      updateAgentState(agent.id, {
-        status: "completed",
-        lastMessage: `تم التحليل بنجاح ✓`,
-      });
-
-      // إضافة رسالة للنقاش
-      setDebateMessages((prev) => [
-        ...prev,
+    try {
+      // استدعاء نظام النقاش الحقيقي
+      const debateResult = await multiAgentDebate.conductDebate(
+        debateTask,
         {
-          agentId: agent.id,
-          agentName: agent.nameAr,
-          message: `أكملت تحليلي الأولي للفكرة. النتائج تشير إلى...`,
-          timestamp: new Date(),
-          type: "proposal",
+          brief: session.brief,
+          phase: session.phase,
+          sessionId: session.id,
         },
-      ]);
-    }
+        agentIds
+      );
 
-    // الانتقال للمرحلة التالية تلقائياً
-    setTimeout(() => {
-      setActivePhase(2);
-      setCurrentSession((prev) => prev ? { ...prev, phase: 2 } : null);
-    }, 2000);
+      // تحويل مقترحات النقاش إلى رسائل
+      for (const proposal of debateResult.proposals) {
+        const agent = agents.find((a) => a.id === proposal.agentId);
+        if (agent) {
+          // تحديث حالة الوكيل
+          updateAgentState(proposal.agentId, {
+            status: "completed",
+            lastMessage: `مستوى الثقة: ${(proposal.confidence * 100).toFixed(0)}%`,
+            progress: proposal.confidence * 100,
+          });
+
+          // إضافة رسالة النقاش
+          setDebateMessages((prev) => [
+            ...prev,
+            {
+              agentId: proposal.agentId,
+              agentName: agent.nameAr,
+              message: proposal.proposal,
+              timestamp: new Date(),
+              type: "proposal",
+            },
+          ]);
+        }
+      }
+
+      // إضافة القرار النهائي إذا تم التوصل للتوافق
+      if (debateResult.consensus || debateResult.finalDecision) {
+        setDebateMessages((prev) => [
+          ...prev,
+          {
+            agentId: "judge",
+            agentName: "الحكم",
+            message: `${debateResult.finalDecision}\n\n📋 السبب: ${debateResult.judgeReasoning}`,
+            timestamp: new Date(),
+            type: "decision",
+          },
+        ]);
+      }
+
+      // حفظ نتائج النقاش في الجلسة
+      setCurrentSession((prev) =>
+        prev
+          ? {
+            ...prev,
+            results: {
+              ...prev.results,
+              [`phase${session.phase}Debate`]: debateResult,
+            },
+          }
+          : null
+      );
+
+      console.log(
+        `[Brainstorm] Debate completed: ${debateResult.debateRounds} rounds, consensus: ${debateResult.consensus}`
+      );
+
+      // الانتقال للمرحلة التالية تلقائياً
+      if (session.phase < 5) {
+        setTimeout(() => {
+          const nextPhase = (session.phase + 1) as BrainstormPhase;
+          setActivePhase(nextPhase);
+          setCurrentSession((prev) => (prev ? { ...prev, phase: nextPhase } : null));
+        }, 2000);
+      }
+
+      return debateResult;
+    } catch (error) {
+      console.error("[Brainstorm] Debate error:", error);
+
+      // تحديث حالة الوكلاء للخطأ
+      agents.forEach((agent) => {
+        updateAgentState(agent.id, {
+          status: "error",
+          lastMessage: "فشل في إتمام النقاش",
+        });
+      });
+
+      throw error;
+    }
   };
 
   // إيقاف الجلسة
@@ -407,7 +482,7 @@ export default function BrainstormContent() {
     setCurrentSession(null);
     setActivePhase(1);
     setDebateMessages([]);
-    
+
     // إعادة تعيين حالات جميع الوكلاء
     realAgents.forEach((agent) => {
       updateAgentState(agent.id, { status: "idle" });
@@ -417,61 +492,39 @@ export default function BrainstormContent() {
   // تقدم المرحلة
   const handleAdvancePhase = async () => {
     if (!currentSession) return;
-    
+
     const nextPhase = Math.min(activePhase + 1, 5) as BrainstormPhase;
     setActivePhase(nextPhase);
-    setCurrentSession((prev) => prev ? { ...prev, phase: nextPhase } : null);
+
+    // الحصول على جلسة محدثة للتمرير
+    const updatedSession: Session = {
+      ...currentSession,
+      phase: nextPhase,
+    };
+    setCurrentSession(updatedSession);
 
     // تفعيل وكلاء المرحلة الجديدة
     const nextPhaseAgents = getAgentsForPhase(nextPhase);
-    nextPhaseAgents.forEach((agent) => {
-      updateAgentState(agent.id, { status: "working" });
-    });
 
-    // محاكاة العمل
-    if (nextPhase === 4) {
-      // مرحلة النقاش
-      await simulateDebate(nextPhaseAgents);
-    } else {
-      await simulateAgentWork(nextPhaseAgents, currentSession);
-    }
-  };
+    // تحديد مهمة المرحلة
+    const phaseTasks: Record<BrainstormPhase, string> = {
+      1: `التحليل الأولي للبريف: ${currentSession.brief}`,
+      2: `التوسع الإبداعي: ${currentSession.brief}`,
+      3: `التحقق والتدقيق: ${currentSession.brief}`,
+      4: `النقاش والتوافق: ${currentSession.brief}`,
+      5: `التقييم النهائي: ${currentSession.brief}`,
+    };
 
-  // محاكاة النقاش
-  const simulateDebate = async (agents: readonly BrainstormAgentDefinition[]) => {
-    const debateTypes: DebateMessage["type"][] = ["proposal", "critique", "agreement", "decision"];
-    
-    for (let round = 0; round < 2; round++) {
-      for (const agent of agents) {
-        updateAgentState(agent.id, { status: "working" });
-        
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        const randomIndex = Math.floor(Math.random() * debateTypes.length);
-        const messageType: DebateMessage["type"] = debateTypes[randomIndex] ?? "proposal";
-        const messages: Record<DebateMessage["type"], string[]> = {
-          proposal: ["أقترح أن نركز على...", "من وجهة نظري، يجب أن...", "أرى أن الحل الأمثل هو..."],
-          critique: ["أعتقد أن هناك ثغرة في...", "يجب مراعاة...", "لاحظت أن..."],
-          agreement: ["أتفق مع هذا الطرح", "نعم، هذا منطقي", "أؤيد هذا الاتجاه"],
-          decision: ["القرار النهائي هو...", "بناءً على النقاش، أقرر...", "الخلاصة هي..."],
-        };
-
-        const messageOptions = messages[messageType];
-        const selectedMessage = messageOptions[Math.floor(Math.random() * messageOptions.length)] ?? "";
-
-        setDebateMessages((prev) => [
-          ...prev,
-          {
-            agentId: agent.id,
-            agentName: agent.nameAr,
-            message: selectedMessage,
-            timestamp: new Date(),
-            type: messageType,
-          },
-        ]);
-
-        updateAgentState(agent.id, { status: "completed" });
-      }
+    // تنفيذ نقاش الوكلاء الحقيقي
+    try {
+      await executeAgentDebate(
+        nextPhaseAgents,
+        updatedSession,
+        phaseTasks[nextPhase]
+      );
+    } catch (error) {
+      console.error(`[Brainstorm] Phase ${nextPhase} error:`, error);
+      setError(`فشل في إتمام المرحلة ${nextPhase}`);
     }
   };
 
@@ -529,13 +582,13 @@ export default function BrainstormContent() {
             متوسط التعقيد: {(agentStats.averageComplexity * 100).toFixed(0)}%
           </Badge>
         </div>
-        
+
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-600 font-medium">خطأ: {error}</p>
           </div>
         )}
-        
+
         {currentSession && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-blue-600 font-medium">
@@ -569,9 +622,8 @@ export default function BrainstormContent() {
                         <TooltipTrigger asChild>
                           <Button
                             variant={activePhase === phase.id ? "default" : "outline"}
-                            className={`p-4 h-auto flex items-center gap-3 ${
-                              activePhase === phase.id ? "ring-2 ring-blue-500" : ""
-                            }`}
+                            className={`p-4 h-auto flex items-center gap-3 ${activePhase === phase.id ? "ring-2 ring-blue-500" : ""
+                              }`}
                             onClick={() => setActivePhase(phase.id as BrainstormPhase)}
                           >
                             {phase.icon}
@@ -700,15 +752,14 @@ export default function BrainstormContent() {
                     {debateMessages.map((msg, idx) => (
                       <div
                         key={idx}
-                        className={`p-3 rounded-lg ${
-                          msg.type === "proposal"
-                            ? "bg-blue-50 border-blue-200"
-                            : msg.type === "critique"
+                        className={`p-3 rounded-lg ${msg.type === "proposal"
+                          ? "bg-blue-50 border-blue-200"
+                          : msg.type === "critique"
                             ? "bg-yellow-50 border-yellow-200"
                             : msg.type === "agreement"
-                            ? "bg-green-50 border-green-200"
-                            : "bg-purple-50 border-purple-200"
-                        } border`}
+                              ? "bg-green-50 border-green-200"
+                              : "bg-purple-50 border-purple-200"
+                          } border`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">{msg.agentName}</span>
