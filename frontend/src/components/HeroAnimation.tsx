@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import React, { useRef } from "react"
 import Link from "next/link"
 import { VideoTextMask } from "./VideoTextMask"
 import { useHeroAnimation } from "@/hooks/use-hero-animation"
@@ -133,7 +133,7 @@ export const HeroAnimation = () => {
             {/* V-Shape Container */}
             <div className="v-shape-container absolute top-0 left-0 w-full h-full m-0 p-0">
               <div className="v-shape-cards-layer absolute inset-0">
-                {responsiveValues.cardPositions.map((pos, i) => {
+                {responsiveValues.cardPositions.map((pos: any, i: number) => {
                   const centerIndex = Math.floor(responsiveValues.cardPositions.length / 2)
                   const distanceFromCenter = Math.abs(i - centerIndex)
                   const zIndex = 10010 - distanceFromCenter

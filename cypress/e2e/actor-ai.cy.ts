@@ -1,3 +1,5 @@
+/// <reference types="cypress" />
+
 describe('صفحة استوديو الممثل الذكي (Actor AI Arabic)', () => {
 
     beforeEach(() => {

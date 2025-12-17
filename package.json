@@ -33,6 +33,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "cypress": "^15.8.0",
     "sharp": "^0.34.5",
     "vitest": "^4.0.6"
   },
