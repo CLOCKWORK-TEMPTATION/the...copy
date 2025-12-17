@@ -14,37 +14,37 @@ const { NextConfig } = require("next");
 const remoteImagePatterns = process.env.NEXT_IMAGE_REMOTE_PATTERNS
   ? JSON.parse(process.env.NEXT_IMAGE_REMOTE_PATTERNS)
   : [
-      {
-        protocol: "https",
-        hostname: "hebbkx1anhila5yf.public.blob.vercel-storage.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "*.public.blob.vercel-storage.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "placehold.co",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "picsum.photos",
-        port: "",
-        pathname: "/**",
-      },
-    ];
+    {
+      protocol: "https",
+      hostname: "hebbkx1anhila5yf.public.blob.vercel-storage.com",
+      port: "",
+      pathname: "/**",
+    },
+    {
+      protocol: "https",
+      hostname: "*.public.blob.vercel-storage.com",
+      port: "",
+      pathname: "/**",
+    },
+    {
+      protocol: "https",
+      hostname: "placehold.co",
+      port: "",
+      pathname: "/**",
+    },
+    {
+      protocol: "https",
+      hostname: "images.unsplash.com",
+      port: "",
+      pathname: "/**",
+    },
+    {
+      protocol: "https",
+      hostname: "picsum.photos",
+      port: "",
+      pathname: "/**",
+    },
+  ];
 
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
@@ -321,25 +321,25 @@ const nextConfig = {
 // Sentry configuration
 const { withSentryConfig } = require("@sentry/nextjs");
 
-const shouldUseSentry = false; // Temporarily disabled due to version conflict
+const shouldUseSentry = true; // Enabled after fixing version conflict
 
 const sentryConfig = shouldUseSentry
   ? {
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      silent: !process.env.CI,
-      widenClientFileUpload: true,
-      reactComponentAnnotation: {
-        enabled: true,
-      },
-      hideSourceMaps: process.env.NODE_ENV === "production",
-      disableLogger: true,
-      automaticVercelMonitors: true,
-      tunnelRoute: "/monitoring",
-      sourcemaps: {
-        disable: false,
-      },
-    }
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    silent: !process.env.CI,
+    widenClientFileUpload: true,
+    reactComponentAnnotation: {
+      enabled: true,
+    },
+    hideSourceMaps: process.env.NODE_ENV === "production",
+    disableLogger: true,
+    automaticVercelMonitors: true,
+    tunnelRoute: "/monitoring",
+    sourcemaps: {
+      disable: false,
+    },
+  }
   : null;
 
 // Export config with Sentry wrapper if configured
