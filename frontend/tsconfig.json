@@ -82,6 +82,8 @@
     ],
     "types": [
       "node",
+      "react",
+      "react-dom",
       "vitest/globals"
     ]
   },
