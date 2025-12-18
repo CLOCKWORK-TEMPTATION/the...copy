@@ -329,12 +329,7 @@ const sentryConfig = shouldUseSentry
     project: process.env.SENTRY_PROJECT,
     silent: !process.env.CI,
     widenClientFileUpload: true,
-    reactComponentAnnotation: {
-      enabled: true,
-    },
     hideSourceMaps: process.env.NODE_ENV === "production",
-    disableLogger: true,
-    automaticVercelMonitors: true,
     tunnelRoute: "/monitoring",
     sourcemaps: {
       disable: false,
