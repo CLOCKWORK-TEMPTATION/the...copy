@@ -138,3 +138,4 @@ htmlcov/
 # Cursor IDE global storage
 **/AppData/Roaming/Cursor/User/globalStorage/
 **/globalStorage/
+nul

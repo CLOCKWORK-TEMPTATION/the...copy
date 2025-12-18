@@ -42,8 +42,6 @@ export const setupMiddleware = (app: express.Application): void => {
       noSniff: true,
       referrerPolicy: { policy: "strict-origin-when-cross-origin" },
       xssFilter: true,
-      preflightContinue: false,
-      optionsSuccessStatus: 204,
     })
   );
 
