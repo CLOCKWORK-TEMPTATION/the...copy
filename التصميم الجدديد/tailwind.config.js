@@ -1,15 +1,11 @@
-import type { Config } from "tailwindcss";
-import tailwindAnimate from "tailwindcss-animate";
-
-const config: Config = {
-  darkMode: "class",
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: ["class"],
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/hooks/**/*.{js,ts,jsx,tsx,mdx}",
-    // "./src/ai/**/*.{js,ts,jsx,tsx,mdx}", // Keeping existing paths just in case
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
   ],
   prefix: "",
   theme: {
@@ -22,7 +18,6 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        // Cairo is used in layout
         sans: ["var(--font-cairo)", "Cairo", "system-ui", "sans-serif"],
       },
       colors: {
@@ -59,20 +54,6 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
-        },
-        brand: {
-          DEFAULT: "hsl(var(--brand))",
-          foreground: "hsl(var(--brand-foreground))",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -95,7 +76,5 @@ const config: Config = {
       },
     },
   },
-  plugins: [tailwindAnimate],
-};
-
-export default config;
+  plugins: [],
+}

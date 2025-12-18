@@ -1,0 +1,239 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --brand: oklch(0.646 0.222 41.116);
+  --brand-foreground: oklch(0.985 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+  --brand: oklch(0.646 0.222 41.116);
+  --brand-foreground: oklch(0.985 0 0);
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .hero-animation-root {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 50% 30%, rgba(20, 20, 25, 1) 0%, rgba(0, 0, 0, 1) 70%);
+  }
+
+  .video-text-mask__title {
+    font-size: clamp(8rem, 28vw, 28rem);
+    font-weight: 900;
+    color: black;
+    font-family: "Cairo", "Noto Kufi Arabic", system-ui, -apple-system, "Segoe UI", "Arial Black", sans-serif;
+    letter-spacing: -0.08em;
+    font-stretch: ultra-expanded;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+  }
+
+  /* CRITICAL FIX: Unified text style for both dedication and النسخة */
+  .unified-text-style {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    font-family: "Cairo", "Cairo Fallback", sans-serif;
+    letter-spacing: 0.2em;
+    line-height: 1.05;
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 640px) {
+    .unified-text-style {
+      font-size: 16px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .unified-text-style {
+      font-size: 18px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .unified-text-style {
+      font-size: 20px;
+    }
+  }
+
+  .hero-title-stack {
+    @apply flex flex-col items-center justify-center gap-y-1;
+  }
+
+  .hero-main-title {
+    font-size: clamp(2.6rem, 6vw, 5rem);
+    letter-spacing: -0.02em;
+  }
+
+  .hero-dedication {
+    font-size: 22px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    font-family: "Cairo", "Cairo Fallback", sans-serif;
+    letter-spacing: 0.2em;
+    line-height: 1.05;
+  }
+
+  @media (min-width: 640px) {
+    .hero-dedication {
+      font-size: 24px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .hero-dedication {
+      font-size: 26px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hero-dedication {
+      font-size: 28px;
+    }
+  }
+
+  .hero-secondary-label {
+    font-size: 22px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    font-family: "Cairo", "Cairo Fallback", sans-serif;
+    letter-spacing: 0.2em;
+    line-height: 1.05;
+  }
+
+  @media (min-width: 640px) {
+    .hero-secondary-label {
+      font-size: 24px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .hero-secondary-label {
+      font-size: 26px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hero-secondary-label {
+      font-size: 28px;
+    }
+  }
+
+  .hero-vcard {
+    transform: translateX(-50%);
+  }
+
+  .hero-card-sheen {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0) 100%);
+    opacity: 0.6;
+    border-radius: 24px;
+  }
+
+  .card-elite {
+    border-radius: 18px;
+    border: 2px solid #FFD700;
+    background-color: rgba(10, 10, 10, 0.15);
+    backdrop-filter: blur(8px);
+    box-shadow: 0px 0px 15px rgba(255, 215, 0, 0.6), 0 20px 40px rgba(0, 0, 0, 0.5);
+    transition: all 500ms ease-out;
+  }
+
+  .card-elite:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
+  }
+
+  .video-text-mask__video {
+    z-index: 1;
+  }
+
+  .video-text-mask__overlay {
+    z-index: 2;
+    mix-blend-mode: screen;
+  }
+}
