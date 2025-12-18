@@ -90,23 +90,40 @@ cp frontend/.env.example frontend/.env
 # 4. إعداد قاعدة البيانات
 cd backend
 pnpm db:push
+```
 
-# 5. تشغيل Redis (Docker)
+### تشغيل بيئة التطوير
+
+#### الطريقة السريعة (موصى بها) ⚡
+```powershell
+# تشغيل كل شيء بأمر واحد (Windows)
+.\start-dev.ps1
+
+# إيقاف كل شيء
+.\stop-dev.ps1
+```
+
+#### الطريقة اليدوية
+```bash
+# Terminal 1 - Redis (اختياري)
 docker-compose up -d redis
+# أو على Windows
+.\redis\redis-server.exe
 
-# 6. تشغيل التطبيق
-# Terminal 1 - Backend
+# Terminal 2 - Backend
 cd backend
 pnpm dev
 
-# Terminal 2 - Frontend
+# Terminal 3 - Frontend
 cd frontend
 pnpm dev
 ```
 
+📖 **[دليل السكريبتات الكامل](./DEV_SCRIPTS_README_AR.md)** | **[English Guide](./DEV_SCRIPTS_README.md)**
+
 ### الوصول إلى التطبيق
 
-- **Frontend**: http://localhost:3000
+- **Frontend**: http://localhost:5000
 - **Backend API**: http://localhost:3001
 - **Bull Board**: http://localhost:3001/admin/queues
 - **Drizzle Studio**: `cd backend && pnpm db:studio`
