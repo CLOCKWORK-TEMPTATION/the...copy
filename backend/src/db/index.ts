@@ -5,10 +5,9 @@ import * as schema from './schema';
 import { logger } from '@/utils/logger';
 import ws from 'ws';
 
-// Configure Neon for WebSocket (required for serverless environments)
-if (isProduction) {
-  neonConfig.webSocketConstructor = ws;
-}
+// Configure Neon for WebSocket (required for Node.js environments)
+// This is needed for both development and production when running in Node.js
+neonConfig.webSocketConstructor = ws;
 
 /**
  * Production Database Security Configuration
