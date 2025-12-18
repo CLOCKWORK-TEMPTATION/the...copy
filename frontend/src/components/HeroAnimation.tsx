@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useRef } from "react"
+import { useRef } from "react"
 import Link from "next/link"
 import { VideoTextMask } from "./VideoTextMask"
 import { useHeroAnimation } from "@/hooks/use-hero-animation"
@@ -57,8 +57,7 @@ export const HeroAnimation = () => {
       <div className="scene-container fixed inset-0 z-[10000] flex items-center justify-center pointer-events-none">
 
         {/* Phase 7: 4x4 Grid Layout (16 cells total) */}
-        {/* Initially invisible and non-interactive */}
-        <div className="portfolio-grid-4x4 absolute inset-0 w-full h-full opacity-0 pointer-events-none p-4">
+        <div className="portfolio-grid-4x4 absolute inset-0 w-full h-full opacity-0 p-4">
           <div className="grid grid-cols-4 grid-rows-4 gap-2 md:gap-4 w-full h-full">
             {/* Generate 16 grid cells */}
             {Array.from({ length: GRID_SIZE }, (_, i) => {
@@ -74,7 +73,7 @@ export const HeroAnimation = () => {
                   key={`grid-cell-${i}`}
                   className={`grid-cell relative rounded-lg overflow-hidden ${isCenterCell
                     ? 'col-span-2 row-span-2 unified-entity-grid-container'
-                    : 'portfolio-item-container opacity-0 transform-gpu' // added transform-gpu
+                    : 'portfolio-item-container opacity-0 transform-gpu'
                     }`}
                   style={{
                     backgroundColor: isCenterCell ? 'transparent' : 'rgba(255,255,255,0.05)',
@@ -120,14 +119,10 @@ export const HeroAnimation = () => {
         </div>
 
         {/* Original Unified Entity - Will be positioned in center during Phase 7 */}
-        {/* Initially non-interactive (pointer-events-none applied via class in GSAP usually, but we set it here) */}
-        {/* We wrap the content in Link and control pointer-events via CSS/GSAP */}
         <div className="frozen-container relative w-full h-full flex items-center justify-center origin-center pointer-events-none">
-          {/* Changed to Link for the center interaction */}
           <Link
             href="/editor"
             className="unified-entity relative w-full h-full flex items-center justify-center block"
-            // pointer-events will be enabled by GSAP at the end
             id="center-unified-entity"
           >
             {/* V-Shape Container */}
