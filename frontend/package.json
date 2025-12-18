@@ -4,7 +4,7 @@
   "description": "النسخة - Landing Page مع Video Text Mask و Cards Scanner",
   "engines": {
     "node": "20.x",
-    "npm": ">=10.0.0"
+    "pnpm": ">=10.0.0"
   },
   "private": true,
   "scripts": {
@@ -16,7 +16,7 @@
     "build": "cross-env NODE_ENV=production next build",
     "build:production": "NODE_ENV=production ESLINT_NO_DEV_ERRORS=true next build",
     "start": "next start -p 5000 -H 0.0.0.0",
-    "analyze": "ANALYZE=true npm run build",
+    "analyze": "ANALYZE=true pnpm build",
     "lint": "eslint \"src/app/(main)/directors-studio/page.tsx\" \"src/app/(main)/directors-studio/helpers/**/*.ts\" \"src/app/(main)/directors-studio/components/LoadingSection.tsx\" \"src/app/(main)/directors-studio/components/NoProjectSection.tsx\" \"src/app/(main)/directors-studio/components/PageLayout.tsx\" \"src/app/(main)/directors-studio/components/ProjectContent.tsx\" \"src/app/(main)/directors-studio/components/ProjectTabs.tsx\" --max-warnings=10",
     "lint:fix": "eslint \"src/app/(main)/directors-studio/page.tsx\" \"src/app/(main)/directors-studio/helpers/**/*.ts\" \"src/app/(main)/directors-studio/components/LoadingSection.tsx\" \"src/app/(main)/directors-studio/components/NoProjectSection.tsx\" \"src/app/(main)/directors-studio/components/PageLayout.tsx\" \"src/app/(main)/directors-studio/components/ProjectContent.tsx\" \"src/app/(main)/directors-studio/components/ProjectTabs.tsx\" --fix --max-warnings=10",
     "format": "prettier --write .",
@@ -32,7 +32,7 @@
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
     "e2e:debug": "playwright test --debug",
-    "test:all": "npm run test:coverage && npm run e2e",
+    "test:all": "pnpm test:coverage && pnpm e2e",
     "performance:report": "node scripts/performance-report.js",
     "a11y:ci": "playwright test --grep @a11y",
     "perf:ci": "playwright test --grep @performance",
@@ -41,13 +41,13 @@
     "lighthouse:assert": "lhci assert",
     "lighthouse:upload": "lhci upload",
     "budget:check": "node scripts/check-performance-budget.js",
-    "budget:report": "npm run build && npm run budget:check",
+    "budget:report": "pnpm build && pnpm budget:check",
     "perf:analyze": "node scripts/performance-optimization.js",
-    "perf:full": "npm run build && npm run budget:report && npm run perf:analyze",
+    "perf:full": "pnpm build && pnpm budget:report && pnpm perf:analyze",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org $SENTRY_ORG --project $SENTRY_PROJECT .next && sentry-cli sourcemaps upload --org $SENTRY_ORG --project $SENTRY_PROJECT .next",
     "approve-builds": "echo 'Frontend build warnings approved - OpenTelemetry and Sentry warnings are expected and safe' && node -e 'console.log(\"✅ Build approved with expected warnings\")';",
-    "prepush": "npm run lint && npm run typecheck && npm run test",
-    "ci": "npm run lint && npm run typecheck && npm run test && npm run build && npm run e2e"
+    "prepush": "pnpm lint && pnpm typecheck && pnpm test",
+    "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.23.0",
