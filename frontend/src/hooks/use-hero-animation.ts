@@ -324,11 +324,6 @@ export const useHeroAnimation = (
         "+=0.3", // بعد انتهاء تبديل النصوص
       )
 
-      // 7.6: Enable Interactivity for Grid and Center (Links)
-      tl.set([".portfolio-grid-4x4", ".frozen-container"], {
-        pointerEvents: "auto"
-      })
-
       // انتهاء الأنيميشن مع النصوص المبدلة والصور
     }, containerRef)
 
