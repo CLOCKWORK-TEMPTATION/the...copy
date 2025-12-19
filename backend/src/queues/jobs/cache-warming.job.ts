@@ -34,7 +34,9 @@ async function processCacheWarming(job: Job<CacheWarmingJobData>): Promise<Cache
   const startTime = Date.now();
   const { entities, priority = 5 } = job.data;
 
-  logger.info(`[CacheWarming] Starting cache warming for ${entities.length} entities`);
+  // Ensure entities.length is a number to avoid injection if data is malformed
+  const count = Number(entities.length) || 0;
+  logger.info(`[CacheWarming] Starting cache warming for ${count} entities`);
 
   await job.updateProgress(0);
 
@@ -99,7 +101,9 @@ export async function queueCacheWarming(data: CacheWarmingJobData): Promise<stri
     },
   });
 
-  logger.info(`[CacheWarming] Job ${job.id} queued for ${data.entities.length} entities`);
+  // Sanitize job ID
+  const safeJobId = job.id ? String(job.id).replace(/[\r\n]/g, '') : 'unknown';
+  logger.info(`[CacheWarming] Job ${safeJobId} queued for ${data.entities.length} entities`);
 
   return job.id!;
 }
