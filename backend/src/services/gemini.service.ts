@@ -17,7 +17,7 @@ export class GeminiService {
 
   constructor() {
     const apiKey = env.GOOGLE_GENAI_API_KEY;
-    if (!apiKey) {
+    if (!apiKey || apiKey.trim().length === 0) {
       throw new Error('GOOGLE_GENAI_API_KEY غير محدد في البيئة');
     }
     this.genAI = new GoogleGenerativeAI(apiKey);

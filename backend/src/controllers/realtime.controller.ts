@@ -34,7 +34,11 @@ export class RealtimeController {
     // Initialize SSE connection
     sseService.initializeConnection(clientId, res, userId, lastEventId);
 
-    logger.info(`[SSE] New connection established: ${clientId}, user: ${userId || 'anonymous'}`);
+    // Sanitize log inputs to prevent CRLF injection
+    const safeClientId = clientId.replace(/[\r\n]/g, '');
+    const safeUserId = userId ? userId.replace(/[\r\n]/g, '') : 'anonymous';
+
+    logger.info(`[SSE] New connection established: ${safeClientId}, user: ${safeUserId}`);
   }
 
   /**
@@ -124,7 +128,12 @@ export class RealtimeController {
         event: testEvent,
       });
     } catch (error) {
-      logger.error('[Realtime] Failed to send test event:', error);
+      // Sanitize error info
+      const safeError = error instanceof Error
+        ? error.message.replace(/[\r\n]/g, ' ')
+        : String(error).replace(/[\r\n]/g, ' ');
+
+      logger.error(`[Realtime] Failed to send test event: ${safeError}`);
       res.status(500).json({
         success: false,
         error: 'فشل في إرسال الحدث التجريبي',
@@ -148,7 +157,11 @@ export class RealtimeController {
     const analysisRoom = `analysis:${analysisId}`;
     sseService.subscribeToRoom(clientId, analysisRoom);
 
-    logger.info(`[SSE] Client ${clientId} streaming analysis logs for: ${analysisId}`);
+    // Sanitize log inputs
+    const safeClientId = clientId.replace(/[\r\n]/g, '');
+    const safeAnalysisId = analysisId.replace(/[\r\n]/g, '');
+
+    logger.info(`[SSE] Client ${safeClientId} streaming analysis logs for: ${safeAnalysisId}`);
 
     // Send initial event
     sseService.sendToClient(clientId, {
@@ -179,7 +192,11 @@ export class RealtimeController {
     const jobRoom = `job:${jobId}`;
     sseService.subscribeToRoom(clientId, jobRoom);
 
-    logger.info(`[SSE] Client ${clientId} streaming job progress for: ${jobId}`);
+    // Sanitize log inputs
+    const safeClientId = clientId.replace(/[\r\n]/g, '');
+    const safeJobId = jobId.replace(/[\r\n]/g, '');
+
+    logger.info(`[SSE] Client ${safeClientId} streaming job progress for: ${safeJobId}`);
 
     // Send initial event
     sseService.sendToClient(clientId, {

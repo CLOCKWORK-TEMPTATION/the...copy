@@ -3,8 +3,7 @@ import { AuthService } from './auth.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-// SECURITY FIX: Use environment variables instead of hardcoded passwords
-const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'fallback_test_pwd_123';
+const TEST_PASSWORD = 'Pass123!';
 
 // Mock dependencies
 vi.mock('../db', () => ({
@@ -30,8 +29,7 @@ describe('AuthService', () => {
 
   describe('signup', () => {
     it('should successfully create a new user', async () => {
-      // Test-only mock data - not real credentials
-      const email = 'testuser@example.com';
+      const email = 'user@example.com';
       const password = TEST_PASSWORD;
       const firstName = 'Test';
       const lastName = 'User';
