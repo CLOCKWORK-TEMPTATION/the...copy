@@ -82,7 +82,53 @@ interface VocalExercise {
   category: "breathing" | "articulation" | "projection" | "resonance";
 }
 
-type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal";
+type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "rhythm";
+
+// ==================== أنواع بيانات تحليل الإيقاع ====================
+
+interface RhythmPoint {
+  position: number; // موضع في النص (0-100%)
+  intensity: number; // شدة الإيقاع (0-100)
+  tempo: "slow" | "medium" | "fast" | "very-fast";
+  emotion: string;
+  beat: string; // وصف اللحظة
+}
+
+interface MonotonyAlert {
+  startPosition: number;
+  endPosition: number;
+  severity: "low" | "medium" | "high";
+  description: string;
+  suggestion: string;
+}
+
+interface RhythmComparison {
+  aspect: string;
+  yourScore: number;
+  optimalScore: number;
+  difference: number;
+  feedback: string;
+}
+
+interface EmotionalColorSuggestion {
+  segment: string;
+  currentEmotion: string;
+  suggestedEmotion: string;
+  technique: string;
+  example: string;
+}
+
+interface SceneRhythmAnalysis {
+  overallTempo: "slow" | "medium" | "fast";
+  rhythmScore: number; // 0-100
+  rhythmMap: RhythmPoint[];
+  monotonyAlerts: MonotonyAlert[];
+  comparisons: RhythmComparison[];
+  emotionalSuggestions: EmotionalColorSuggestion[];
+  peakMoments: string[];
+  valleyMoments: string[];
+  summary: string;
+}
 
 // ==================== البيانات التجريبية ====================
 
@@ -201,6 +247,12 @@ export const ActorAiArabicStudio: React.FC = () => {
   // حالة تمارين الصوت
   const [activeExercise, setActiveExercise] = useState<string | null>(null);
   const [exerciseTimer, setExerciseTimer] = useState(0);
+
+  // حالة تحليل إيقاع المشهد
+  const [rhythmScriptText, setRhythmScriptText] = useState("");
+  const [analyzingRhythm, setAnalyzingRhythm] = useState(false);
+  const [rhythmAnalysis, setRhythmAnalysis] = useState<SceneRhythmAnalysis | null>(null);
+  const [selectedRhythmTab, setSelectedRhythmTab] = useState<"map" | "comparison" | "monotony" | "suggestions">("map");
 
   // ==================== الدوال المساعدة ====================
 
@@ -418,6 +470,135 @@ export const ActorAiArabicStudio: React.FC = () => {
     showNotification("success", "أحسنت! تم إنهاء التمرين");
   }, [showNotification]);
 
+  // ==================== وظائف تحليل إيقاع المشهد ====================
+
+  const useRhythmSampleScript = useCallback(() => {
+    setRhythmScriptText(SAMPLE_SCRIPT);
+    showNotification("info", "تم تحميل النص التجريبي لتحليل الإيقاع");
+  }, [showNotification]);
+
+  const analyzeSceneRhythm = useCallback(() => {
+    if (!rhythmScriptText.trim()) {
+      showNotification("error", "يرجى إدخال نص أولاً لتحليل الإيقاع");
+      return;
+    }
+
+    setAnalyzingRhythm(true);
+
+    // محاكاة تحليل الإيقاع
+    setTimeout(() => {
+      const analysis: SceneRhythmAnalysis = {
+        overallTempo: "medium",
+        rhythmScore: 78,
+        rhythmMap: [
+          { position: 0, intensity: 30, tempo: "slow", emotion: "ترقب", beat: "افتتاحية هادئة - وصف المكان" },
+          { position: 15, intensity: 45, tempo: "medium", emotion: "شوق", beat: "دخول أحمد للمشهد" },
+          { position: 30, intensity: 65, tempo: "medium", emotion: "توتر رومانسي", beat: "المونولوج الأول" },
+          { position: 45, intensity: 80, tempo: "fast", emotion: "تصاعد عاطفي", beat: "ظهور ليلى على الشرفة" },
+          { position: 60, intensity: 70, tempo: "medium", emotion: "حوار متوتر", beat: "تبادل المشاعر" },
+          { position: 75, intensity: 90, tempo: "very-fast", emotion: "ذروة عاطفية", beat: "الوعد بالتغلب على العقبات" },
+          { position: 90, intensity: 60, tempo: "medium", emotion: "أمل مشوب بالقلق", beat: "الختام المفتوح" },
+        ],
+        monotonyAlerts: [
+          {
+            startPosition: 15,
+            endPosition: 35,
+            severity: "medium",
+            description: "فترة طويلة من الإيقاع المتوسط دون تنويع كافٍ",
+            suggestion: "أضف لحظة صمت درامي أو تغيير مفاجئ في نبرة الصوت لكسر الرتابة"
+          },
+          {
+            startPosition: 55,
+            endPosition: 65,
+            severity: "low",
+            description: "الحوار يميل للنمطية في هذا القسم",
+            suggestion: "جرب تسريع إيقاع بعض الجمل أو إضافة وقفات استراتيجية"
+          }
+        ],
+        comparisons: [
+          { aspect: "التصاعد الدرامي", yourScore: 75, optimalScore: 85, difference: -10, feedback: "يمكن تعزيز التصاعد بإضافة نبضات صغرى قبل الذروة" },
+          { aspect: "التنوع الإيقاعي", yourScore: 70, optimalScore: 80, difference: -10, feedback: "أضف المزيد من التباين بين المقاطع السريعة والبطيئة" },
+          { aspect: "توقيت الذروة", yourScore: 85, optimalScore: 85, difference: 0, feedback: "ممتاز! الذروة في المكان الصحيح" },
+          { aspect: "الختام", yourScore: 72, optimalScore: 78, difference: -6, feedback: "الختام سريع قليلاً، فكر في إطالته لإشباع عاطفي أكبر" },
+          { aspect: "الافتتاحية", yourScore: 80, optimalScore: 82, difference: -2, feedback: "جيد جداً، افتتاحية مناسبة للمشهد الرومانسي" }
+        ],
+        emotionalSuggestions: [
+          {
+            segment: "يا ليلى، يا قمر الليل",
+            currentEmotion: "شوق عادي",
+            suggestedEmotion: "شوق ملتهب",
+            technique: "تنفس عميق قبل النداء، ثم إخراج الكلمات بنفس طويل متصاعد",
+            example: "ابدأ بهمس ثم تصاعد تدريجي: يا... ليـ...ـلى (مد الحروف مع تصاعد)"
+          },
+          {
+            segment: "أنتِ نور عيني وروحي",
+            currentEmotion: "إعلان مباشر",
+            suggestedEmotion: "اكتشاف داخلي",
+            technique: "كأنك تكتشف هذه الحقيقة للمرة الأولى أثناء الكلام",
+            example: "توقف قصير بين 'عيني' و'روحي' كأنك تبحث عن الكلمة الأعمق"
+          },
+          {
+            segment: "ماذا سنفعل؟",
+            currentEmotion: "تساؤل بسيط",
+            suggestedEmotion: "قلق ممزوج بأمل",
+            technique: "اجعل السؤال معلقاً في الهواء، لا تنهيه بشكل حاسم",
+            example: "ارفع نبرتك قليلاً في النهاية مع نظرة تنتظر الجواب"
+          },
+          {
+            segment: "سأجد طريقة، مهما كانت الصعوبات",
+            currentEmotion: "وعد عادي",
+            suggestedEmotion: "عزم لا يتزعزع",
+            technique: "أنزل صوتك قليلاً واجعله أكثر ثباتاً - صوت القرار",
+            example: "سأجد (وقفة قصيرة مع نظرة مباشرة) طريقة... مهما كانت الصعوبات (بثبات)"
+          }
+        ],
+        peakMoments: [
+          "لحظة ظهور ليلى على الشرفة - ذروة بصرية",
+          "جملة 'حبنا أقوى من كل العوائق' - ذروة عاطفية",
+          "التقاء النظرات الأول - ذروة صامتة"
+        ],
+        valleyMoments: [
+          "الوصف الافتتاحي للحديقة - لحظة سكون ضرورية",
+          "تردد ليلى قبل الرد - وقفة درامية"
+        ],
+        summary: "المشهد يتبع قوساً إيقاعياً كلاسيكياً رومانسياً مع بداية هادئة وتصاعد تدريجي نحو ذروة عاطفية. الإيقاع العام جيد لكن يمكن تحسينه بإضافة المزيد من التنوع في القسم الأوسط وإطالة لحظات الصمت الدرامي."
+      };
+
+      setRhythmAnalysis(analysis);
+      setAnalyzingRhythm(false);
+      showNotification("success", "تم تحليل إيقاع المشهد بنجاح!");
+    }, 3000);
+  }, [rhythmScriptText, showNotification]);
+
+  const getTempoColor = (tempo: string): string => {
+    switch (tempo) {
+      case "slow": return "bg-blue-400";
+      case "medium": return "bg-green-400";
+      case "fast": return "bg-orange-400";
+      case "very-fast": return "bg-red-500";
+      default: return "bg-gray-400";
+    }
+  };
+
+  const getTempoLabel = (tempo: string): string => {
+    switch (tempo) {
+      case "slow": return "بطيء";
+      case "medium": return "متوسط";
+      case "fast": return "سريع";
+      case "very-fast": return "سريع جداً";
+      default: return tempo;
+    }
+  };
+
+  const getSeverityColor = (severity: string): string => {
+    switch (severity) {
+      case "low": return "bg-yellow-100 border-yellow-400 text-yellow-800";
+      case "medium": return "bg-orange-100 border-orange-400 text-orange-800";
+      case "high": return "bg-red-100 border-red-400 text-red-800";
+      default: return "bg-gray-100 border-gray-400 text-gray-800";
+    }
+  };
+
   // ==================== Auto scroll للدردشة ====================
 
   useEffect(() => {
@@ -469,6 +650,13 @@ export const ActorAiArabicStudio: React.FC = () => {
               className={currentView === "vocal" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
             >
               🎤 تمارين الصوت
+            </Button>
+            <Button
+              onClick={() => navigate("rhythm")}
+              variant={currentView === "rhythm" ? "secondary" : "ghost"}
+              className={currentView === "rhythm" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
+            >
+              🎵 إيقاع المشهد
             </Button>
 
             {user ? (
@@ -1284,6 +1472,506 @@ export const ActorAiArabicStudio: React.FC = () => {
     </div>
   );
 
+  // ==================== صفحة إيقاع المشهد ====================
+
+  const renderSceneRhythm = () => (
+    <div className="max-w-6xl mx-auto py-8">
+      <div className="flex items-center gap-3 mb-2">
+        <span className="text-4xl">🎵</span>
+        <h2 className="text-3xl font-bold text-gray-800">تحليل إيقاع المشهد</h2>
+      </div>
+      <p className="text-gray-600 mb-8">اكتشف إيقاع أدائك وحسّنه بأدوات التحليل المتقدمة</p>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* قسم إدخال النص */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span>📝</span>
+              النص المسرحي
+            </CardTitle>
+            <CardDescription>أدخل نصك لتحليل الإيقاع</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={useRhythmSampleScript}>
+                📄 نص تجريبي
+              </Button>
+            </div>
+            <Textarea
+              placeholder="الصق نصك هنا..."
+              className="min-h-[300px]"
+              value={rhythmScriptText}
+              onChange={(e) => setRhythmScriptText(e.target.value)}
+            />
+            <Button
+              className="w-full"
+              onClick={analyzeSceneRhythm}
+              disabled={analyzingRhythm || !rhythmScriptText.trim()}
+            >
+              {analyzingRhythm ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  جاري تحليل الإيقاع...
+                </>
+              ) : (
+                <>🎵 تحليل الإيقاع</>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* قسم النتائج */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span>📊</span>
+              نتائج التحليل
+            </CardTitle>
+            {rhythmAnalysis && (
+              <div className="flex items-center gap-4 mt-2">
+                <Badge className="text-lg px-4 py-1">
+                  النتيجة: {rhythmAnalysis.rhythmScore}/100
+                </Badge>
+                <Badge variant="outline" className="text-lg px-4 py-1">
+                  الإيقاع: {getTempoLabel(rhythmAnalysis.overallTempo)}
+                </Badge>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            {!rhythmAnalysis ? (
+              <div className="text-center py-16 text-gray-500">
+                <div className="text-8xl mb-4 opacity-30">🎵</div>
+                <p className="text-xl">أدخل نصاً وابدأ التحليل لرؤية النتائج</p>
+              </div>
+            ) : (
+              <>
+                {/* تابات التحليل */}
+                <div className="flex gap-2 mb-6 flex-wrap">
+                  <Button
+                    variant={selectedRhythmTab === "map" ? "default" : "outline"}
+                    onClick={() => setSelectedRhythmTab("map")}
+                    size="sm"
+                  >
+                    🗺️ خريطة الإيقاع
+                  </Button>
+                  <Button
+                    variant={selectedRhythmTab === "comparison" ? "default" : "outline"}
+                    onClick={() => setSelectedRhythmTab("comparison")}
+                    size="sm"
+                  >
+                    📊 المقارنة
+                  </Button>
+                  <Button
+                    variant={selectedRhythmTab === "monotony" ? "default" : "outline"}
+                    onClick={() => setSelectedRhythmTab("monotony")}
+                    size="sm"
+                  >
+                    ⚠️ اكتشاف الرتابة
+                  </Button>
+                  <Button
+                    variant={selectedRhythmTab === "suggestions" ? "default" : "outline"}
+                    onClick={() => setSelectedRhythmTab("suggestions")}
+                    size="sm"
+                  >
+                    🎨 التلوين العاطفي
+                  </Button>
+                </div>
+
+                {/* محتوى خريطة الإيقاع */}
+                {selectedRhythmTab === "map" && (
+                  <div className="space-y-6">
+                    {/* الملخص */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">📋 ملخص التحليل:</h4>
+                      <p className="text-gray-700">{rhythmAnalysis.summary}</p>
+                    </div>
+
+                    {/* الخريطة البصرية */}
+                    <div>
+                      <h4 className="font-semibold mb-4">🗺️ خريطة الإيقاع البصرية:</h4>
+                      <div className="relative bg-gray-100 rounded-lg p-4">
+                        {/* المحور الأفقي */}
+                        <div className="h-40 relative">
+                          {/* خطوط الشبكة */}
+                          <div className="absolute inset-0 flex flex-col justify-between">
+                            <div className="border-b border-gray-300 border-dashed" />
+                            <div className="border-b border-gray-300 border-dashed" />
+                            <div className="border-b border-gray-300 border-dashed" />
+                            <div className="border-b border-gray-300 border-dashed" />
+                          </div>
+
+                          {/* نقاط الإيقاع */}
+                          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                            {/* الخط المنحني */}
+                            <path
+                              d={`M ${rhythmAnalysis.rhythmMap.map((point, idx) =>
+                                `${(point.position / 100) * 100}%,${100 - point.intensity}%`
+                              ).join(' L ')}`}
+                              fill="none"
+                              stroke="url(#rhythmGradient)"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <defs>
+                              <linearGradient id="rhythmGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#3b82f6" />
+                                <stop offset="50%" stopColor="#8b5cf6" />
+                                <stop offset="100%" stopColor="#ec4899" />
+                              </linearGradient>
+                            </defs>
+                          </svg>
+
+                          {/* نقاط البيانات */}
+                          {rhythmAnalysis.rhythmMap.map((point, idx) => (
+                            <div
+                              key={idx}
+                              className="absolute transform -translate-x-1/2 -translate-y-1/2 group"
+                              style={{
+                                left: `${point.position}%`,
+                                top: `${100 - point.intensity}%`
+                              }}
+                            >
+                              <div className={`w-4 h-4 rounded-full ${getTempoColor(point.tempo)} border-2 border-white shadow-lg cursor-pointer hover:scale-150 transition-transform`} />
+                              {/* Tooltip */}
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+                                <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                                  <div className="font-bold">{point.beat}</div>
+                                  <div>الشدة: {point.intensity}%</div>
+                                  <div>المشاعر: {point.emotion}</div>
+                                  <div>السرعة: {getTempoLabel(point.tempo)}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* مفتاح الألوان */}
+                        <div className="flex justify-center gap-4 mt-4 text-sm">
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-blue-400" />
+                            <span>بطيء</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-green-400" />
+                            <span>متوسط</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-orange-400" />
+                            <span>سريع</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-red-500" />
+                            <span>سريع جداً</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* لحظات الذروة والوادي */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <h5 className="font-semibold mb-2 text-green-800">📈 لحظات الذروة:</h5>
+                        <ul className="space-y-1 text-sm">
+                          {rhythmAnalysis.peakMoments.map((peak, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-green-600">▲</span>
+                              {peak}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <h5 className="font-semibold mb-2 text-purple-800">📉 لحظات السكون:</h5>
+                        <ul className="space-y-1 text-sm">
+                          {rhythmAnalysis.valleyMoments.map((valley, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-purple-600">▼</span>
+                              {valley}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* تفاصيل النبضات */}
+                    <div>
+                      <h4 className="font-semibold mb-3">🎯 تفاصيل النبضات:</h4>
+                      <div className="space-y-2">
+                        {rhythmAnalysis.rhythmMap.map((point, idx) => (
+                          <div key={idx} className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                            <div className={`w-10 h-10 rounded-full ${getTempoColor(point.tempo)} flex items-center justify-center text-white font-bold`}>
+                              {idx + 1}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium">{point.beat}</div>
+                              <div className="text-sm text-gray-600">
+                                {point.emotion} • {getTempoLabel(point.tempo)}
+                              </div>
+                            </div>
+                            <div className="text-left">
+                              <Progress value={point.intensity} className="w-20" />
+                              <span className="text-xs text-gray-500">{point.intensity}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* محتوى المقارنة */}
+                {selectedRhythmTab === "comparison" && (
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-l from-blue-50 to-purple-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">📊 مقارنة إيقاعك بالمعايير المثالية:</h4>
+                      <p className="text-gray-600 text-sm">تقييم أدائك مقارنة بأفضل الممارسات في المشاهد المشابهة</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {rhythmAnalysis.comparisons.map((comp, idx) => (
+                        <div key={idx} className="bg-white p-4 rounded-lg border">
+                          <div className="flex justify-between items-start mb-3">
+                            <h5 className="font-semibold">{comp.aspect}</h5>
+                            <Badge
+                              variant={comp.difference >= 0 ? "default" : "outline"}
+                              className={comp.difference >= 0 ? "bg-green-600" : "bg-orange-100 text-orange-800"}
+                            >
+                              {comp.difference >= 0 ? `+${comp.difference}` : comp.difference}
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm w-16">أنت:</span>
+                              <div className="flex-1 bg-gray-100 rounded-full h-3">
+                                <div
+                                  className="h-full bg-blue-500 rounded-full transition-all"
+                                  style={{ width: `${comp.yourScore}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium w-12">{comp.yourScore}%</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm w-16">المثالي:</span>
+                              <div className="flex-1 bg-gray-100 rounded-full h-3">
+                                <div
+                                  className="h-full bg-green-500 rounded-full transition-all"
+                                  style={{ width: `${comp.optimalScore}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium w-12">{comp.optimalScore}%</span>
+                            </div>
+                          </div>
+
+                          <p className="text-sm text-gray-600 mt-3 bg-gray-50 p-2 rounded">
+                            💡 {comp.feedback}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ملخص المقارنة */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h5 className="font-semibold mb-2">📈 ملخص الأداء:</h5>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-3xl font-bold text-blue-600">
+                            {Math.round(rhythmAnalysis.comparisons.reduce((a, b) => a + b.yourScore, 0) / rhythmAnalysis.comparisons.length)}%
+                          </div>
+                          <div className="text-sm text-gray-600">متوسط نتيجتك</div>
+                        </div>
+                        <div>
+                          <div className="text-3xl font-bold text-green-600">
+                            {rhythmAnalysis.comparisons.filter(c => c.difference >= 0).length}
+                          </div>
+                          <div className="text-sm text-gray-600">جوانب متفوقة</div>
+                        </div>
+                        <div>
+                          <div className="text-3xl font-bold text-orange-600">
+                            {rhythmAnalysis.comparisons.filter(c => c.difference < 0).length}
+                          </div>
+                          <div className="text-sm text-gray-600">جوانب للتحسين</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* محتوى اكتشاف الرتابة */}
+                {selectedRhythmTab === "monotony" && (
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-l from-orange-50 to-yellow-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">⚠️ اكتشاف الرتابة (Monotony Detection):</h4>
+                      <p className="text-gray-600 text-sm">تحديد المناطق التي قد تفقد انتباه الجمهور بسبب الرتابة</p>
+                    </div>
+
+                    {rhythmAnalysis.monotonyAlerts.length === 0 ? (
+                      <div className="text-center py-8 bg-green-50 rounded-lg">
+                        <div className="text-6xl mb-4">✨</div>
+                        <h4 className="text-xl font-semibold text-green-800">ممتاز!</h4>
+                        <p className="text-green-600">لم يتم اكتشاف مناطق رتابة في أدائك</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {rhythmAnalysis.monotonyAlerts.map((alert, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-4 rounded-lg border-2 ${getSeverityColor(alert.severity)}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="text-2xl">
+                                {alert.severity === "high" ? "🔴" : alert.severity === "medium" ? "🟠" : "🟡"}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Badge variant="outline">
+                                    الموقع: {alert.startPosition}% - {alert.endPosition}%
+                                  </Badge>
+                                  <Badge className={
+                                    alert.severity === "high" ? "bg-red-600" :
+                                    alert.severity === "medium" ? "bg-orange-600" : "bg-yellow-600"
+                                  }>
+                                    {alert.severity === "high" ? "عالية" :
+                                     alert.severity === "medium" ? "متوسطة" : "منخفضة"}
+                                  </Badge>
+                                </div>
+                                <h5 className="font-semibold mb-1">{alert.description}</h5>
+                                <div className="bg-white bg-opacity-50 p-3 rounded mt-2">
+                                  <span className="text-sm font-medium">💡 الحل المقترح:</span>
+                                  <p className="text-sm mt-1">{alert.suggestion}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* شريط بصري للرتابة */}
+                    <div>
+                      <h4 className="font-semibold mb-3">📊 خريطة الرتابة:</h4>
+                      <div className="relative h-8 bg-green-200 rounded-full overflow-hidden">
+                        {rhythmAnalysis.monotonyAlerts.map((alert, idx) => (
+                          <div
+                            key={idx}
+                            className={`absolute top-0 h-full ${
+                              alert.severity === "high" ? "bg-red-400" :
+                              alert.severity === "medium" ? "bg-orange-400" : "bg-yellow-400"
+                            }`}
+                            style={{
+                              left: `${alert.startPosition}%`,
+                              width: `${alert.endPosition - alert.startPosition}%`
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>البداية</span>
+                        <span>النهاية</span>
+                      </div>
+                    </div>
+
+                    {/* نصائح عامة */}
+                    <Card className="bg-blue-50">
+                      <CardHeader>
+                        <CardTitle className="text-lg">💡 نصائح لتجنب الرتابة</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2 text-sm">
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600">✓</span>
+                            غيّر سرعة الكلام كل 2-3 جمل
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600">✓</span>
+                            استخدم الوقفات الدرامية بشكل استراتيجي
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600">✓</span>
+                            نوّع في نبرة الصوت بين الارتفاع والانخفاض
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600">✓</span>
+                            أضف حركة جسدية مصاحبة للكلام
+                          </li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* محتوى التلوين العاطفي */}
+                {selectedRhythmTab === "suggestions" && (
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-l from-pink-50 to-purple-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">🎨 اقتراحات التلوين العاطفي:</h4>
+                      <p className="text-gray-600 text-sm">تقنيات لإضافة عمق عاطفي وتنوع في أدائك</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {rhythmAnalysis.emotionalSuggestions.map((sugg, idx) => (
+                        <Card key={idx} className="overflow-hidden">
+                          <div className="bg-gradient-to-l from-purple-100 to-pink-100 p-3">
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-purple-600">{idx + 1}</Badge>
+                              <h5 className="font-semibold text-purple-900">"{sugg.segment}"</h5>
+                            </div>
+                          </div>
+                          <CardContent className="p-4 space-y-3">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-gray-50 p-3 rounded-lg">
+                                <div className="text-xs text-gray-500 mb-1">الحالي:</div>
+                                <div className="font-medium text-gray-700">{sugg.currentEmotion}</div>
+                              </div>
+                              <div className="bg-green-50 p-3 rounded-lg">
+                                <div className="text-xs text-green-600 mb-1">المقترح:</div>
+                                <div className="font-medium text-green-700">{sugg.suggestedEmotion}</div>
+                              </div>
+                            </div>
+
+                            <div className="bg-blue-50 p-3 rounded-lg">
+                              <div className="text-xs text-blue-600 mb-1">🎭 التقنية:</div>
+                              <p className="text-sm">{sugg.technique}</p>
+                            </div>
+
+                            <div className="bg-yellow-50 p-3 rounded-lg">
+                              <div className="text-xs text-yellow-700 mb-1">📝 مثال تطبيقي:</div>
+                              <p className="text-sm italic">"{sugg.example}"</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {/* لوحة الألوان العاطفية */}
+                    <Card className="bg-gradient-to-l from-blue-50 via-purple-50 to-pink-50">
+                      <CardHeader>
+                        <CardTitle className="text-lg">🎨 لوحة الألوان العاطفية</CardTitle>
+                        <CardDescription>استخدم هذه المشاعر لتلوين أدائك</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {["شوق ملتهب", "حنين عميق", "خوف مكتوم", "أمل مشرق", "حزن رقيق", "فرح طافح", "غضب مكبوت", "حب صادق", "قلق خفي", "شجاعة متردية"].map((emotion, idx) => (
+                            <Badge key={idx} variant="outline" className="px-3 py-1">
+                              {emotion}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
   // ==================== الـ Footer ====================
 
   const renderFooter = () => (
@@ -1333,6 +2021,8 @@ export const ActorAiArabicStudio: React.FC = () => {
         return renderDemo();
       case "vocal":
         return renderVocalExercises();
+      case "rhythm":
+        return renderSceneRhythm();
       case "dashboard":
         return renderDashboard();
       case "login":
