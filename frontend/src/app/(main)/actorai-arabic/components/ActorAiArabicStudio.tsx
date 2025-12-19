@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VoiceCoach } from "./VoiceCoach";
 
 // ==================== أنواع البيانات ====================
 
@@ -82,7 +83,7 @@ interface VocalExercise {
   category: "breathing" | "articulation" | "projection" | "resonance";
 }
 
-type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal";
+type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "voicecoach";
 
 // ==================== البيانات التجريبية ====================
 
@@ -470,6 +471,13 @@ export const ActorAiArabicStudio: React.FC = () => {
             >
               🎤 تمارين الصوت
             </Button>
+            <Button
+              onClick={() => navigate("voicecoach")}
+              variant={currentView === "voicecoach" ? "secondary" : "ghost"}
+              className={currentView === "voicecoach" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
+            >
+              🎙️ مدرب الصوت
+            </Button>
 
             {user ? (
               <>
@@ -660,12 +668,15 @@ export const ActorAiArabicStudio: React.FC = () => {
           أتقن فنك مع تحليل النصوص المدعوم بالذكاء الاصطناعي، وشركاء المشاهد الافتراضيين، وتحليلات الأداء
         </p>
 
-        <div className="flex gap-4 justify-center mb-12">
+        <div className="flex gap-4 justify-center mb-12 flex-wrap">
           <Button size="lg" onClick={() => navigate("demo")} className="bg-blue-600 hover:bg-blue-700">
             🎬 جرب التطبيق
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("vocal")}>
             🎤 تمارين الصوت
+          </Button>
+          <Button size="lg" onClick={() => navigate("voicecoach")} className="bg-purple-600 hover:bg-purple-700">
+            🎙️ مدرب الصوت
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("register")}>
             ابدأ الآن
@@ -675,7 +686,7 @@ export const ActorAiArabicStudio: React.FC = () => {
         <div className="text-8xl opacity-30 mb-12">🎭</div>
 
         {/* الميزات */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
           <Card className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <div className="text-5xl mb-4">🧠</div>
@@ -696,6 +707,17 @@ export const ActorAiArabicStudio: React.FC = () => {
             </CardContent>
           </Card>
 
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+            <CardContent className="p-6 text-center">
+              <div className="text-5xl mb-4">🎙️</div>
+              <h3 className="text-xl font-semibold mb-2 text-purple-900">مدرب الصوت اللحظي</h3>
+              <p className="text-purple-700">
+                تحليل فوري: طبقة الصوت، الشدة، السرعة، الوقفات، التنفس
+              </p>
+              <Badge className="mt-3 bg-purple-600">جديد ✨</Badge>
+            </CardContent>
+          </Card>
+
           <Card className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <div className="text-5xl mb-4">🎤</div>
@@ -712,6 +734,16 @@ export const ActorAiArabicStudio: React.FC = () => {
               <h3 className="text-xl font-semibold mb-2">تتبع التقدم</h3>
               <p className="text-gray-600">
                 راقب نموك مع تحليلات شاملة ونصائح مخصصة
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-6 text-center">
+              <div className="text-5xl mb-4">🎥</div>
+              <h3 className="text-xl font-semibold mb-2">تسجيل الأداء</h3>
+              <p className="text-gray-600">
+                سجل أداءك واحصل على ملاحظات مفصلة
               </p>
             </CardContent>
           </Card>
@@ -1284,6 +1316,16 @@ export const ActorAiArabicStudio: React.FC = () => {
     </div>
   );
 
+  // ==================== صفحة مدرب الصوت ====================
+
+  const renderVoiceCoach = () => (
+    <div className="max-w-6xl mx-auto py-8">
+      <h2 className="text-3xl font-bold text-gray-800 mb-2">🎙️ مدرب الصوت اللحظي</h2>
+      <p className="text-gray-600 mb-8">تحليل صوتي متقدم لتطوير أدائك التمثيلي</p>
+      <VoiceCoach />
+    </div>
+  );
+
   // ==================== الـ Footer ====================
 
   const renderFooter = () => (
@@ -1333,6 +1375,8 @@ export const ActorAiArabicStudio: React.FC = () => {
         return renderDemo();
       case "vocal":
         return renderVocalExercises();
+      case "voicecoach":
+        return renderVoiceCoach();
       case "dashboard":
         return renderDashboard();
       case "login":
