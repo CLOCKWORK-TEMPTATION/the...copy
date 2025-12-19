@@ -1,0 +1,41 @@
+{
+  "excludePaths": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/out/**",
+    "**/*.min.js",
+    "**/*.bundle.js",
+    "**/coverage/**",
+    "**/.pnpm-store/**",
+    "**/@sentry/**",
+    "**/turbopack/**"
+  ],
+  "excludeRules": [
+    {
+      "rule": "CWE-798,259",
+      "paths": [
+        "**/node_modules/**",
+        "**/.next/**"
+      ],
+      "reason": "Third-party libraries contain test data and examples"
+    },
+    {
+      "rule": "CWE-79,80",
+      "paths": [
+        "**/@sentry/**",
+        "**/node_modules/**"
+      ],
+      "reason": "Sentry library handles XSS properly internally"
+    },
+    {
+      "rule": "CWE-94",
+      "paths": [
+        "**/turbopack/**",
+        "**/node_modules/**"
+      ],
+      "reason": "Build tools and bundlers use eval for legitimate purposes"
+    }
+  ]
+}

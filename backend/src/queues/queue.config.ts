@@ -5,6 +5,9 @@
  */
 
 import { Queue, Worker, QueueOptions, WorkerOptions, ConnectionOptions, Job } from 'bullmq';
+import { logger } from '@/utils/logger';
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Redis connection configuration for BullMQ
 // Supports both REDIS_URL and individual REDIS_HOST/PORT/PASSWORD
@@ -15,7 +18,7 @@ function getRedisConnection(): ConnectionOptions {
     retryStrategy(times: number) {
       // Limit retries to prevent spam
       if (times > 5) {
-        console.warn('[Redis] Max retries reached, disabling Redis');
+        logger.warn('[Redis] Max retries reached, disabling Redis');
         return null;
       }
       const delay = Math.min(times * 50, 2000);
@@ -98,25 +101,28 @@ class QueueManager {
         ...options,
       });
 
-      // Queue event handlers
+      // Queue event handlers - use logger instead of console
       queue.on('error', (error: Error) => {
-        console.error(`[Queue:${name}] Error:`, error);
+        logger.error('Queue error', { queue: name, error: error.message });
       });
 
-      queue.on('waiting', (job: Job) => {
-        console.log(`[Queue:${name}] Job ${job.id} is waiting`);
-      });
+      // Only log detailed queue events in development
+      if (!isProduction) {
+        queue.on('waiting', (job: Job) => {
+          logger.debug('Job waiting', { queue: name, jobId: String(job.id) });
+        });
 
-      queue.on('active' as any, (job: Job) => {
-        console.log(`[Queue:${name}] Job ${job.id} is active`);
-      });
+        queue.on('active' as any, (job: Job) => {
+          logger.debug('Job active', { queue: name, jobId: String(job.id) });
+        });
 
-      queue.on('completed' as any, (job: Job) => {
-        console.log(`[Queue:${name}] Job ${job.id} completed`);
-      });
+        queue.on('completed' as any, (job: Job) => {
+          logger.debug('Job completed', { queue: name, jobId: String(job.id) });
+        });
+      }
 
       queue.on('failed' as any, (job: Job, err: Error) => {
-        console.error(`[Queue:${name}] Job ${job.id} failed:`, err);
+        logger.error('Job failed', { queue: name, jobId: String(job.id), error: err.message });
       });
 
       this.queues.set(name, queue);
@@ -134,7 +140,7 @@ class QueueManager {
     options?: Partial<WorkerOptions>
   ): Worker {
     if (this.workers.has(name)) {
-      console.warn(`[QueueManager] Worker for ${name} already registered`);
+      logger.warn('Worker already registered', { queue: name });
       return this.workers.get(name)!;
     }
 
@@ -144,21 +150,23 @@ class QueueManager {
       ...options,
     });
 
-    // Worker event handlers
-    worker.on('completed', (job: { id?: string | number }) => {
-      console.log(`[Worker:${name}] Job ${job.id} completed successfully`);
-    });
+    // Worker event handlers - use logger instead of console
+    if (!isProduction) {
+      worker.on('completed', (job: { id?: string | number }) => {
+        logger.debug('Worker job completed', { queue: name, jobId: String(job.id) });
+      });
+    }
 
     worker.on('failed', (job: { id?: string | number } | undefined, error: Error) => {
-      console.error(`[Worker:${name}] Job ${job?.id} failed:`, error);
+      logger.error('Worker job failed', { queue: name, jobId: String(job?.id), error: error.message });
     });
 
     worker.on('error', (error: Error) => {
-      console.error(`[Worker:${name}] Error:`, error);
+      logger.error('Worker error', { queue: name, error: error.message });
     });
 
     worker.on('stalled', (jobId: string | number) => {
-      console.warn(`[Worker:${name}] Job ${jobId} stalled`);
+      logger.warn('Worker job stalled', { queue: name, jobId: String(jobId) });
     });
 
     this.workers.set(name, worker);
@@ -169,18 +177,18 @@ class QueueManager {
    * Close all queues and workers
    */
   async close(): Promise<void> {
-    console.log('[QueueManager] Closing all queues and workers...');
+    logger.info('QueueManager closing all queues and workers');
 
     // Close all workers
     for (const [name, worker] of this.workers) {
       await worker.close();
-      console.log(`[QueueManager] Worker ${name} closed`);
+      logger.info('Worker closed', { queue: name });
     }
 
     // Close all queues
     for (const [name, queue] of this.queues) {
       await queue.close();
-      console.log(`[QueueManager] Queue ${name} closed`);
+      logger.info('Queue closed', { queue: name });
     }
 
     this.workers.clear();
@@ -228,7 +236,7 @@ class QueueManager {
   async pauseQueue(name: QueueName): Promise<void> {
     const queue = this.getQueue(name);
     await queue.pause();
-    console.log(`[QueueManager] Queue ${name} paused`);
+    logger.info('Queue paused', { queue: name });
   }
 
   /**
@@ -237,7 +245,7 @@ class QueueManager {
   async resumeQueue(name: QueueName): Promise<void> {
     const queue = this.getQueue(name);
     await queue.resume();
-    console.log(`[QueueManager] Queue ${name} resumed`);
+    logger.info('Queue resumed', { queue: name });
   }
 
   /**
@@ -247,7 +255,7 @@ class QueueManager {
     const queue = this.getQueue(name);
     await queue.clean(grace, 1000, 'completed');
     await queue.clean(grace * 7, 1000, 'failed');
-    console.log(`[QueueManager] Queue ${name} cleaned`);
+    logger.info('Queue cleaned', { queue: name });
   }
 }
 
@@ -256,13 +264,13 @@ export const queueManager = new QueueManager();
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, closing queues...');
+  logger.info('SIGTERM received, closing queues');
   await queueManager.close();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('SIGINT received, closing queues...');
+  logger.info('SIGINT received, closing queues');
   await queueManager.close();
   process.exit(0);
 });

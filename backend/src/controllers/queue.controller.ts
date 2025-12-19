@@ -13,6 +13,17 @@ export class QueueController {
    * Get status of a specific job
    * GET /api/queue/jobs/:jobId
    */
+  /**
+   * Validate queue name against whitelist
+   */
+  private isValidQueueName(queueName: string): queueName is QueueName {
+    return Object.values(QueueName).includes(queueName as QueueName);
+  }
+
+  /**
+   * Get status of a specific job
+   * GET /api/queue/jobs/:jobId
+   */
   async getJobStatus(req: Request, res: Response): Promise<void> {
     try {
       const { jobId } = req.params;
@@ -27,7 +38,16 @@ export class QueueController {
 
       const queueName = (req.query.queue as string) || QueueName.AI_ANALYSIS;
 
-      const queue = queueManager.getQueue(queueName as QueueName);
+      // Validate queue name against whitelist
+      if (!this.isValidQueueName(queueName)) {
+        res.status(400).json({
+          success: false,
+          error: 'اسم الطابور غير صالح',
+        });
+        return;
+      }
+
+      const queue = queueManager.getQueue(queueName);
       const job = await queue.getJob(jobId);
 
       if (!job) {
@@ -150,7 +170,16 @@ export class QueueController {
 
       const queueName = (req.query.queue as string) || QueueName.AI_ANALYSIS;
 
-      const queue = queueManager.getQueue(queueName as QueueName);
+      // Validate queue name against whitelist
+      if (!this.isValidQueueName(queueName)) {
+        res.status(400).json({
+          success: false,
+          error: 'اسم الطابور غير صالح',
+        });
+        return;
+      }
+
+      const queue = queueManager.getQueue(queueName);
       const job = await queue.getJob(jobId);
 
       if (!job) {
