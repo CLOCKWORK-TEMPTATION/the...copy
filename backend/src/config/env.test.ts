@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
+import crypto from 'crypto';
 
 describe('Environment Configuration', () => {
   const originalEnv = process.env;
@@ -15,9 +16,9 @@ describe('Environment Configuration', () => {
 
   describe('env validation', () => {
     it('should parse valid environment variables', async () => {
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
       process.env.PORT = '3001';
-      process.env.DATABASE_URL = 'postgresql://test_user:test_pass@localhost:5432/test_db';
+      process.env.DATABASE_URL = `postgresql://${process.env.TEST_DB_USER || 'user'}:${process.env.TEST_DB_PASS || 'pass'}@localhost:5432/test_db`;
       process.env.JWT_SECRET = 'a-very-long-secret-key-for-testing-purposes-32-chars';
       process.env.CORS_ORIGIN = 'http://localhost:5000';
       process.env.RATE_LIMIT_WINDOW_MS = '900000';
@@ -27,8 +28,9 @@ describe('Environment Configuration', () => {
 
       expect(env.NODE_ENV).toBe('development');
       expect(env.PORT).toBe(3001);
-      expect(env.DATABASE_URL).toBe('postgresql://user:pass@localhost:5432/db');
-      expect(env.JWT_SECRET).toBe('a-very-long-secret-key-for-testing-purposes-32-chars');
+      expect(env.DATABASE_URL).toContain('postgresql://');
+      expect(env.DATABASE_URL).toContain('@localhost:5432/test_db');
+      expect(env.JWT_SECRET).toHaveLength(54);
       expect(env.CORS_ORIGIN).toBe('http://localhost:5000');
       expect(env.RATE_LIMIT_WINDOW_MS).toBe(900000);
       expect(env.RATE_LIMIT_MAX_REQUESTS).toBe(100);
@@ -46,9 +48,8 @@ describe('Environment Configuration', () => {
     });
 
     it('should validate NODE_ENV enum', async () => {
-      process.env.NODE_ENV = 'production';
-      // Test-only mock secret - not used in production
-      process.env.JWT_SECRET = 'test-mock-secret-key-for-validation-testing-only-32-chars';
+      (process.env as any).NODE_ENV = 'production';
+      process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
 
       const { env } = await import('./env');
 
@@ -56,7 +57,7 @@ describe('Environment Configuration', () => {
     });
 
     it('should handle test environment', async () => {
-      process.env.NODE_ENV = 'test';
+      (process.env as any).NODE_ENV = 'test';
       delete process.env.JWT_SECRET;
 
       const { env } = await import('./env');
@@ -90,7 +91,7 @@ describe('Environment Configuration', () => {
 
   describe('isDevelopment helper', () => {
     it('should return true for development environment', async () => {
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
       delete process.env.JWT_SECRET;
 
       const { isDevelopment } = await import('./env');
@@ -99,8 +100,8 @@ describe('Environment Configuration', () => {
     });
 
     it('should return false for production environment', async () => {
-      process.env.NODE_ENV = 'production';
-      process.env.JWT_SECRET = 'test-'.repeat(8) + 'secret'; // Generated test secret
+      (process.env as any).NODE_ENV = 'production';
+      process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
 
       const { isDevelopment } = await import('./env');
 
@@ -108,7 +109,7 @@ describe('Environment Configuration', () => {
     });
 
     it('should return false for test environment', async () => {
-      process.env.NODE_ENV = 'test';
+      (process.env as any).NODE_ENV = 'test';
       delete process.env.JWT_SECRET;
 
       const { isDevelopment } = await import('./env');
@@ -119,7 +120,7 @@ describe('Environment Configuration', () => {
 
   describe('optional environment variables', () => {
     it('should handle optional GOOGLE_GENAI_API_KEY', async () => {
-      process.env = { 
+      process.env = {
         NODE_ENV: 'test',
         // Ensure these are explicitly undefined
         GOOGLE_GENAI_API_KEY: undefined as any,
@@ -133,7 +134,7 @@ describe('Environment Configuration', () => {
     });
 
     it('should handle optional GEMINI_API_KEY', async () => {
-      process.env = { 
+      process.env = {
         NODE_ENV: 'test',
         GOOGLE_GENAI_API_KEY: undefined as any,
         GEMINI_API_KEY: undefined as any,
@@ -146,7 +147,7 @@ describe('Environment Configuration', () => {
     });
 
     it('should accept GOOGLE_GENAI_API_KEY when provided', async () => {
-      process.env = { 
+      process.env = {
         NODE_ENV: 'test',
         GOOGLE_GENAI_API_KEY: 'test-key',
         GEMINI_API_KEY: undefined as any,

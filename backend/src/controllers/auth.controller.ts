@@ -6,7 +6,13 @@ import type { AuthRequest } from '@/middleware/auth.middleware';
 
 const signupSchema = z.object({
   email: z.string().email('البريد الإلكتروني غير صالح'),
-  password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
+  password: z
+    .string()
+    .min(12, 'كلمة المرور يجب أن تكون 12 حرفاً على الأقل')
+    .regex(/[A-Z]/, 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل')
+    .regex(/[a-z]/, 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل')
+    .regex(/[0-9]/, 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل')
+    .regex(/[^A-Za-z0-9]/, 'كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل'),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
 });

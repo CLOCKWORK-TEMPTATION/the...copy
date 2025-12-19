@@ -56,14 +56,16 @@ CORS_ORIGIN=<سيأتي من Vercel>
 NODE_ENV=production
 NEXT_PUBLIC_APP_ENV=production
 NEXT_PUBLIC_API_URL=https://thecopy-backend.onrender.com
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyDqFdX_frFRDldLTzOLGfpMgQM9Wqzv1gU
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=thecopy-84dfc.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=thecopy-84dfc
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=thecopy-84dfc.firebasestorage.app
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=1078970832716
-NEXT_PUBLIC_FIREBASE_APP_ID=1:1078970832716:web:6725ff447de7b4619321e9
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-C7S9E1FXJL
+NEXT_PUBLIC_FIREBASE_API_KEY=<مفتاح Firebase API الخاص بك>
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<your-project>.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=<your-project-id>
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=<your-project>.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=<sender-id>
+NEXT_PUBLIC_FIREBASE_APP_ID=<app-id>
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=<measurement-id>
 ```
+
+> ⚠️ **تحذير أمني**: لا تشارك مفاتيح Firebase الخاصة بك. احصل عليها من Firebase Console.
 
 **د) Deploy:**
 - اضغط **Deploy**

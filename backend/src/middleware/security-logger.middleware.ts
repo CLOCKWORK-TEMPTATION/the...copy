@@ -8,11 +8,14 @@
  * - Security violations
  * - Rate limit violations
  * - CORS violations
+ *
+ * Uses Redis for distributed IP tracking in production
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '@/utils/logger';
 import { captureMessage } from '@/config/sentry';
+import { cacheService } from '@/services/cache.service';
 
 // Security event types
 export enum SecurityEventType {
@@ -28,14 +31,20 @@ export enum SecurityEventType {
   UNAUTHORIZED_ACCESS = 'UNAUTHORIZED_ACCESS',
 }
 
-// In-memory store for tracking suspicious IPs
-// In production, use Redis for distributed tracking
-const suspiciousIPs = new Map<string, {
+// IP tracking data structure
+interface SuspiciousIPData {
   count: number;
-  firstSeen: Date;
-  lastSeen: Date;
+  firstSeen: string;
+  lastSeen: string;
   events: SecurityEventType[];
-}>();
+}
+
+// Cache key prefix for suspicious IPs
+const SUSPICIOUS_IP_PREFIX = 'security:suspicious_ip';
+const IP_TRACKING_TTL = 24 * 60 * 60; // 24 hours in seconds
+
+// In-memory fallback for when Redis is unavailable
+const suspiciousIPsFallback = new Map<string, SuspiciousIPData>();
 
 /**
  * Log security event with detailed context
@@ -44,17 +53,17 @@ export function logSecurityEvent(
   type: SecurityEventType,
   req: Request,
   details?: Record<string, any>
-) {
-  const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
-  const userAgent = req.get('User-Agent') || 'unknown';
+): void {
+  const clientIP = req.ip || req.socket?.remoteAddress || 'unknown';
+  const userAgent = req.get?.('User-Agent') || 'unknown';
 
   const securityEvent = {
     type,
     timestamp: new Date().toISOString(),
     ip: clientIP,
     userAgent,
-    path: req.path,
-    method: req.method,
+    path: req.path || 'unknown',
+    method: req.method || 'unknown',
     userId: (req as any).user?.id || null,
     ...details,
   };
@@ -62,62 +71,102 @@ export function logSecurityEvent(
   // Log to Winston logger
   logger.warn('🚨 Security Event', securityEvent);
 
-  // Track suspicious IP
-  trackSuspiciousIP(clientIP, type);
+  // Track suspicious IP and check for ban (async, fire-and-forget)
+  (async () => {
+    try {
+      await trackSuspiciousIP(clientIP, type);
 
-  // Send to Sentry for critical events
-  if (isCriticalEvent(type)) {
-    captureMessage(
-      `Security Event: ${type}`,
-      'warning',
-      securityEvent
-    );
-  }
+      // Send to Sentry for critical events
+      if (isCriticalEvent(type)) {
+        captureMessage(
+          `Security Event: ${type}`,
+          'warning',
+          securityEvent
+        );
+      }
 
-  // Auto-ban logic for repeated violations
-  if (shouldBanIP(clientIP)) {
-    logger.error(`🔒 IP ${clientIP} flagged for automatic blocking due to repeated security violations`);
-    captureMessage(
-      `IP Auto-Ban Triggered: ${clientIP}`,
-      'error',
-      { ip: clientIP, violations: suspiciousIPs.get(clientIP) }
-    );
+      // Auto-ban logic for repeated violations
+      const shouldBan = await shouldBanIP(clientIP);
+      if (shouldBan) {
+        logger.error(`🔒 IP ${clientIP} flagged for automatic blocking due to repeated security violations`);
+        captureMessage(
+          `IP Auto-Ban Triggered: ${clientIP}`,
+          'error',
+          { ip: clientIP }
+        );
+      }
+    } catch (error) {
+      logger.error('Error in security event tracking:', error);
+    }
+  })();
+}
+
+/**
+ * Track suspicious IP addresses using Redis (with in-memory fallback)
+ */
+async function trackSuspiciousIP(ip: string, event: SecurityEventType): Promise<void> {
+  const cacheKey = `${SUSPICIOUS_IP_PREFIX}:${ip}`;
+  const now = new Date().toISOString();
+
+  try {
+    // Try to get existing data from Redis
+    const existing = await cacheService.get<SuspiciousIPData>(cacheKey);
+
+    if (existing) {
+      // Update existing record
+      const updated: SuspiciousIPData = {
+        count: existing.count + 1,
+        firstSeen: existing.firstSeen,
+        lastSeen: now,
+        events: [...existing.events.slice(-19), event], // Keep last 20 events
+      };
+      await cacheService.set(cacheKey, updated, IP_TRACKING_TTL);
+    } else {
+      // Create new record
+      const newData: SuspiciousIPData = {
+        count: 1,
+        firstSeen: now,
+        lastSeen: now,
+        events: [event],
+      };
+      await cacheService.set(cacheKey, newData, IP_TRACKING_TTL);
+    }
+  } catch (error) {
+    // Fallback to in-memory tracking if Redis fails
+    logger.warn('Redis tracking failed, using in-memory fallback:', error);
+
+    const existing = suspiciousIPsFallback.get(ip);
+    if (existing) {
+      existing.count++;
+      existing.lastSeen = now;
+      existing.events.push(event);
+      // Keep only last 20 events
+      if (existing.events.length > 20) {
+        existing.events = existing.events.slice(-20);
+      }
+    } else {
+      suspiciousIPsFallback.set(ip, {
+        count: 1,
+        firstSeen: now,
+        lastSeen: now,
+        events: [event],
+      });
+    }
+
+    // Clean old entries from fallback
+    cleanOldFallbackEntries();
   }
 }
 
 /**
- * Track suspicious IP addresses
+ * Clean old suspicious IP entries from fallback map
  */
-function trackSuspiciousIP(ip: string, event: SecurityEventType) {
-  const existing = suspiciousIPs.get(ip);
+function cleanOldFallbackEntries(): void {
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  if (existing) {
-    existing.count++;
-    existing.lastSeen = new Date();
-    existing.events.push(event);
-  } else {
-    suspiciousIPs.set(ip, {
-      count: 1,
-      firstSeen: new Date(),
-      lastSeen: new Date(),
-      events: [event],
-    });
-  }
-
-  // Clean old entries (older than 24 hours)
-  cleanOldEntries();
-}
-
-/**
- * Clean old suspicious IP entries
- */
-function cleanOldEntries() {
-  const now = new Date();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-  for (const [ip, data] of suspiciousIPs.entries()) {
+  for (const [ip, data] of suspiciousIPsFallback.entries()) {
     if (data.lastSeen < oneDayAgo) {
-      suspiciousIPs.delete(ip);
+      suspiciousIPsFallback.delete(ip);
     }
   }
 }
@@ -134,15 +183,33 @@ function isCriticalEvent(type: SecurityEventType): boolean {
 }
 
 /**
- * Determine if IP should be banned
+ * Determine if IP should be banned (async for Redis support)
  */
-function shouldBanIP(ip: string): boolean {
-  const data = suspiciousIPs.get(ip);
-  if (!data) return false;
+async function shouldBanIP(ip: string): Promise<boolean> {
+  const cacheKey = `${SUSPICIOUS_IP_PREFIX}:${ip}`;
 
-  // Ban if more than 10 violations in 1 hour
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  return data.count > 10 && data.firstSeen > oneHourAgo;
+  try {
+    const data = await cacheService.get<SuspiciousIPData>(cacheKey);
+    if (!data) {
+      // Check fallback
+      const fallbackData = suspiciousIPsFallback.get(ip);
+      if (!fallbackData) return false;
+
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      return fallbackData.count > 10 && fallbackData.firstSeen > oneHourAgo;
+    }
+
+    // Ban if more than 10 violations in 1 hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    return data.count > 10 && data.firstSeen > oneHourAgo;
+  } catch {
+    // Fallback to in-memory
+    const fallbackData = suspiciousIPsFallback.get(ip);
+    if (!fallbackData) return false;
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    return fallbackData.count > 10 && fallbackData.firstSeen > oneHourAgo;
+  }
 }
 
 /**
@@ -207,12 +274,24 @@ export function logRateLimitViolations(req: Request, res: Response, next: NextFu
 }
 
 /**
- * Get suspicious IPs report
+ * Get suspicious IPs report (from fallback - Redis data is distributed)
  */
-export function getSuspiciousIPsReport() {
-  const report: any[] = [];
+export function getSuspiciousIPsReport(): Array<{
+  ip: string;
+  totalViolations: number;
+  firstSeen: string;
+  lastSeen: string;
+  recentEvents: SecurityEventType[];
+}> {
+  const report: Array<{
+    ip: string;
+    totalViolations: number;
+    firstSeen: string;
+    lastSeen: string;
+    recentEvents: SecurityEventType[];
+  }> = [];
 
-  for (const [ip, data] of suspiciousIPs.entries()) {
+  for (const [ip, data] of suspiciousIPsFallback.entries()) {
     report.push({
       ip,
       totalViolations: data.count,
@@ -228,6 +307,6 @@ export function getSuspiciousIPsReport() {
 /**
  * Clear suspicious IP tracking (for testing)
  */
-export function clearSuspiciousIPs() {
-  suspiciousIPs.clear();
+export function clearSuspiciousIPs(): void {
+  suspiciousIPsFallback.clear();
 }

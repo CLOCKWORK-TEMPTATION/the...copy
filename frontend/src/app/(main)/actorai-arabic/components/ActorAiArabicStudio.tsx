@@ -82,6 +82,8 @@ interface VocalExercise {
   category: "breathing" | "articulation" | "projection" | "resonance";
 }
 
+type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "rhythm";
+
 // ==================== أنواع بيانات تحليل الإيقاع ====================
 
 interface RhythmPoint {
@@ -175,6 +177,7 @@ interface MemorizationStats {
   weakPoints: string[];
   averageResponseTime: number;
 }
+type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "webcam" | "ar";
 
 // ==================== أنواع AR/MR ====================
 
@@ -595,16 +598,8 @@ export const ActorAiArabicStudio: React.FC = () => {
 
       setChatMessages(prev => [
         ...prev,
-        { role: "ai", text: randomResponse, typing: true },
+        { role: "ai", text: randomResponse, typing: false },
       ]);
-
-      setTimeout(() => {
-        setChatMessages(prev =>
-          prev.map((msg, idx) =>
-            idx === prev.length - 1 ? { ...msg, typing: false } : msg
-          )
-        );
-      }, 1000);
     }, 1500);
   }, [userInput]);
 
@@ -1732,8 +1727,8 @@ export const ActorAiArabicStudio: React.FC = () => {
                       >
                         <div
                           className={`inline-block p-4 rounded-lg max-w-[80%] ${msg.role === "user"
-                              ? "bg-blue-100 text-blue-900"
-                              : "bg-purple-100 text-purple-900"
+                            ? "bg-blue-100 text-blue-900"
+                            : "bg-purple-100 text-purple-900"
                             }`}
                         >
                           <p className="font-medium mb-1">
@@ -2138,6 +2133,929 @@ export const ActorAiArabicStudio: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* اتساق التعبيرات */}
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                🎭 اتساق التعبيرات
+              </h4>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 mb-1">نسبة التطابق</p>
+                <div className="flex items-center gap-2">
+                  <Progress value={webcamAnalysisResult.expressionSync.score} className="flex-1" />
+                  <span className="font-medium">{webcamAnalysisResult.expressionSync.score}%</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className="text-sm text-gray-600">المشاعر المتطابقة:</span>
+                {webcamAnalysisResult.expressionSync.matchedEmotions.map((emotion, idx) => (
+                  <Badge key={idx} variant="outline" className="bg-green-50 text-green-700">
+                    {emotion}
+                  </Badge>
+                ))}
+              </div>
+              {webcamAnalysisResult.expressionSync.mismatches.length > 0 && (
+                <div className="mt-2">
+                  {webcamAnalysisResult.expressionSync.mismatches.map((mismatch, idx) => (
+                    <p key={idx} className="text-sm text-orange-600">⚠️ {mismatch}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* معدل الرمش */}
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                😌 معدل الرمش ومؤشر التوتر
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">معدل الرمش</p>
+                  <p className="font-medium">{webcamAnalysisResult.blinkRate.rate} رمشة/دقيقة</p>
+                  <p className={`text-sm ${getBlinkStatusColor(webcamAnalysisResult.blinkRate.status)}`}>
+                    {getBlinkStatusText(webcamAnalysisResult.blinkRate.status)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">مؤشر التوتر</p>
+                  <div className="flex items-center gap-2">
+                    <Progress
+                      value={webcamAnalysisResult.blinkRate.tensionIndicator}
+                      className="flex-1"
+                    />
+                    <span className="font-medium">{webcamAnalysisResult.blinkRate.tensionIndicator}%</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {webcamAnalysisResult.blinkRate.tensionIndicator < 30
+                      ? "مرتاح جداً"
+                      : webcamAnalysisResult.blinkRate.tensionIndicator < 60
+                        ? "مستوى طبيعي"
+                        : "توتر ملحوظ"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* استخدام المساحة */}
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                🎬 استخدام المساحة (Blocking)
+              </h4>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 mb-1">نسبة استخدام المساحة</p>
+                <div className="flex items-center gap-2">
+                  <Progress value={webcamAnalysisResult.blocking.spaceUsage} className="flex-1" />
+                  <span className="font-medium">{webcamAnalysisResult.blocking.spaceUsage}%</span>
+                </div>
+              </div>
+              <div className="mb-2">
+                <p className="text-sm text-gray-600">الحركات الملاحظة:</p>
+                <ul className="list-disc list-inside text-sm mt-1">
+                  {webcamAnalysisResult.blocking.movements.map((movement, idx) => (
+                    <li key={idx}>{movement}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">اقتراحات:</p>
+                <ul className="list-disc list-inside text-sm mt-1 text-blue-600">
+                  {webcamAnalysisResult.blocking.suggestions.map((suggestion, idx) => (
+                    <li key={idx}>{suggestion}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* التنبيهات العامة */}
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2 text-yellow-800">
+                ⚠️ التنبيهات والملاحظات
+              </h4>
+              <ul className="space-y-2">
+                {webcamAnalysisResult.alerts.map((alert, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-yellow-900">
+                    <span className="text-yellow-600">•</span>
+                    {alert}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* الجلسات السابقة */}
+      {webcamSessions.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>📚 جلسات التحليل السابقة</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {webcamSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50"
+                >
+                  <div>
+                    <h5 className="font-medium">جلسة {session.date}</h5>
+                    <p className="text-sm text-gray-600">
+                      المدة: {session.duration}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {session.alerts.map((alert, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {alert}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Badge
+                    className={
+                      session.score >= 80
+                        ? "bg-green-600"
+                        : session.score >= 70
+                          ? "bg-yellow-600"
+                          : "bg-red-600"
+                    }
+                  >
+                    {session.score}/100
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* نصائح للتحليل البصري */}
+      <Card className="mt-6 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="text-blue-800">💡 نصائح للأداء البصري الأفضل</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2 text-blue-900">
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>حافظ على التواصل البصري مع "الجمهور" أو الكاميرا</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>تجنب النظر للأسفل كثيراً - يُظهر عدم الثقة</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>استخدم المساحة المتاحة بشكل متوازن</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>اجعل تعبيرات وجهك تتناسب مع مشاعر النص</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>تنفس بعمق لتقليل التوتر ومعدل الرمش المرتفع</span>
+            </li>
+          </ul>
+  // ==================== صفحة تدريب AR/MR ====================
+
+  const renderARTraining = () => (
+    <div className="max-w-6xl mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">🥽 تدريب AR/MR</h2>
+          <p className="text-gray-600">تجربة غامرة للتدريب على التمثيل - جاهز لـ Vision Pro</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <Badge
+            variant={visionProConnected ? "default" : "outline"}
+            className={visionProConnected ? "bg-green-600" : ""}
+          >
+            {visionProConnected ? "🔗 Vision Pro متصل" : "⏸️ في انتظار الاتصال"}
+          </Badge>
+          <Button
+            onClick={() => {
+              setVisionProConnected(!visionProConnected);
+              showNotification(
+                visionProConnected ? "info" : "success",
+                visionProConnected ? "تم قطع الاتصال" : "تم الاتصال بـ Vision Pro!"
+              );
+            }}
+            variant={visionProConnected ? "destructive" : "default"}
+          >
+            {visionProConnected ? "قطع الاتصال" : "🥽 اتصل بـ Vision Pro"}
+          </Button>
+        </div>
+      </div>
+
+      {/* شريط الميزات */}
+      <div className="grid grid-cols-5 gap-4 mb-8">
+        {AR_FEATURES.map((feature) => (
+          <Card
+            key={feature.id}
+            className={`cursor-pointer transition-all hover:shadow-lg ${
+              arMode === feature.id ? "ring-2 ring-purple-500 bg-purple-50" : ""
+            }`}
+            onClick={() => setArMode(feature.id as typeof arMode)}
+          >
+            <CardContent className="p-4 text-center">
+              <div className="text-3xl mb-2">{feature.icon}</div>
+              <h4 className="font-semibold text-sm">{feature.name}</h4>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* محتوى الميزة المختارة */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* منطقة المعاينة */}
+        <div className="lg:col-span-2">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                👁️ معاينة AR
+                {arSessionActive && (
+                  <Badge className="bg-red-500 animate-pulse">جلسة نشطة</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* منطقة المعاينة الافتراضية */}
+              <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl aspect-video overflow-hidden">
+                {/* شبكة AR */}
+                <div className="absolute inset-0 opacity-20">
+                  <div className="w-full h-full" style={{
+                    backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+                    backgroundSize: "50px 50px"
+                  }}></div>
+                </div>
+
+                {/* Teleprompter معاينة */}
+                {arMode === "teleprompter" && (
+                  <div
+                    className="absolute left-1/2 transform -translate-x-1/2 max-w-lg p-6 bg-black/60 rounded-xl border border-cyan-500/50 backdrop-blur"
+                    style={{
+                      top: teleprompterSettings.position === "top" ? "10%" : teleprompterSettings.position === "center" ? "50%" : "80%",
+                      transform: teleprompterSettings.position === "center" ? "translate(-50%, -50%)" : "translateX(-50%)",
+                      opacity: teleprompterSettings.opacity / 100,
+                      fontSize: `${teleprompterSettings.fontSize}px`,
+                    }}
+                  >
+                    <p className="text-cyan-400 text-center leading-relaxed">
+                      يا ليلى، يا قمر الليل، أنتِ نور عيني وروحي.
+                      <br />
+                      كيف أستطيع أن أعيش بعيداً عنكِ؟
+                    </p>
+                    <div className="mt-4 flex justify-center">
+                      <div className="w-32 h-1 bg-cyan-500/30 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-cyan-500 rounded-full animate-pulse"
+                          style={{ width: `${teleprompterSettings.speed}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* علامات Blocking */}
+                {arMode === "blocking" && (
+                  <>
+                    {blockingMarks.map((mark) => (
+                      <div
+                        key={mark.id}
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-move"
+                        style={{ left: `${mark.x}%`, top: `${mark.y}%` }}
+                      >
+                        <div
+                          className="w-16 h-16 rounded-full border-4 flex items-center justify-center text-white font-bold shadow-lg"
+                          style={{
+                            borderColor: mark.color,
+                            backgroundColor: `${mark.color}40`,
+                            boxShadow: `0 0 20px ${mark.color}80`
+                          }}
+                        >
+                          {mark.label}
+                        </div>
+                        <div
+                          className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-1 rounded text-xs text-white"
+                          style={{ backgroundColor: mark.color }}
+                        >
+                          النقطة {mark.id}
+                        </div>
+                      </div>
+                    ))}
+                    {/* خطوط الاتصال */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                      <defs>
+                        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#22c55e" stopOpacity="0.5" />
+                          <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.5" />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.5" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d={`M ${blockingMarks[0]?.x}% ${blockingMarks[0]?.y}% L ${blockingMarks[1]?.x}% ${blockingMarks[1]?.y}% L ${blockingMarks[2]?.x}% ${blockingMarks[2]?.y}%`}
+                        fill="none"
+                        stroke="url(#lineGradient)"
+                        strokeWidth="3"
+                        strokeDasharray="10,5"
+                        className="animate-pulse"
+                      />
+                    </svg>
+                  </>
+                )}
+
+                {/* عين الكاميرا */}
+                {arMode === "camera" && (
+                  <div className="absolute inset-4 border-4 border-yellow-500/70 rounded-lg">
+                    {/* زوايا الإطار */}
+                    <div className="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-yellow-500"></div>
+                    <div className="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-yellow-500"></div>
+                    <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-yellow-500"></div>
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-yellow-500"></div>
+
+                    {/* خطوط التثليث */}
+                    <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+                      {[...Array(9)].map((_, i) => (
+                        <div key={i} className="border border-yellow-500/20"></div>
+                      ))}
+                    </div>
+
+                    {/* معلومات اللقطة */}
+                    <div className="absolute top-2 left-2 bg-black/70 px-3 py-1 rounded text-yellow-400 text-sm">
+                      {cameraSettings.shotType === "closeup" && "لقطة قريبة"}
+                      {cameraSettings.shotType === "medium" && "لقطة متوسطة"}
+                      {cameraSettings.shotType === "wide" && "لقطة واسعة"}
+                      {cameraSettings.shotType === "extreme_wide" && "لقطة واسعة جداً"}
+                    </div>
+                    <div className="absolute top-2 right-2 bg-black/70 px-3 py-1 rounded text-yellow-400 text-sm">
+                      {cameraSettings.aspectRatio}
+                    </div>
+                    <div className="absolute bottom-2 left-2 bg-black/70 px-3 py-1 rounded text-yellow-400 text-sm">
+                      {cameraSettings.focalLength}mm
+                    </div>
+                    <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                      <span className="text-white text-sm">REC</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* الشريك الهولوغرافي */}
+                {arMode === "partner" && (
+                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className={`relative ${holographicPartner.isActive ? "animate-pulse" : ""}`}>
+                      {/* الهالة */}
+                      <div
+                        className="absolute inset-0 rounded-full blur-xl"
+                        style={{
+                          background: `radial-gradient(circle, rgba(168,85,247,${holographicPartner.intensity / 100}) 0%, transparent 70%)`,
+                          width: "200px",
+                          height: "200px",
+                          transform: "translate(-25%, -25%)"
+                        }}
+                      ></div>
+
+                      {/* الشخصية */}
+                      <div className="relative text-center">
+                        <div className="text-9xl mb-4 filter drop-shadow-lg" style={{
+                          filter: `drop-shadow(0 0 20px rgba(168,85,247,${holographicPartner.intensity / 100}))`
+                        }}>
+                          👤
+                        </div>
+                        <div className="bg-purple-900/80 px-4 py-2 rounded-lg backdrop-blur">
+                          <p className="text-purple-200 font-bold">{holographicPartner.character}</p>
+                          <p className="text-purple-300 text-sm">العاطفة: {holographicPartner.emotion}</p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-xs text-purple-400">الشدة:</span>
+                            <div className="flex-1 h-2 bg-purple-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-purple-400"
+                                style={{ width: `${holographicPartner.intensity}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* التحكم بالإيماءات */}
+                {arMode === "gestures" && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="grid grid-cols-2 gap-8">
+                      {/* العين */}
+                      <div className="text-center">
+                        <div className="text-6xl mb-2 animate-bounce">👁️</div>
+                        <p className="text-cyan-400 text-sm">تتبع العين</p>
+                        <div className="mt-2 w-16 h-16 mx-auto border-2 border-cyan-500 rounded-full relative">
+                          <div className="absolute w-4 h-4 bg-cyan-500 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-ping"></div>
+                        </div>
+                      </div>
+
+                      {/* اليد */}
+                      <div className="text-center">
+                        <div className="text-6xl mb-2">🤚</div>
+                        <p className="text-green-400 text-sm">تتبع اليد</p>
+                        <div className="mt-2 flex justify-center gap-1">
+                          {[1,2,3,4,5].map((f) => (
+                            <div key={f} className="w-2 h-8 bg-green-500/50 rounded-full animate-pulse" style={{ animationDelay: `${f * 0.1}s` }}></div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* الرأس */}
+                      <div className="text-center">
+                        <div className="text-6xl mb-2">🗣️</div>
+                        <p className="text-yellow-400 text-sm">تتبع الرأس</p>
+                        <div className="mt-2 flex justify-center">
+                          <div className="w-12 h-12 border-2 border-yellow-500 rounded-lg relative animate-pulse">
+                            <div className="absolute inset-2 border border-yellow-500/50 rounded"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* الصوت */}
+                      <div className="text-center">
+                        <div className="text-6xl mb-2">🎙️</div>
+                        <p className="text-red-400 text-sm">الأوامر الصوتية</p>
+                        <div className="mt-2 flex justify-center items-end gap-1">
+                          {[3,5,7,4,6,8,5,3].map((h, i) => (
+                            <div
+                              key={i}
+                              className="w-2 bg-red-500 rounded-full animate-pulse"
+                              style={{ height: `${h * 4}px`, animationDelay: `${i * 0.1}s` }}
+                            ></div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* شاشة الإعداد */}
+                {arMode === "setup" && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-8xl mb-6 animate-bounce">🥽</div>
+                      <h3 className="text-2xl font-bold text-white mb-4">جاهز لتجربة AR/MR</h3>
+                      <p className="text-gray-400 mb-6 max-w-md">
+                        اختر أحد الأدوات من الأعلى للبدء في إعداد بيئة التدريب الغامرة
+                      </p>
+                      <div className="flex gap-4 justify-center">
+                        <Button
+                          size="lg"
+                          className="bg-purple-600 hover:bg-purple-700"
+                          onClick={() => setArMode("teleprompter")}
+                        >
+                          📜 ابدأ مع Teleprompter
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* أزرار التحكم */}
+              <div className="mt-6 flex justify-center gap-4">
+                <Button
+                  size="lg"
+                  onClick={() => {
+                    setArSessionActive(!arSessionActive);
+                    showNotification(
+                      arSessionActive ? "info" : "success",
+                      arSessionActive ? "تم إيقاف الجلسة" : "بدأت جلسة AR!"
+                    );
+                  }}
+                  className={arSessionActive ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+                >
+                  {arSessionActive ? "⏹️ إيقاف الجلسة" : "▶️ بدء جلسة AR"}
+                </Button>
+                <Button variant="outline" onClick={() => setArMode("setup")}>
+                  🔄 إعادة ضبط
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* لوحة الإعدادات */}
+        <div className="space-y-6">
+          {/* إعدادات Teleprompter */}
+          {arMode === "teleprompter" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>📜 إعدادات Teleprompter</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>سرعة التمرير: {teleprompterSettings.speed}%</Label>
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    value={teleprompterSettings.speed}
+                    onChange={(e) => setTeleprompterSettings({
+                      ...teleprompterSettings,
+                      speed: parseInt(e.target.value)
+                    })}
+                    className="w-full mt-2"
+                  />
+                </div>
+                <div>
+                  <Label>حجم الخط: {teleprompterSettings.fontSize}px</Label>
+                  <input
+                    type="range"
+                    min="14"
+                    max="48"
+                    value={teleprompterSettings.fontSize}
+                    onChange={(e) => setTeleprompterSettings({
+                      ...teleprompterSettings,
+                      fontSize: parseInt(e.target.value)
+                    })}
+                    className="w-full mt-2"
+                  />
+                </div>
+                <div>
+                  <Label>الشفافية: {teleprompterSettings.opacity}%</Label>
+                  <input
+                    type="range"
+                    min="20"
+                    max="100"
+                    value={teleprompterSettings.opacity}
+                    onChange={(e) => setTeleprompterSettings({
+                      ...teleprompterSettings,
+                      opacity: parseInt(e.target.value)
+                    })}
+                    className="w-full mt-2"
+                  />
+                </div>
+                <div>
+                  <Label>الموقع</Label>
+                  <Select
+                    value={teleprompterSettings.position}
+                    onValueChange={(val) => setTeleprompterSettings({
+                      ...teleprompterSettings,
+                      position: val as "top" | "center" | "bottom"
+                    })}
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top">أعلى</SelectItem>
+                      <SelectItem value="center">وسط</SelectItem>
+                      <SelectItem value="bottom">أسفل</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* إعدادات Blocking */}
+          {arMode === "blocking" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>🎯 علامات Blocking</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {blockingMarks.map((mark, idx) => (
+                  <div key={mark.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                    <div
+                      className="w-8 h-8 rounded-full"
+                      style={{ backgroundColor: mark.color }}
+                    ></div>
+                    <div className="flex-1">
+                      <Input
+                        value={mark.label}
+                        onChange={(e) => {
+                          const updated = [...blockingMarks];
+                          updated[idx].label = e.target.value;
+                          setBlockingMarks(updated);
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    const colors = ["#f59e0b", "#06b6d4", "#ec4899"];
+                    setBlockingMarks([
+                      ...blockingMarks,
+                      {
+                        id: (blockingMarks.length + 1).toString(),
+                        x: Math.random() * 60 + 20,
+                        y: Math.random() * 60 + 20,
+                        label: `نقطة ${blockingMarks.length + 1}`,
+                        color: colors[blockingMarks.length % colors.length],
+                      }
+                    ]);
+                  }}
+                >
+                  ➕ إضافة علامة
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* إعدادات الكاميرا */}
+          {arMode === "camera" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>📷 عين الكاميرا</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>نوع اللقطة</Label>
+                  <Select
+                    value={cameraSettings.shotType}
+                    onValueChange={(val) => setCameraSettings({
+                      ...cameraSettings,
+                      shotType: val as CameraEyeSettings["shotType"]
+                    })}
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SHOT_TYPES.map((shot) => (
+                        <SelectItem key={shot.id} value={shot.id}>
+                          {shot.name} ({shot.nameEn})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>نسبة العرض</Label>
+                  <Select
+                    value={cameraSettings.aspectRatio}
+                    onValueChange={(val) => setCameraSettings({
+                      ...cameraSettings,
+                      aspectRatio: val as CameraEyeSettings["aspectRatio"]
+                    })}
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="16:9">16:9 (سينمائي)</SelectItem>
+                      <SelectItem value="2.35:1">2.35:1 (واسع)</SelectItem>
+                      <SelectItem value="4:3">4:3 (كلاسيكي)</SelectItem>
+                      <SelectItem value="1:1">1:1 (مربع)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>البعد البؤري: {cameraSettings.focalLength}mm</Label>
+                  <input
+                    type="range"
+                    min="16"
+                    max="200"
+                    value={cameraSettings.focalLength}
+                    onChange={(e) => setCameraSettings({
+                      ...cameraSettings,
+                      focalLength: parseInt(e.target.value)
+                    })}
+                    className="w-full mt-2"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* إعدادات الشريك الهولوغرافي */}
+          {arMode === "partner" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>👤 الشريك الهولوغرافي</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>اسم الشخصية</Label>
+                  <Input
+                    value={holographicPartner.character}
+                    onChange={(e) => setHolographicPartner({
+                      ...holographicPartner,
+                      character: e.target.value
+                    })}
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label>العاطفة</Label>
+                  <Select
+                    value={holographicPartner.emotion}
+                    onValueChange={(val) => setHolographicPartner({
+                      ...holographicPartner,
+                      emotion: val
+                    })}
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="حب">❤️ حب</SelectItem>
+                      <SelectItem value="غضب">😠 غضب</SelectItem>
+                      <SelectItem value="حزن">😢 حزن</SelectItem>
+                      <SelectItem value="فرح">😊 فرح</SelectItem>
+                      <SelectItem value="خوف">😨 خوف</SelectItem>
+                      <SelectItem value="دهشة">😲 دهشة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>شدة العاطفة: {holographicPartner.intensity}%</Label>
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    value={holographicPartner.intensity}
+                    onChange={(e) => setHolographicPartner({
+                      ...holographicPartner,
+                      intensity: parseInt(e.target.value)
+                    })}
+                    className="w-full mt-2"
+                  />
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setHolographicPartner({
+                      ...holographicPartner,
+                      isActive: !holographicPartner.isActive
+                    });
+                    showNotification(
+                      "success",
+                      holographicPartner.isActive ? "تم إيقاف الشريك" : "تم تفعيل الشريك!"
+                    );
+                  }}
+                  variant={holographicPartner.isActive ? "destructive" : "default"}
+                >
+                  {holographicPartner.isActive ? "⏹️ إيقاف الشريك" : "▶️ تفعيل الشريك"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* إعدادات الإيماءات */}
+          {arMode === "gestures" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>👁️ التحكم بالإيماءات</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {activeGestures.map((gesture, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between p-3 border rounded-lg ${gesture.enabled ? "bg-green-50 border-green-200" : "bg-gray-50"}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">
+                        {gesture.type === "eye" && "👁️"}
+                        {gesture.type === "hand" && "🤚"}
+                        {gesture.type === "head" && "🗣️"}
+                        {gesture.type === "voice" && "🎙️"}
+                      </span>
+                      <span className="text-sm">{gesture.action}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={gesture.enabled ? "default" : "outline"}
+                      onClick={() => {
+                        const updated = [...activeGestures];
+                        updated[idx].enabled = !updated[idx].enabled;
+                        setActiveGestures(updated);
+                      }}
+                    >
+                      {gesture.enabled ? "✓" : "○"}
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* بطاقة المعلومات */}
+          <Card className="bg-gradient-to-br from-purple-50 to-blue-50">
+            <CardHeader>
+              <CardTitle className="text-purple-800">💡 نصائح AR/MR</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-purple-900">
+                <li className="flex items-start gap-2">
+                  <span>🥽</span>
+                  <span>تأكد من اتصال Vision Pro قبل بدء الجلسة</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span>💡</span>
+                  <span>اختر إضاءة مناسبة لأفضل تتبع</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span>🎯</span>
+                  <span>ابدأ بمساحة خالية 3×3 متر على الأقل</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span>🔋</span>
+                  <span>شحن الجهاز لأكثر من 50% للجلسات الطويلة</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* ميزات قادمة */}
+      <Card className="mt-8 bg-gradient-to-l from-indigo-900 to-purple-900 text-white">
+        <CardHeader>
+          <CardTitle>🚀 ميزات قادمة في الإصدارات المقبلة</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4">
+              <div className="text-4xl mb-3">🎭</div>
+              <h4 className="font-bold mb-2">التقاط الحركة</h4>
+              <p className="text-purple-200 text-sm">تسجيل وتحليل حركات الجسم كاملة</p>
+            </div>
+            <div className="text-center p-4">
+              <div className="text-4xl mb-3">🌍</div>
+              <h4 className="font-bold mb-2">بيئات افتراضية</h4>
+              <p className="text-purple-200 text-sm">مشاهد ثلاثية الأبعاد كاملة للتدريب</p>
+            </div>
+            <div className="text-center p-4">
+              <div className="text-4xl mb-3">👥</div>
+              <h4 className="font-bold mb-2">تدريب جماعي</h4>
+              <p className="text-purple-200 text-sm">التدريب مع ممثلين آخرين عن بُعد</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // ==================== لوحة التحكم ====================
+
+  const renderDashboard = () => (
+    <div className="max-w-6xl mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-gray-800">
+          📊 مرحباً، {user?.name || "ضيف"}!
+        </h2>
+        <Badge variant="outline" className="text-lg px-4 py-2">
+          عضو منذ أكتوبر 2025
+        </Badge>
+      </div>
+
+      {/* الإحصائيات */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-600">النصوص</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-bold text-blue-600">{scripts.length}</div>
+            <p className="text-gray-500 text-sm">إجمالي المرفوع</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-600">التسجيلات</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-bold text-purple-600">{recordings.length}</div>
+            <p className="text-gray-500 text-sm">إجمالي العروض</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-600">متوسط النقاط</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-bold text-green-600">
+              {recordings.length > 0
+                ? Math.round(recordings.reduce((a, b) => a + b.score, 0) / recordings.length)
+                : 0}
+            </div>
+            <p className="text-gray-500 text-sm">تقييم الأداء</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-600">ساعات التدريب</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-bold text-orange-600">12.5</div>
+            <p className="text-gray-500 text-sm">هذا الشهر</p>
+          </CardContent>
+        </Card>
+      </div>
 
             {/* اتساق التعبيرات */}
             <div className="bg-white p-4 rounded-lg">
@@ -3913,44 +4831,3 @@ export const ActorAiArabicStudio: React.FC = () => {
   );
 
   // ==================== تحديد المحتوى الرئيسي ====================
-
-  const renderMainContent = () => {
-    switch (currentView) {
-      case "home":
-        return renderHome();
-      case "demo":
-        return renderDemo();
-      case "vocal":
-        return renderVocalExercises();
-      case "rhythm":
-        return renderSceneRhythm();
-      case "webcam":
-        return renderWebcamAnalysis();
-      case "ar":
-        return renderARTraining();
-      case "memorization":
-        return renderMemorizationMode();
-      case "dashboard":
-        return renderDashboard();
-      case "login":
-        return renderLogin();
-      case "register":
-        return renderRegister();
-      default:
-        return renderHome();
-    }
-  };
-
-  // ==================== العرض النهائي ====================
-
-  return (
-    <div className={`min-h-screen ${theme === "dark" ? "dark bg-gray-900" : "bg-gray-50"}`} dir="rtl">
-      {renderHeader()}
-      {renderNotification()}
-      <main className="container mx-auto px-4 py-8">
-        {renderMainContent()}
-      </main>
-      {renderFooter()}
-    </div>
-  );
-};

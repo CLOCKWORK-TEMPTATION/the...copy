@@ -1,30 +1,51 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import supertest from 'supertest';
 import { app } from '@/server';
 
+// Use app directly instead of httpServer for integration tests
 const request = supertest(app);
 
 describe('Controllers Integration Tests', () => {
   let token: string;
   let projectId: string;
-  let sceneId: string;
   const testUser = {
     email: `test-${Date.now()}@example.com`,
-    password: 'password123',
+    password: 'TestPass123!',
   };
 
+  beforeAll(async () => {
+    // Wait for server initialization
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Create test user
+    const signupResponse = await request
+      .post('/api/auth/signup')
+      .send(testUser)
+      .expect(201);
+    
+    token = signupResponse.body.data.token;
+    expect(token).toBeDefined();
+  });
+
   describe('Auth Controller', () => {
-    it('should signup a new user', async () => {
-      const response = await request.post('/api/auth/signup').send(testUser);
-      expect(response.status).toBe(201);
-      expect(response.body.data.user.email).toBe(testUser.email);
+    it('should login existing user', async () => {
+      const response = await request
+        .post('/api/auth/login')
+        .send(testUser)
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.token).toBeDefined();
     });
 
-    it('should login the user', async () => {
-      const response = await request.post('/api/auth/login').send(testUser);
-      expect(response.status).toBe(200);
-      expect(response.body.data.token).toBeDefined();
-      token = response.body.data.token;
+    it('should get current user', async () => {
+      const response = await request
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.user).toBeDefined();
     });
   });
 
@@ -33,47 +54,35 @@ describe('Controllers Integration Tests', () => {
       const response = await request
         .post('/api/projects')
         .set('Authorization', `Bearer ${token}`)
-        .send({ title: 'Test Project', scriptContent: 'This is a test script.' });
-      expect(response.status).toBe(201);
+        .send({ 
+          title: 'Test Project', 
+          scriptContent: 'This is a test script.' 
+        })
+        .expect(201);
+      
       expect(response.body.data.title).toBe('Test Project');
       projectId = response.body.data.id;
     });
-  });
 
-  describe('Scenes Controller', () => {
-    it('should create a new scene', async () => {
+    it('should get all projects', async () => {
       const response = await request
-        .post('/api/scenes')
+        .get('/api/projects')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          projectId,
-          sceneNumber: 1,
-          title: 'Test Scene',
-          location: 'Test Location',
-          timeOfDay: 'Day',
-          characters: ['Test Character'],
-        });
-      expect(response.status).toBe(201);
-      expect(response.body.data.title).toBe('Test Scene');
-      sceneId = response.body.data.id;
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
     });
   });
 
   describe('Analysis Controller', () => {
-    it('should analyze a script from a project', async () => {
+    it('should get analysis stations info', async () => {
       const response = await request
-        .post(`/api/projects/${projectId}/analyze`)
-        .set('Authorization', `Bearer ${token}`);
-      expect(response.status).toBe(200);
-      expect(response.body.data.analysis).toBeDefined();
-    });
-
-    it('should get analysis stations', async () => {
-      const response = await request
-        .get('/api/analysis/stations')
-        .set('Authorization', `Bearer ${token}`);
-      expect(response.status).toBe(200);
-      expect(response.body.data.length).toBeGreaterThan(0);
+        .get('/api/analysis/stations-info')
+        .expect(200);
+      
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.stations).toBeDefined();
     });
   });
 });

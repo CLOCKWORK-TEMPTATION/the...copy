@@ -1,6 +1,7 @@
 // frontend/src/lib/ai/constitutional/multi-agent-debate.ts
 
 import { GeminiService } from "../stations/gemini-service";
+import { stripHtmlTags } from "@/lib/security/sanitize-html";
 
 export interface DebateParticipant {
   role: "prosecutor" | "defender" | "judge";
@@ -64,7 +65,7 @@ export interface DebateResult {
 }
 
 export class MultiAgentDebateSystem {
-  constructor(private geminiService: GeminiService) {}
+  constructor(private geminiService: GeminiService) { }
 
   /**
    * إجراء نقاش متعدد الوكلاء حول تحليل
@@ -451,11 +452,11 @@ export class MultiAgentDebateSystem {
 
     const lastDiff = Math.abs(
       lastRound.prosecutorArgument.strength -
-        lastRound.defenderArgument.strength
+      lastRound.defenderArgument.strength
     );
     const prevDiff = Math.abs(
       prevRound.prosecutorArgument.strength -
-        prevRound.defenderArgument.strength
+      prevRound.defenderArgument.strength
     );
 
     // If difference is decreasing, we're converging
@@ -544,8 +545,9 @@ export class MultiAgentDebateSystem {
 
     return {
       participant,
-      argument,
-      evidence,
+      // Sanitize AI content to prevent XSS
+      argument: stripHtmlTags(argument),
+      evidence: evidence.map(e => stripHtmlTags(e)),
       strength,
     };
   }
