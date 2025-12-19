@@ -11,11 +11,10 @@ interface UserPayload {
   lastName?: string;
 }
 
-// ثوابت الاختبار - Test Constants
-// SECURITY NOTE: These are intentionally invalid values for validation testing only
-const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'fallback_test_pwd_123';
-const INVALID_PASSWORD_TOO_SHORT = 'abc'; // قيمة غير صالحة مقصودة لاختبار validation
-const INVALID_PASSWORD_EMPTY = ''; // قيمة فارغة مقصودة لاختبار validation
+// Test Constants
+const TEST_PASSWORD = 'Pass123!';
+const INVALID_PASSWORD_TOO_SHORT = 'abc';
+const INVALID_PASSWORD_EMPTY = '';
 
 // Mock dependencies
 vi.mock('../services/auth.service', () => ({
