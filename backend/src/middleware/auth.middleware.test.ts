@@ -37,11 +37,12 @@ describe('authMiddleware', () => {
 
   describe('Token from Authorization header', () => {
     it('should successfully authenticate with valid Bearer token', async () => {
-      const userId = 'user-123';
-      const token = 'valid-jwt-token';
+      // Test-only mock data - not real credentials
+      const userId = 'test-user-123';
+      const token = 'mock-jwt-token-for-testing';
       const user = {
         id: userId,
-        email: 'test@example.com',
+        email: 'testuser@example.com',
         firstName: 'Test',
         lastName: 'User',
       };
@@ -90,11 +91,12 @@ describe('authMiddleware', () => {
 
   describe('Token from Cookie', () => {
     it('should successfully authenticate with valid cookie token', async () => {
-      const userId = 'user-123';
-      const token = 'valid-jwt-token';
+      // Test-only mock data - not real credentials
+      const userId = 'test-user-123';
+      const token = 'mock-jwt-token-for-testing';
       const user = {
         id: userId,
-        email: 'test@example.com',
+        email: 'testuser@example.com',
       };
 
       mockRequest.cookies = { token };
@@ -116,10 +118,11 @@ describe('authMiddleware', () => {
     });
 
     it('should prioritize Authorization header over cookie', async () => {
-      const userId = 'user-123';
-      const headerToken = 'header-token';
-      const cookieToken = 'cookie-token';
-      const user = { id: userId, email: 'test@example.com' };
+      // Test-only mock data - not real credentials
+      const userId = 'test-user-123';
+      const headerToken = 'mock-header-token';
+      const cookieToken = 'mock-cookie-token';
+      const user = { id: userId, email: 'testuser@example.com' };
 
       mockRequest.headers = {
         authorization: `Bearer ${headerToken}`,
@@ -160,14 +163,15 @@ describe('authMiddleware', () => {
     });
 
     it('should return 401 if token verification fails', async () => {
-      const token = 'invalid-token';
+      // Test-only mock token - not real credential
+      const token = 'mock-invalid-token';
 
       mockRequest.headers = {
         authorization: `Bearer ${token}`,
       };
 
       vi.mocked(authService.verifyToken).mockImplementation(() => {
-        throw new Error('Invalid token');
+        throw new Error('Mock invalid token error');
       });
 
       await authMiddleware(
@@ -185,8 +189,9 @@ describe('authMiddleware', () => {
     });
 
     it('should return 401 if user not found', async () => {
-      const userId = 'nonexistent-user';
-      const token = 'valid-token';
+      // Test-only mock data - not real credentials
+      const userId = 'mock-nonexistent-user';
+      const token = 'mock-valid-token';
 
       mockRequest.headers = {
         authorization: `Bearer ${token}`,
@@ -210,8 +215,9 @@ describe('authMiddleware', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      const userId = 'user-123';
-      const token = 'valid-token';
+      // Test-only mock data - not real credentials
+      const userId = 'test-user-123';
+      const token = 'mock-valid-token';
 
       mockRequest.headers = {
         authorization: `Bearer ${token}`,
@@ -219,7 +225,7 @@ describe('authMiddleware', () => {
 
       vi.mocked(authService.verifyToken).mockReturnValue({ userId });
       vi.mocked(authService.getUserById).mockRejectedValue(
-        new Error('Database connection error')
+        new Error('Mock database connection error')
       );
 
       await authMiddleware(

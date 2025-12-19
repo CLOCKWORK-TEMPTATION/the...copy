@@ -56,22 +56,22 @@ class ScreenplayClassifier {
     "(?:ليل|نهار|ل\\.|ن\\.|صباح|مساء|فجر|ظهر|عصر|مغرب|الغروب|الفجر)";
   static readonly TL_REGEX = new RegExp(
     "(?:" +
-      ScreenplayClassifier.INOUT_PART +
-      "\\s*-?\\s*" +
-      ScreenplayClassifier.TIME_PART +
-      "\\s*|" +
-      ScreenplayClassifier.TIME_PART +
-      "\\s*-?\\s*" +
-      ScreenplayClassifier.INOUT_PART +
-      ")",
+    ScreenplayClassifier.INOUT_PART +
+    "\\s*-?\\s*" +
+    ScreenplayClassifier.TIME_PART +
+    "\\s*|" +
+    ScreenplayClassifier.TIME_PART +
+    "\\s*-?\\s*" +
+    ScreenplayClassifier.INOUT_PART +
+    ")",
     "i"
   );
   static readonly CHARACTER_RE = new RegExp(
     "^\\s*(?:صوت\\s+)?[" +
-      ScreenplayClassifier.AR_AB_LETTER +
-      "][" +
-      ScreenplayClassifier.AR_AB_LETTER +
-      "\\s]{0,30}:?\\s*$"
+    ScreenplayClassifier.AR_AB_LETTER +
+    "][" +
+    ScreenplayClassifier.AR_AB_LETTER +
+    "\\s]{0,30}:?\\s*$"
   );
   static readonly TRANSITION_RE =
     /^\s*(?:قطع|قطع\s+إلى|إلى|مزج|ذوبان|خارج\s+المشهد|CUT TO:|FADE IN:|FADE OUT:)\s*$/i;
@@ -743,7 +743,7 @@ export default function ScreenplayEditor({ onBack }: ScreenplayEditorProps) {
   const [htmlContent, setHtmlContent] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentFormat, setCurrentFormat] = useState("action");
-  const [selectedFont, setSelectedFont] = useState("Amiri");
+  const [selectedFont, setSelectedFont] = useState("Cairo");
   const [selectedSize, setSelectedSize] = useState("14pt");
   const [documentStats, setDocumentStats] = useState({
     characters: 0,
@@ -783,7 +783,7 @@ export default function ScreenplayEditor({ onBack }: ScreenplayEditorProps) {
   // Get format styles
   const getFormatStyles = (formatType: string): React.CSSProperties => {
     const baseStyles: React.CSSProperties = {
-      fontFamily: `${selectedFont}, Amiri, Cairo, Noto Sans Arabic, Arial, sans-serif`,
+      fontFamily: `"Cairo", system-ui, -apple-system, sans-serif`,
       fontSize: selectedSize,
       direction: "rtl",
       lineHeight: "1.8",

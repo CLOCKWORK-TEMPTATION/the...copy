@@ -8,6 +8,10 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts}'],
     exclude: ['**/node_modules/**', '**/dist/**'],
+    // تحديد TypeScript config للاختبارات - Specify TypeScript config for tests
+    typecheck: {
+      tsconfig: './tsconfig.vitest.json',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],

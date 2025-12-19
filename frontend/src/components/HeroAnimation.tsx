@@ -25,9 +25,9 @@ const APP_MAPPING: Record<number, { route: string; label: string }> = {
   11: { route: "/metrics-dashboard", label: "لوحة التحليلات" },
   12: { route: "/analysis", label: "التحليل الدرامي" },
   13: { route: "/new", label: "مشروع جديد" },
-  // Reserves
-  14: { route: "#", label: "قريباً" },
-  15: { route: "#", label: "قريباً" },
+  // التطبيقات الإضافية
+  14: { route: "/brainstorm", label: "منصة Jules" },
+  15: { route: "/development", label: "التطوير" },
 }
 
 export const HeroAnimation = () => {

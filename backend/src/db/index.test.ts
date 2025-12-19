@@ -61,7 +61,8 @@ vi.mock('./schema', () => ({
 
 describe('Database Module', () => {
   beforeAll(() => {
-    process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/testdb';
+    // Test-only mock credentials - not used in production
+    process.env.DATABASE_URL = 'postgresql://testuser:testpass@localhost:5432/testdb';
     process.env.NODE_ENV = 'test';
   });
 

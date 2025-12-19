@@ -1,6 +1,6 @@
 /**
- * Font optimization service for production builds
- * Handles local font loading and optimization strategies
+ * خدمة تحسين الخطوط - Font Optimization Service
+ * تم توحيد جميع الخطوط لاستخدام Cairo فقط
  */
 
 export interface FontConfig {
@@ -11,46 +11,27 @@ export interface FontConfig {
   preload?: boolean;
 }
 
+// الخط الموحد: Cairo فقط
 export const FONT_CONFIGS: Record<string, FontConfig> = {
-  amiri: {
-    family: "Amiri",
-    weights: [400, 700],
-    styles: ["normal", "italic"],
-    display: "swap",
-    preload: true,
-  },
   cairo: {
     family: "Cairo",
-    weights: [200, 300, 400, 500, 600, 700, 800, 900],
+    weights: [200, 300, 400, 500, 600, 700, 800, 900, 1000],
     styles: ["normal"],
     display: "swap",
     preload: true,
-  },
-  tajawal: {
-    family: "Tajawal",
-    weights: [200, 300, 400, 500, 700, 800, 900],
-    styles: ["normal"],
-    display: "swap",
-    preload: false,
-  },
-  literata: {
-    family: "Literata",
-    weights: [400, 500, 600, 700],
-    styles: ["normal", "italic"],
-    display: "swap",
-    preload: true,
-  },
-  sourceCodePro: {
-    family: "Source Code Pro",
-    weights: [300, 400, 500, 600, 700],
-    styles: ["normal"],
-    display: "swap",
-    preload: false,
   },
 };
 
+// للتوافق مع الاستخدامات القديمة - جميعها تشير إلى Cairo
+export const LEGACY_FONT_CONFIGS = {
+  amiri: FONT_CONFIGS.cairo,
+  tajawal: FONT_CONFIGS.cairo,
+  literata: FONT_CONFIGS.cairo,
+  sourceCodePro: FONT_CONFIGS.cairo,
+};
+
 /**
- * Generate font face CSS for local hosting
+ * توليد CSS لتحميل الخط محلياً
  */
 export function generateFontFaceCSS(
   config: FontConfig,
@@ -80,12 +61,12 @@ export function generateFontFaceCSS(
 }
 
 /**
- * Generate preload links for critical fonts
+ * توليد روابط preload للخطوط الحرجة
  */
 export function generatePreloadLinks(): string[] {
   return Object.entries(FONT_CONFIGS)
     .filter(([, config]) => config.preload)
-    .flatMap(([key, config]) => {
+    .flatMap(([, config]) => {
       const primaryWeight = config.weights.includes(400)
         ? 400
         : config.weights[0];
@@ -98,34 +79,26 @@ export function generatePreloadLinks(): string[] {
 }
 
 /**
- * Get optimized font fallbacks for better CLS scores
+ * الحصول على fallbacks الخط المحسنة
  */
-export function getFontFallbacks(primaryFont: string): string {
-  const fallbacks: Record<string, string> = {
-    Amiri: "serif",
-    Cairo: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    Tajawal:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    Literata: 'Georgia, "Times New Roman", serif',
-    "Source Code Pro":
-      '"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace',
-  };
-
-  return fallbacks[primaryFont] || "system-ui, sans-serif";
+export function getFontFallbacks(_primaryFont: string): string {
+  // Cairo هو الخط الوحيد - استخدام fallbacks موحدة
+  return 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 }
 
 /**
- * CSS custom properties for font optimization
+ * متغيرات CSS للخطوط - موحدة لاستخدام Cairo
  */
 export const FONT_CSS_VARIABLES = `
-  /* Optimized font loading variables */
-  --font-arabic-primary: 'Amiri', ${getFontFallbacks("Amiri")};
+  /* الخط الموحد: Cairo */
+  --font-family: 'Cairo', ${getFontFallbacks("Cairo")};
+  --font-arabic-primary: 'Cairo', ${getFontFallbacks("Cairo")};
   --font-arabic-modern: 'Cairo', ${getFontFallbacks("Cairo")};
-  --font-arabic-clean: 'Tajawal', ${getFontFallbacks("Tajawal")};
-  --font-body: 'Literata', ${getFontFallbacks("Literata")};
-  --font-headline: 'Literata', ${getFontFallbacks("Literata")};
-  --font-code: 'Source Code Pro', ${getFontFallbacks("Source Code Pro")};
+  --font-arabic-clean: 'Cairo', ${getFontFallbacks("Cairo")};
+  --font-body: 'Cairo', ${getFontFallbacks("Cairo")};
+  --font-headline: 'Cairo', ${getFontFallbacks("Cairo")};
+  --font-code: 'Cairo', ${getFontFallbacks("Cairo")};
 
-  /* Font loading optimization */
+  /* تحسين تحميل الخط */
   --font-loading-strategy: swap;
 ` as const;
