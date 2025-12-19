@@ -796,12 +796,19 @@ export const ActorAiArabicStudio: React.FC = () => {
           أتقن فنك مع تحليل النصوص المدعوم بالذكاء الاصطناعي، وشركاء المشاهد الافتراضيين، وتحليلات الأداء
         </p>
 
-        <div className="flex gap-4 justify-center mb-12">
+        <div className="flex gap-4 justify-center mb-12 flex-wrap">
           <Button size="lg" onClick={() => navigate("demo")} className="bg-blue-600 hover:bg-blue-700">
             🎬 جرب التطبيق
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("vocal")}>
             🎤 تمارين الصوت
+          </Button>
+          <Button
+            size="lg"
+            className="bg-gradient-to-l from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white"
+            onClick={() => window.location.href = "/actorai-arabic/self-tape-suite"}
+          >
+            🎥 Self-Tape Suite
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("register")}>
             ابدأ الآن
@@ -852,6 +859,17 @@ export const ActorAiArabicStudio: React.FC = () => {
             </CardContent>
           </Card>
 
+          <Card
+            className="hover:shadow-lg transition-shadow border-2 border-red-500/30 bg-gradient-to-br from-red-50 to-pink-50 cursor-pointer"
+            onClick={() => window.location.href = "/actorai-arabic/self-tape-suite"}
+          >
+            <CardContent className="p-6 text-center">
+              <div className="text-5xl mb-4">🎥</div>
+              <h3 className="text-xl font-semibold mb-2 text-red-700">Self-Tape Suite</h3>
+              <p className="text-gray-600 text-sm">
+                Teleprompter ذكي • تسجيل متعدد • مقارنة • ملاحظات AI • تصدير Casting
+              </p>
+              <Badge className="mt-2 bg-red-500">جديد - المرحلة 3</Badge>
           <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
             <CardContent className="p-6 text-center">
               <div className="text-5xl mb-4">🥽</div>
