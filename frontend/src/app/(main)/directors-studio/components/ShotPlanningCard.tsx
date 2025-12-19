@@ -4,6 +4,7 @@ import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Video,
   Move,
@@ -13,6 +14,11 @@ import {
   Loader2,
   Sparkles,
   Trash2,
+  Camera,
+  RotateCcw,
+  Save,
+  Eye,
+  Film,
 } from "lucide-react";
 import {
   Select,
@@ -34,6 +40,15 @@ interface ShotPlanningCardProps {
   onSave?: (shotData: Partial<Shot>) => void;
   onDelete?: () => void;
 }
+
+// Shot type visual icons
+const SHOT_TYPE_ICONS: Record<string, { icon: string; description: string }> = {
+  "extreme-wide": { icon: "🏔️", description: "تظهر البيئة الكاملة" },
+  "wide": { icon: "🌄", description: "تظهر الموقع والشخصيات" },
+  "medium": { icon: "👤", description: "من الخصر للأعلى" },
+  "close-up": { icon: "👁️", description: "الوجه والتعبيرات" },
+  "extreme-close-up": { icon: "🔍", description: "تفاصيل دقيقة" },
+};
 
 const ShotPlanningCard = memo(function ShotPlanningCard({
   shot,
@@ -119,16 +134,38 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
     }
   };
 
-  return (
-    <Card data-testid={`card-shot-${shotNumber}`}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <Badge variant="outline">المشهد {sceneNumber}</Badge>
-          <CardTitle className="text-lg">اللقطة {shotNumber}</CardTitle>
-        </div>
-      </CardHeader>
+  // Get shot type info
+  const shotTypeInfo = SHOT_TYPE_ICONS[shotType] || { icon: "📷", description: "" };
 
-      <CardContent className="space-y-6">
+  return (
+    <Card
+      data-testid={`card-shot-${shotNumber}`}
+      className="card-interactive group overflow-hidden"
+    >
+      {/* Header with gradient */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-500/5" />
+        <CardHeader className="relative">
+          <div className="flex items-center justify-between">
+            <Badge variant="outline" className="bg-background/50 backdrop-blur-sm">
+              <Film className="h-3 w-3 ml-1" />
+              المشهد {sceneNumber}
+            </Badge>
+            <div className="flex items-center gap-2">
+              <div className="text-2xl">{shotTypeInfo.icon}</div>
+              <div className="text-left">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Camera className="h-4 w-4 text-brand" />
+                  اللقطة {shotNumber}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">{shotTypeInfo.description}</p>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+      </div>
+
+      <CardContent className="space-y-6 pt-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 text-right">
             <label className="text-sm font-medium flex items-center justify-end gap-2">
@@ -231,31 +268,43 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
         </Button>
 
         {aiSuggestion && (
-          <div className="p-4 rounded-md bg-primary/5 border border-primary/20">
-            <div className="flex items-start gap-3">
-              <Lightbulb className="w-5 h-5 text-primary mt-0.5" />
+          <div className="relative p-4 rounded-lg bg-gradient-to-br from-brand/5 to-purple-500/5 border border-brand/20 overflow-hidden">
+            {/* Decorative glow */}
+            <div className="absolute top-0 left-0 w-20 h-20 bg-brand/10 rounded-full blur-2xl" />
+
+            <div className="relative flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-brand/10">
+                <Sparkles className="w-5 h-5 text-brand" />
+              </div>
               <div className="flex-1 text-right space-y-2">
-                <p className="text-sm font-medium text-primary">اقتراح AI</p>
+                <div className="flex items-center justify-between">
+                  <Badge variant="secondary" className="text-xs">
+                    <Eye className="h-3 w-3 ml-1" />
+                    اقتراح ذكي
+                  </Badge>
+                  <p className="text-sm font-medium text-brand">اقتراح AI</p>
+                </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {aiSuggestion.suggestion}
                 </p>
                 {aiSuggestion.reasoning && (
-                  <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
-                    <strong>السبب:</strong> {aiSuggestion.reasoning}
-                  </p>
+                  <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                    <span className="font-medium text-foreground">السبب:</span> {aiSuggestion.reasoning}
+                  </div>
                 )}
               </div>
             </div>
           </div>
         )}
 
-        <div className="flex gap-2 justify-end flex-wrap">
+        {/* Actions */}
+        <div className="flex gap-2 justify-end flex-wrap pt-4 border-t">
           {onDelete && shot && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={onDelete}
-              className="text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
               data-testid="button-delete-shot"
             >
               <Trash2 className="w-4 h-4 ml-2" />
@@ -264,18 +313,21 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
           )}
           <div className="flex gap-2 mr-auto">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={handleReset}
               data-testid="button-reset-shot"
             >
+              <RotateCcw className="w-4 h-4 ml-1" />
               إعادة تعيين
             </Button>
             <Button
               size="sm"
               onClick={handleSave}
               data-testid="button-save-shot"
+              className="bg-gradient-to-r from-brand to-purple-600 hover:from-brand/90 hover:to-purple-600/90"
             >
+              <Save className="w-4 h-4 ml-2" />
               حفظ اللقطة
             </Button>
           </div>
