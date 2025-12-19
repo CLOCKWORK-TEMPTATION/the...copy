@@ -82,7 +82,42 @@ interface VocalExercise {
   category: "breathing" | "articulation" | "projection" | "resonance";
 }
 
-type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "ar";
+// واجهة تحليل الأداء البصري
+interface WebcamAnalysisResult {
+  eyeLine: {
+    direction: "up" | "down" | "left" | "right" | "center" | "audience";
+    consistency: number; // نسبة مئوية
+    alerts: string[];
+  };
+  expressionSync: {
+    score: number; // نسبة مئوية
+    matchedEmotions: string[];
+    mismatches: string[];
+  };
+  blinkRate: {
+    rate: number; // عدد الرمشات في الدقيقة
+    status: "normal" | "high" | "low";
+    tensionIndicator: number; // مستوى التوتر 0-100
+  };
+  blocking: {
+    spaceUsage: number; // نسبة استخدام المساحة
+    movements: string[];
+    suggestions: string[];
+  };
+  alerts: string[];
+  overallScore: number;
+  timestamp: string;
+}
+
+interface WebcamSession {
+  id: string;
+  date: string;
+  duration: string;
+  score: number;
+  alerts: string[];
+}
+
+type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "webcam" | "ar";
 
 // ==================== أنواع AR/MR ====================
 
@@ -302,6 +337,19 @@ export const ActorAiArabicStudio: React.FC = () => {
   // حالة تمارين الصوت
   const [activeExercise, setActiveExercise] = useState<string | null>(null);
   const [exerciseTimer, setExerciseTimer] = useState(0);
+
+  // حالة تحليل الأداء البصري (Webcam Analysis)
+  const [webcamActive, setWebcamActive] = useState(false);
+  const [webcamAnalyzing, setWebcamAnalyzing] = useState(false);
+  const [webcamAnalysisTime, setWebcamAnalysisTime] = useState(0);
+  const [webcamAnalysisResult, setWebcamAnalysisResult] = useState<WebcamAnalysisResult | null>(null);
+  const [webcamSessions, setWebcamSessions] = useState<WebcamSession[]>([
+    { id: "1", date: "2025-10-30", duration: "5:30", score: 78, alerts: ["نظرت للأسفل 4 مرات", "معدل رمش مرتفع"] },
+    { id: "2", date: "2025-10-29", duration: "3:45", score: 85, alerts: ["استخدام جيد للمساحة"] },
+  ]);
+  const [webcamPermission, setWebcamPermission] = useState<"granted" | "denied" | "pending">("pending");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // حالة AR/MR
   const [arMode, setArMode] = useState<"setup" | "teleprompter" | "blocking" | "camera" | "partner" | "gestures">("setup");
@@ -547,6 +595,145 @@ export const ActorAiArabicStudio: React.FC = () => {
     showNotification("success", "أحسنت! تم إنهاء التمرين");
   }, [showNotification]);
 
+  // ==================== وظائف تحليل الأداء البصري ====================
+
+  // مؤقت تحليل الكاميرا
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (webcamAnalyzing) {
+      interval = setInterval(() => {
+        setWebcamAnalysisTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [webcamAnalyzing]);
+
+  // طلب إذن الكاميرا
+  const requestWebcamPermission = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setWebcamPermission("granted");
+      setWebcamActive(true);
+      showNotification("success", "تم تفعيل الكاميرا بنجاح!");
+    } catch {
+      setWebcamPermission("denied");
+      showNotification("error", "لم يتم السماح بالوصول للكاميرا");
+    }
+  }, [showNotification]);
+
+  // إيقاف الكاميرا
+  const stopWebcam = useCallback(() => {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setWebcamActive(false);
+    setWebcamAnalyzing(false);
+    setWebcamAnalysisTime(0);
+    showNotification("info", "تم إيقاف الكاميرا");
+  }, [showNotification]);
+
+  // بدء التحليل البصري
+  const startWebcamAnalysis = useCallback(() => {
+    if (!webcamActive) {
+      showNotification("error", "يرجى تفعيل الكاميرا أولاً");
+      return;
+    }
+    setWebcamAnalyzing(true);
+    setWebcamAnalysisTime(0);
+    setWebcamAnalysisResult(null);
+    showNotification("info", "بدأ التحليل البصري... 👁️");
+  }, [webcamActive, showNotification]);
+
+  // إيقاف التحليل وعرض النتائج
+  const stopWebcamAnalysis = useCallback(() => {
+    setWebcamAnalyzing(false);
+
+    const minutes = Math.floor(webcamAnalysisTime / 60);
+    const seconds = webcamAnalysisTime % 60;
+    const duration = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+    // محاكاة نتائج التحليل
+    const mockResult: WebcamAnalysisResult = {
+      eyeLine: {
+        direction: ["center", "audience", "down", "up"][Math.floor(Math.random() * 4)] as "center" | "audience" | "down" | "up",
+        consistency: Math.floor(Math.random() * 30) + 60,
+        alerts: Math.random() > 0.5 ? ["نظرت للأسفل 3 مرات متتالية", "تجنب كثرة النظر للجانب"] : [],
+      },
+      expressionSync: {
+        score: Math.floor(Math.random() * 25) + 70,
+        matchedEmotions: ["حزن", "أمل", "شوق"],
+        mismatches: Math.random() > 0.6 ? ["لحظة الفرح لم تظهر بوضوح"] : [],
+      },
+      blinkRate: {
+        rate: Math.floor(Math.random() * 10) + 12,
+        status: Math.random() > 0.7 ? "high" : "normal",
+        tensionIndicator: Math.floor(Math.random() * 40) + 20,
+      },
+      blocking: {
+        spaceUsage: Math.floor(Math.random() * 30) + 50,
+        movements: ["حركة للأمام عند الذروة العاطفية", "تراجع خفيف عند التردد"],
+        suggestions: ["استخدم المساحة الجانبية أكثر", "أضف حركات يد تعبيرية"],
+      },
+      alerts: [
+        "نظرت للأسفل كثيراً في الدقيقة الأولى",
+        "معدل الرمش طبيعي",
+        "استخدام جيد لتعبيرات الوجه",
+      ],
+      overallScore: Math.floor(Math.random() * 20) + 75,
+      timestamp: new Date().toISOString(),
+    };
+
+    setWebcamAnalysisResult(mockResult);
+
+    // حفظ الجلسة
+    const newSession: WebcamSession = {
+      id: Date.now().toString(),
+      date: new Date().toISOString().split("T")[0],
+      duration,
+      score: mockResult.overallScore,
+      alerts: mockResult.alerts.slice(0, 2),
+    };
+
+    setWebcamSessions(prev => [newSession, ...prev]);
+    showNotification("success", `تم التحليل! النتيجة: ${mockResult.overallScore}/100`);
+  }, [webcamAnalysisTime, showNotification]);
+
+  // تحديد حالة معدل الرمش
+  const getBlinkStatusText = (status: "normal" | "high" | "low"): string => {
+    switch (status) {
+      case "high": return "مرتفع (قد يدل على توتر)";
+      case "low": return "منخفض (تركيز عالي)";
+      default: return "طبيعي";
+    }
+  };
+
+  // تحديد لون حالة معدل الرمش
+  const getBlinkStatusColor = (status: "normal" | "high" | "low"): string => {
+    switch (status) {
+      case "high": return "text-orange-600";
+      case "low": return "text-blue-600";
+      default: return "text-green-600";
+    }
+  };
+
+  // ترجمة اتجاه النظر
+  const getEyeDirectionText = (direction: string): string => {
+    const directions: Record<string, string> = {
+      up: "للأعلى",
+      down: "للأسفل",
+      left: "لليسار",
+      right: "لليمين",
+      center: "للمركز",
+      audience: "للجمهور",
+    };
+    return directions[direction] || direction;
+  };
+
   // ==================== Auto scroll للدردشة ====================
 
   useEffect(() => {
@@ -598,6 +785,13 @@ export const ActorAiArabicStudio: React.FC = () => {
               className={currentView === "vocal" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
             >
               🎤 تمارين الصوت
+            </Button>
+            <Button
+              onClick={() => navigate("webcam")}
+              variant={currentView === "webcam" ? "secondary" : "ghost"}
+              className={currentView === "webcam" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
+            >
+              👁️ التحليل البصري
             </Button>
             <Button
               onClick={() => navigate("ar")}
@@ -803,6 +997,9 @@ export const ActorAiArabicStudio: React.FC = () => {
           <Button size="lg" variant="outline" onClick={() => navigate("vocal")}>
             🎤 تمارين الصوت
           </Button>
+          <Button size="lg" variant="outline" onClick={() => navigate("webcam")}>
+            👁️ التحليل البصري
+          </Button>
           <Button
             size="lg"
             className="bg-gradient-to-l from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white"
@@ -845,6 +1042,16 @@ export const ActorAiArabicStudio: React.FC = () => {
               <h3 className="text-xl font-semibold mb-2">تمارين الصوت</h3>
               <p className="text-gray-600">
                 تمارين نطق وتنفس واسقاط صوتي احترافية
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("webcam")}>
+            <CardContent className="p-6 text-center">
+              <div className="text-5xl mb-4">👁️</div>
+              <h3 className="text-xl font-semibold mb-2">التحليل البصري</h3>
+              <p className="text-gray-600">
+                تحليل اتجاه النظر والتعبيرات واستخدام المساحة
               </p>
             </CardContent>
           </Card>
@@ -1313,6 +1520,382 @@ export const ActorAiArabicStudio: React.FC = () => {
     </div>
   );
 
+<<<<<<< HEAD
+  // ==================== صفحة تحليل الأداء البصري ====================
+
+  const renderWebcamAnalysis = () => (
+    <div className="max-w-6xl mx-auto py-8">
+      <h2 className="text-3xl font-bold text-gray-800 mb-2">👁️ تحليل الأداء البصري</h2>
+      <p className="text-gray-600 mb-8">حلل أداءك المرئي واحصل على ملاحظات حول اتجاه النظر والتعبيرات واستخدام المساحة</p>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* منطقة الكاميرا */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              📹 الكاميرا المباشرة
+            </CardTitle>
+            <CardDescription>
+              قم بتفعيل الكاميرا لبدء تحليل أدائك البصري
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* عرض الفيديو */}
+            <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+              {webcamActive ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover scale-x-[-1]"
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                  />
+                  {webcamAnalyzing && (
+                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-600 text-white px-3 py-1 rounded-full animate-pulse">
+                      <span className="w-2 h-2 bg-white rounded-full"></span>
+                      <span className="text-sm font-mono">{formatTime(webcamAnalysisTime)}</span>
+                    </div>
+                  )}
+                  {/* مؤشرات التحليل المباشر */}
+                  {webcamAnalyzing && (
+                    <div className="absolute bottom-4 left-4 right-4 bg-black/60 text-white p-3 rounded-lg text-sm">
+                      <div className="flex justify-between items-center">
+                        <span>👁️ جاري تحليل اتجاه النظر...</span>
+                        <span className="animate-pulse">●</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-white">
+                  <div className="text-6xl mb-4">📷</div>
+                  <p className="text-gray-400">الكاميرا غير مفعلة</p>
+                </div>
+              )}
+            </div>
+
+            {/* أزرار التحكم */}
+            <div className="flex flex-wrap gap-3">
+              {!webcamActive ? (
+                <Button onClick={requestWebcamPermission} className="flex-1">
+                  📹 تفعيل الكاميرا
+                </Button>
+              ) : (
+                <>
+                  <Button onClick={stopWebcam} variant="outline" className="flex-1">
+                    ⏹️ إيقاف الكاميرا
+                  </Button>
+                  {!webcamAnalyzing ? (
+                    <Button onClick={startWebcamAnalysis} className="flex-1 bg-green-600 hover:bg-green-700">
+                      ▶️ بدء التحليل
+                    </Button>
+                  ) : (
+                    <Button onClick={stopWebcamAnalysis} variant="destructive" className="flex-1">
+                      ⏹️ إيقاف التحليل
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* حالة الإذن */}
+            {webcamPermission === "denied" && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  تم رفض الوصول للكاميرا. يرجى السماح بالوصول من إعدادات المتصفح.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* المؤشرات البصرية */}
+        <Card>
+          <CardHeader>
+            <CardTitle>📊 المؤشرات البصرية</CardTitle>
+            <CardDescription>المعايير التي يتم تحليلها أثناء الأداء</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">👁️</span>
+                  <h4 className="font-semibold">اتجاه النظر (Eye-line)</h4>
+                </div>
+                <p className="text-gray-600 text-sm">
+                  تتبع اتجاه نظرك وتوزيعه على المساحة المرئية
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">🎭</span>
+                  <h4 className="font-semibold">اتساق التعبيرات مع النص</h4>
+                </div>
+                <p className="text-gray-600 text-sm">
+                  مدى تطابق تعبيرات وجهك مع المشاعر المطلوبة في النص
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">😌</span>
+                  <h4 className="font-semibold">معدل الرمش (مؤشر للتوتر)</h4>
+                </div>
+                <p className="text-gray-600 text-sm">
+                  قياس معدل الرمش كمؤشر على مستوى الراحة أو التوتر
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">🎬</span>
+                  <h4 className="font-semibold">استخدام المساحة (Blocking)</h4>
+                </div>
+                <p className="text-gray-600 text-sm">
+                  تحليل حركتك واستخدامك للمساحة المتاحة
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* نتائج التحليل */}
+      {webcamAnalysisResult && (
+        <Card className="mt-6 bg-gradient-to-l from-blue-50 to-purple-50">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-2xl">📋 نتائج التحليل البصري</CardTitle>
+              <Badge className={
+                webcamAnalysisResult.overallScore >= 80
+                  ? "bg-green-600"
+                  : webcamAnalysisResult.overallScore >= 60
+                    ? "bg-yellow-600"
+                    : "bg-red-600"
+              }>
+                النتيجة: {webcamAnalysisResult.overallScore}/100
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* اتجاه النظر */}
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                👁️ اتجاه النظر
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">الاتجاه الغالب</p>
+                  <p className="font-medium">{getEyeDirectionText(webcamAnalysisResult.eyeLine.direction)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">نسبة الثبات</p>
+                  <div className="flex items-center gap-2">
+                    <Progress value={webcamAnalysisResult.eyeLine.consistency} className="flex-1" />
+                    <span className="font-medium">{webcamAnalysisResult.eyeLine.consistency}%</span>
+                  </div>
+                </div>
+              </div>
+              {webcamAnalysisResult.eyeLine.alerts.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  {webcamAnalysisResult.eyeLine.alerts.map((alert, idx) => (
+                    <p key={idx} className="text-sm text-orange-600 flex items-center gap-1">
+                      ⚠️ {alert}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* اتساق التعبيرات */}
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                🎭 اتساق التعبيرات
+              </h4>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 mb-1">نسبة التطابق</p>
+                <div className="flex items-center gap-2">
+                  <Progress value={webcamAnalysisResult.expressionSync.score} className="flex-1" />
+                  <span className="font-medium">{webcamAnalysisResult.expressionSync.score}%</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className="text-sm text-gray-600">المشاعر المتطابقة:</span>
+                {webcamAnalysisResult.expressionSync.matchedEmotions.map((emotion, idx) => (
+                  <Badge key={idx} variant="outline" className="bg-green-50 text-green-700">
+                    {emotion}
+                  </Badge>
+                ))}
+              </div>
+              {webcamAnalysisResult.expressionSync.mismatches.length > 0 && (
+                <div className="mt-2">
+                  {webcamAnalysisResult.expressionSync.mismatches.map((mismatch, idx) => (
+                    <p key={idx} className="text-sm text-orange-600">⚠️ {mismatch}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* معدل الرمش */}
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                😌 معدل الرمش ومؤشر التوتر
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">معدل الرمش</p>
+                  <p className="font-medium">{webcamAnalysisResult.blinkRate.rate} رمشة/دقيقة</p>
+                  <p className={`text-sm ${getBlinkStatusColor(webcamAnalysisResult.blinkRate.status)}`}>
+                    {getBlinkStatusText(webcamAnalysisResult.blinkRate.status)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">مؤشر التوتر</p>
+                  <div className="flex items-center gap-2">
+                    <Progress
+                      value={webcamAnalysisResult.blinkRate.tensionIndicator}
+                      className="flex-1"
+                    />
+                    <span className="font-medium">{webcamAnalysisResult.blinkRate.tensionIndicator}%</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {webcamAnalysisResult.blinkRate.tensionIndicator < 30
+                      ? "مرتاح جداً"
+                      : webcamAnalysisResult.blinkRate.tensionIndicator < 60
+                        ? "مستوى طبيعي"
+                        : "توتر ملحوظ"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* استخدام المساحة */}
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                🎬 استخدام المساحة (Blocking)
+              </h4>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 mb-1">نسبة استخدام المساحة</p>
+                <div className="flex items-center gap-2">
+                  <Progress value={webcamAnalysisResult.blocking.spaceUsage} className="flex-1" />
+                  <span className="font-medium">{webcamAnalysisResult.blocking.spaceUsage}%</span>
+                </div>
+              </div>
+              <div className="mb-2">
+                <p className="text-sm text-gray-600">الحركات الملاحظة:</p>
+                <ul className="list-disc list-inside text-sm mt-1">
+                  {webcamAnalysisResult.blocking.movements.map((movement, idx) => (
+                    <li key={idx}>{movement}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">اقتراحات:</p>
+                <ul className="list-disc list-inside text-sm mt-1 text-blue-600">
+                  {webcamAnalysisResult.blocking.suggestions.map((suggestion, idx) => (
+                    <li key={idx}>{suggestion}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* التنبيهات العامة */}
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2 text-yellow-800">
+                ⚠️ التنبيهات والملاحظات
+              </h4>
+              <ul className="space-y-2">
+                {webcamAnalysisResult.alerts.map((alert, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-yellow-900">
+                    <span className="text-yellow-600">•</span>
+                    {alert}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* الجلسات السابقة */}
+      {webcamSessions.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>📚 جلسات التحليل السابقة</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {webcamSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50"
+                >
+                  <div>
+                    <h5 className="font-medium">جلسة {session.date}</h5>
+                    <p className="text-sm text-gray-600">
+                      المدة: {session.duration}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {session.alerts.map((alert, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {alert}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Badge
+                    className={
+                      session.score >= 80
+                        ? "bg-green-600"
+                        : session.score >= 70
+                          ? "bg-yellow-600"
+                          : "bg-red-600"
+                    }
+                  >
+                    {session.score}/100
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* نصائح للتحليل البصري */}
+      <Card className="mt-6 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="text-blue-800">💡 نصائح للأداء البصري الأفضل</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2 text-blue-900">
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>حافظ على التواصل البصري مع "الجمهور" أو الكاميرا</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>تجنب النظر للأسفل كثيراً - يُظهر عدم الثقة</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>استخدم المساحة المتاحة بشكل متوازن</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>اجعل تعبيرات وجهك تتناسب مع مشاعر النص</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span>✓</span>
+              <span>تنفس بعمق لتقليل التوتر ومعدل الرمش المرتفع</span>
+            </li>
+          </ul>
+=======
   // ==================== صفحة تدريب AR/MR ====================
 
   const renderARTraining = () => (
@@ -1989,6 +2572,7 @@ export const ActorAiArabicStudio: React.FC = () => {
               <p className="text-purple-200 text-sm">التدريب مع ممثلين آخرين عن بُعد</p>
             </div>
           </div>
+>>>>>>> origin/main
         </CardContent>
       </Card>
     </div>
@@ -2179,8 +2763,13 @@ export const ActorAiArabicStudio: React.FC = () => {
         return renderDemo();
       case "vocal":
         return renderVocalExercises();
+<<<<<<< HEAD
+      case "webcam":
+        return renderWebcamAnalysis();
+=======
       case "ar":
         return renderARTraining();
+>>>>>>> origin/main
       case "dashboard":
         return renderDashboard();
       case "login":
