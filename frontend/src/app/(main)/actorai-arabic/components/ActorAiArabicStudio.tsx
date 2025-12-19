@@ -82,7 +82,29 @@ interface VocalExercise {
   category: "breathing" | "articulation" | "projection" | "resonance";
 }
 
-type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal";
+type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "memorization";
+
+// واجهات بيانات وضع الحفظ
+interface MemorizationStats {
+  totalAttempts: number;
+  correctWords: number;
+  incorrectWords: number;
+  hesitationCount: number;
+  weakPoints: string[];
+  averageResponseTime: number;
+}
+
+interface MemorizationSession {
+  scriptText: string;
+  deletionLevel: 10 | 50 | 90;
+  currentLineIndex: number;
+  processedText: string;
+  hiddenWords: string[];
+  userAttempts: Map<number, { correct: boolean; hesitated: boolean; time: number }>;
+  isActive: boolean;
+  isPaused: boolean;
+  promptMode: boolean;
+}
 
 // ==================== البيانات التجريبية ====================
 
@@ -201,6 +223,31 @@ export const ActorAiArabicStudio: React.FC = () => {
   // حالة تمارين الصوت
   const [activeExercise, setActiveExercise] = useState<string | null>(null);
   const [exerciseTimer, setExerciseTimer] = useState(0);
+
+  // حالة وضع اختبار الحفظ
+  const [memorizationScript, setMemorizationScript] = useState("");
+  const [memorizationDeletionLevel, setMemorizationDeletionLevel] = useState<10 | 50 | 90>(10);
+  const [memorizationActive, setMemorizationActive] = useState(false);
+  const [memorizationPaused, setMemorizationPaused] = useState(false);
+  const [promptMode, setPromptMode] = useState(false);
+  const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [userMemorizationInput, setUserMemorizationInput] = useState("");
+  const [hiddenWordIndices, setHiddenWordIndices] = useState<number[]>([]);
+  const [hesitationTimer, setHesitationTimer] = useState<NodeJS.Timeout | null>(null);
+  const [hesitationDetected, setHesitationDetected] = useState(false);
+  const [memorizationStats, setMemorizationStats] = useState<MemorizationStats>({
+    totalAttempts: 0,
+    correctWords: 0,
+    incorrectWords: 0,
+    hesitationCount: 0,
+    weakPoints: [],
+    averageResponseTime: 0,
+  });
+  const [attemptStartTime, setAttemptStartTime] = useState<number>(0);
+  const [responseTimes, setResponseTimes] = useState<number[]>([]);
+  const [weakPointsMap, setWeakPointsMap] = useState<Map<string, number>>(new Map());
+  const [showPromptHint, setShowPromptHint] = useState(false);
+  const [currentPromptWord, setCurrentPromptWord] = useState("");
 
   // ==================== الدوال المساعدة ====================
 
@@ -418,6 +465,252 @@ export const ActorAiArabicStudio: React.FC = () => {
     showNotification("success", "أحسنت! تم إنهاء التمرين");
   }, [showNotification]);
 
+  // ==================== وظائف وضع اختبار الحفظ ====================
+
+  // دالة لحذف كلمات من النص بنسبة معينة
+  const processTextForMemorization = useCallback((text: string, deletionLevel: 10 | 50 | 90): { processedLines: string[]; hiddenWords: Map<number, string[]> } => {
+    const lines = text.split('\n').filter(line => line.trim());
+    const hiddenWords = new Map<number, string[]>();
+
+    const processedLines = lines.map((line, lineIndex) => {
+      const words = line.split(/(\s+)/);
+      const contentWords = words.filter(w => w.trim() && !/^\s+$/.test(w));
+      const numToHide = Math.ceil(contentWords.length * (deletionLevel / 100));
+
+      // اختيار كلمات عشوائية للإخفاء
+      const indices = contentWords.map((_, i) => i);
+      const shuffled = indices.sort(() => Math.random() - 0.5);
+      const hideIndices = shuffled.slice(0, numToHide);
+
+      const lineHiddenWords: string[] = [];
+      let wordIndex = 0;
+
+      const processedWords = words.map(word => {
+        if (!word.trim() || /^\s+$/.test(word)) return word;
+
+        if (hideIndices.includes(wordIndex)) {
+          lineHiddenWords.push(word);
+          wordIndex++;
+          return "______";
+        }
+        wordIndex++;
+        return word;
+      });
+
+      hiddenWords.set(lineIndex, lineHiddenWords);
+      return processedWords.join('');
+    });
+
+    return { processedLines, hiddenWords };
+  }, []);
+
+  // بدء جلسة الحفظ
+  const startMemorizationSession = useCallback(() => {
+    if (!memorizationScript.trim()) {
+      showNotification("error", "يرجى إدخال النص أولاً");
+      return;
+    }
+
+    setMemorizationActive(true);
+    setMemorizationPaused(false);
+    setCurrentLineIndex(0);
+    setAttemptStartTime(Date.now());
+    setMemorizationStats({
+      totalAttempts: 0,
+      correctWords: 0,
+      incorrectWords: 0,
+      hesitationCount: 0,
+      weakPoints: [],
+      averageResponseTime: 0,
+    });
+    setResponseTimes([]);
+    setWeakPointsMap(new Map());
+    showNotification("info", "بدأت جلسة الحفظ! حاول تذكر الكلمات المخفية 🧠");
+  }, [memorizationScript, showNotification]);
+
+  // إيقاف جلسة الحفظ
+  const stopMemorizationSession = useCallback(() => {
+    setMemorizationActive(false);
+    setMemorizationPaused(false);
+    setPromptMode(false);
+    setShowPromptHint(false);
+    setCurrentPromptWord("");
+    setUserMemorizationInput("");
+
+    if (hesitationTimer) {
+      clearTimeout(hesitationTimer);
+      setHesitationTimer(null);
+    }
+
+    // حساب الإحصائيات النهائية
+    const avgTime = responseTimes.length > 0
+      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+      : 0;
+
+    const sortedWeakPoints = Array.from(weakPointsMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([word]) => word);
+
+    setMemorizationStats(prev => ({
+      ...prev,
+      averageResponseTime: avgTime,
+      weakPoints: sortedWeakPoints,
+    }));
+
+    showNotification("success", "انتهت جلسة الحفظ! تحقق من إحصائياتك 📊");
+  }, [hesitationTimer, responseTimes, weakPointsMap, showNotification]);
+
+  // تفعيل وضع التلقين عند التردد
+  const activatePromptMode = useCallback(() => {
+    setPromptMode(true);
+    setMemorizationPaused(true);
+    setHesitationDetected(true);
+    setMemorizationStats(prev => ({
+      ...prev,
+      hesitationCount: prev.hesitationCount + 1,
+    }));
+    showNotification("info", "لا بأس! إليك تلميحاً... 💡");
+  }, [showNotification]);
+
+  // إظهار تلميح الكلمة الأولى
+  const showFirstLetterHint = useCallback((word: string) => {
+    if (word.length > 0) {
+      setCurrentPromptWord(word[0] + "...");
+      setShowPromptHint(true);
+    }
+  }, []);
+
+  // إظهار الكلمة الكاملة
+  const showFullWordHint = useCallback((word: string) => {
+    setCurrentPromptWord(word);
+    setShowPromptHint(true);
+  }, []);
+
+  // التحقق من إجابة المستخدم
+  const checkUserAnswer = useCallback((userAnswer: string, correctWord: string): boolean => {
+    const normalizedUser = userAnswer.trim().toLowerCase();
+    const normalizedCorrect = correctWord.trim().toLowerCase();
+    return normalizedUser === normalizedCorrect;
+  }, []);
+
+  // معالجة إدخال المستخدم
+  const handleMemorizationSubmit = useCallback(() => {
+    const lines = memorizationScript.split('\n').filter(line => line.trim());
+    const currentLine = lines[currentLineIndex];
+
+    if (!currentLine) return;
+
+    const words = currentLine.split(/\s+/).filter(w => w.trim());
+    const { hiddenWords } = processTextForMemorization(memorizationScript, memorizationDeletionLevel);
+    const currentHiddenWords = hiddenWords.get(currentLineIndex) || [];
+
+    const responseTime = Date.now() - attemptStartTime;
+    setResponseTimes(prev => [...prev, responseTime]);
+
+    const userWords = userMemorizationInput.split(/\s+/).filter(w => w.trim());
+    let correct = 0;
+    let incorrect = 0;
+
+    currentHiddenWords.forEach((hiddenWord, index) => {
+      const userWord = userWords[index] || "";
+      if (checkUserAnswer(userWord, hiddenWord)) {
+        correct++;
+      } else {
+        incorrect++;
+        // إضافة للنقاط الضعيفة
+        setWeakPointsMap(prev => {
+          const newMap = new Map(prev);
+          newMap.set(hiddenWord, (newMap.get(hiddenWord) || 0) + 1);
+          return newMap;
+        });
+      }
+    });
+
+    setMemorizationStats(prev => ({
+      ...prev,
+      totalAttempts: prev.totalAttempts + 1,
+      correctWords: prev.correctWords + correct,
+      incorrectWords: prev.incorrectWords + incorrect,
+    }));
+
+    // الانتقال للسطر التالي
+    if (currentLineIndex < lines.length - 1) {
+      setCurrentLineIndex(prev => prev + 1);
+      setUserMemorizationInput("");
+      setAttemptStartTime(Date.now());
+      setPromptMode(false);
+      setShowPromptHint(false);
+      setHesitationDetected(false);
+
+      if (correct === currentHiddenWords.length) {
+        showNotification("success", "أحسنت! الإجابة صحيحة ✓");
+      } else if (correct > 0) {
+        showNotification("info", `${correct} من ${currentHiddenWords.length} صحيحة`);
+      } else {
+        showNotification("error", "حاول مرة أخرى في السطر التالي");
+      }
+    } else {
+      stopMemorizationSession();
+    }
+  }, [
+    memorizationScript,
+    currentLineIndex,
+    memorizationDeletionLevel,
+    userMemorizationInput,
+    attemptStartTime,
+    processTextForMemorization,
+    checkUserAnswer,
+    showNotification,
+    stopMemorizationSession
+  ]);
+
+  // كشف التردد (3 ثوانٍ بدون إدخال)
+  useEffect(() => {
+    if (memorizationActive && !memorizationPaused && userMemorizationInput === "") {
+      const timer = setTimeout(() => {
+        activatePromptMode();
+      }, 3000);
+      setHesitationTimer(timer);
+
+      return () => clearTimeout(timer);
+    } else if (hesitationTimer && userMemorizationInput !== "") {
+      clearTimeout(hesitationTimer);
+      setHesitationTimer(null);
+      setHesitationDetected(false);
+    }
+  }, [memorizationActive, memorizationPaused, userMemorizationInput, activatePromptMode, hesitationTimer]);
+
+  // استخدام النص التجريبي للحفظ
+  const useSampleScriptForMemorization = useCallback(() => {
+    setMemorizationScript(SAMPLE_SCRIPT);
+    showNotification("info", "تم تحميل النص التجريبي للحفظ");
+  }, [showNotification]);
+
+  // زيادة مستوى الصعوبة
+  const increaseDeletionLevel = useCallback(() => {
+    if (memorizationDeletionLevel === 10) {
+      setMemorizationDeletionLevel(50);
+      showNotification("info", "تم زيادة مستوى الصعوبة إلى 50%");
+    } else if (memorizationDeletionLevel === 50) {
+      setMemorizationDeletionLevel(90);
+      showNotification("info", "تم زيادة مستوى الصعوبة إلى 90%");
+    } else {
+      showNotification("info", "أنت في أعلى مستوى!");
+    }
+  }, [memorizationDeletionLevel, showNotification]);
+
+  // إعادة تكرار الأجزاء الصعبة
+  const repeatDifficultParts = useCallback(() => {
+    if (memorizationStats.weakPoints.length === 0) {
+      showNotification("info", "لا توجد نقاط ضعف محددة حتى الآن");
+      return;
+    }
+
+    const difficultText = memorizationStats.weakPoints.join(" • ");
+    showNotification("info", `كلمات تحتاج للتكرار: ${difficultText}`);
+  }, [memorizationStats.weakPoints, showNotification]);
+
   // ==================== Auto scroll للدردشة ====================
 
   useEffect(() => {
@@ -469,6 +762,13 @@ export const ActorAiArabicStudio: React.FC = () => {
               className={currentView === "vocal" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
             >
               🎤 تمارين الصوت
+            </Button>
+            <Button
+              onClick={() => navigate("memorization")}
+              variant={currentView === "memorization" ? "secondary" : "ghost"}
+              className={currentView === "memorization" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
+            >
+              🧠 اختبار الحفظ
             </Button>
 
             {user ? (
@@ -660,12 +960,15 @@ export const ActorAiArabicStudio: React.FC = () => {
           أتقن فنك مع تحليل النصوص المدعوم بالذكاء الاصطناعي، وشركاء المشاهد الافتراضيين، وتحليلات الأداء
         </p>
 
-        <div className="flex gap-4 justify-center mb-12">
+        <div className="flex gap-4 justify-center mb-12 flex-wrap">
           <Button size="lg" onClick={() => navigate("demo")} className="bg-blue-600 hover:bg-blue-700">
             🎬 جرب التطبيق
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("vocal")}>
             🎤 تمارين الصوت
+          </Button>
+          <Button size="lg" variant="outline" onClick={() => navigate("memorization")} className="bg-purple-600 text-white hover:bg-purple-700">
+            🧠 اختبار الحفظ
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("register")}>
             ابدأ الآن
@@ -675,7 +978,7 @@ export const ActorAiArabicStudio: React.FC = () => {
         <div className="text-8xl opacity-30 mb-12">🎭</div>
 
         {/* الميزات */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mt-12">
           <Card className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <div className="text-5xl mb-4">🧠</div>
@@ -712,6 +1015,16 @@ export const ActorAiArabicStudio: React.FC = () => {
               <h3 className="text-xl font-semibold mb-2">تتبع التقدم</h3>
               <p className="text-gray-600">
                 راقب نموك مع تحليلات شاملة ونصائح مخصصة
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("memorization")}>
+            <CardContent className="p-6 text-center">
+              <div className="text-5xl mb-4">🧠</div>
+              <h3 className="text-xl font-semibold mb-2">اختبار الحفظ</h3>
+              <p className="text-gray-600">
+                اختبر حفظك مع تلقين ذكي وتكرار تلقائي
               </p>
             </CardContent>
           </Card>
@@ -1148,6 +1461,361 @@ export const ActorAiArabicStudio: React.FC = () => {
     </div>
   );
 
+  // ==================== صفحة اختبار الحفظ ====================
+
+  const renderMemorizationMode = () => {
+    const lines = memorizationScript.split('\n').filter(line => line.trim());
+    const { processedLines, hiddenWords } = processTextForMemorization(memorizationScript, memorizationDeletionLevel);
+    const currentHiddenWords = hiddenWords.get(currentLineIndex) || [];
+    const totalProgress = lines.length > 0 ? Math.round((currentLineIndex / lines.length) * 100) : 0;
+
+    return (
+      <div className="max-w-6xl mx-auto py-8">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">🧠 وضع اختبار الحفظ</h2>
+        <p className="text-gray-600 mb-8">اختبر قدرتك على حفظ النصوص مع نظام تلقين ذكي</p>
+
+        {/* شريط التقدم والإحصائيات */}
+        {memorizationActive && (
+          <Card className="mb-6 bg-gradient-to-l from-indigo-500 to-purple-500 text-white">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-4">
+                  <Badge className="bg-white/20 text-white text-lg px-4 py-2">
+                    السطر {currentLineIndex + 1} من {lines.length}
+                  </Badge>
+                  <Badge className="bg-white/20 text-white">
+                    المستوى: {memorizationDeletionLevel}%
+                  </Badge>
+                </div>
+                <div className="flex gap-2">
+                  {hesitationDetected && (
+                    <Badge className="bg-yellow-500 animate-pulse">
+                      تم اكتشاف تردد! 💡
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <Progress value={totalProgress} className="h-3 bg-white/20" />
+              <p className="text-sm mt-2 opacity-90">التقدم: {totalProgress}%</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* منطقة النص والاختبار */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>📝 النص للحفظ</CardTitle>
+                  <div className="flex gap-2">
+                    {!memorizationActive && (
+                      <Button variant="outline" size="sm" onClick={useSampleScriptForMemorization}>
+                        📄 نص تجريبي
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <CardDescription>
+                  أدخل النص الذي تريد حفظه ثم اختر مستوى الصعوبة
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!memorizationActive ? (
+                  <>
+                    {/* إدخال النص */}
+                    <Textarea
+                      placeholder="الصق نصك هنا للحفظ..."
+                      className="min-h-[200px]"
+                      value={memorizationScript}
+                      onChange={(e) => setMemorizationScript(e.target.value)}
+                    />
+
+                    {/* اختيار مستوى الصعوبة */}
+                    <div className="space-y-2">
+                      <Label>مستوى حذف الكلمات</Label>
+                      <div className="flex gap-4">
+                        <Button
+                          variant={memorizationDeletionLevel === 10 ? "default" : "outline"}
+                          onClick={() => setMemorizationDeletionLevel(10)}
+                          className={memorizationDeletionLevel === 10 ? "bg-green-600" : ""}
+                        >
+                          سهل (10%)
+                        </Button>
+                        <Button
+                          variant={memorizationDeletionLevel === 50 ? "default" : "outline"}
+                          onClick={() => setMemorizationDeletionLevel(50)}
+                          className={memorizationDeletionLevel === 50 ? "bg-yellow-600" : ""}
+                        >
+                          متوسط (50%)
+                        </Button>
+                        <Button
+                          variant={memorizationDeletionLevel === 90 ? "default" : "outline"}
+                          onClick={() => setMemorizationDeletionLevel(90)}
+                          className={memorizationDeletionLevel === 90 ? "bg-red-600" : ""}
+                        >
+                          صعب (90%)
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* زر البدء */}
+                    <Button
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      size="lg"
+                      onClick={startMemorizationSession}
+                      disabled={!memorizationScript.trim()}
+                    >
+                      🧠 ابدأ اختبار الحفظ
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {/* عرض النص مع الكلمات المخفية */}
+                    <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                      {processedLines.map((line, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-4 rounded-lg transition-all ${
+                            idx === currentLineIndex
+                              ? "bg-purple-100 border-2 border-purple-500 shadow-lg"
+                              : idx < currentLineIndex
+                                ? "bg-green-50 opacity-60"
+                                : "bg-white opacity-40"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            {idx < currentLineIndex && <span className="text-green-600">✓</span>}
+                            {idx === currentLineIndex && <span className="text-purple-600 animate-pulse">▶</span>}
+                            <p className="text-lg leading-relaxed">
+                              {line.split("______").map((part, partIdx, arr) => (
+                                <span key={partIdx}>
+                                  {part}
+                                  {partIdx < arr.length - 1 && (
+                                    <span className="bg-purple-200 text-purple-800 px-2 py-1 rounded mx-1 font-mono">
+                                      ______
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* منطقة الإجابة */}
+                    <div className="space-y-4 mt-6">
+                      <Label className="text-lg font-semibold">
+                        اكتب الكلمات المخفية ({currentHiddenWords.length} كلمة):
+                      </Label>
+
+                      {/* عرض التلميح إذا كان وضع التلقين مفعلاً */}
+                      {promptMode && showPromptHint && (
+                        <Alert className="bg-yellow-50 border-yellow-400">
+                          <AlertDescription className="text-yellow-800 text-lg">
+                            💡 تلميح: <strong>{currentPromptWord}</strong>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {promptMode && !showPromptHint && (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => showFirstLetterHint(currentHiddenWords[0] || "")}
+                          >
+                            💡 أظهر الحرف الأول
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => showFullWordHint(currentHiddenWords[0] || "")}
+                          >
+                            📖 أظهر الكلمة كاملة
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Textarea
+                          placeholder="اكتب الكلمات المخفية مفصولة بمسافة..."
+                          value={userMemorizationInput}
+                          onChange={(e) => {
+                            setUserMemorizationInput(e.target.value);
+                            if (memorizationPaused) {
+                              setMemorizationPaused(false);
+                              setPromptMode(false);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              handleMemorizationSubmit();
+                            }
+                          }}
+                          className="flex-1"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={handleMemorizationSubmit}
+                          disabled={!userMemorizationInput.trim()}
+                        >
+                          ✓ تحقق من الإجابة
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={increaseDeletionLevel}
+                        >
+                          📈 زيادة الصعوبة
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={stopMemorizationSession}
+                        >
+                          ⏹️ إنهاء
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* الإحصائيات والنصائح */}
+          <div className="space-y-6">
+            {/* الإحصائيات */}
+            <Card className="bg-gradient-to-br from-blue-50 to-purple-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  📊 إحصائيات الحفظ
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                    <div className="text-3xl font-bold text-green-600">{memorizationStats.correctWords}</div>
+                    <p className="text-sm text-gray-600">كلمات صحيحة</p>
+                  </div>
+                  <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                    <div className="text-3xl font-bold text-red-600">{memorizationStats.incorrectWords}</div>
+                    <p className="text-sm text-gray-600">كلمات خاطئة</p>
+                  </div>
+                  <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                    <div className="text-3xl font-bold text-yellow-600">{memorizationStats.hesitationCount}</div>
+                    <p className="text-sm text-gray-600">مرات التردد</p>
+                  </div>
+                  <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                    <div className="text-3xl font-bold text-blue-600">{memorizationStats.totalAttempts}</div>
+                    <p className="text-sm text-gray-600">المحاولات</p>
+                  </div>
+                </div>
+
+                {/* نسبة النجاح */}
+                {memorizationStats.totalAttempts > 0 && (
+                  <div className="mt-4">
+                    <Label>نسبة النجاح</Label>
+                    <Progress
+                      value={
+                        memorizationStats.correctWords + memorizationStats.incorrectWords > 0
+                          ? (memorizationStats.correctWords / (memorizationStats.correctWords + memorizationStats.incorrectWords)) * 100
+                          : 0
+                      }
+                      className="h-4 mt-2"
+                    />
+                  </div>
+                )}
+
+                {/* نقاط الضعف */}
+                {memorizationStats.weakPoints.length > 0 && (
+                  <div className="mt-4">
+                    <Label className="text-red-600">⚠️ نقاط الضعف:</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {memorizationStats.weakPoints.map((word, idx) => (
+                        <Badge key={idx} variant="outline" className="bg-red-50 text-red-600">
+                          {word}
+                        </Badge>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full"
+                      onClick={repeatDifficultParts}
+                    >
+                      🔄 تكرار الأجزاء الصعبة
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* كيفية الاستخدام */}
+            <Card className="bg-yellow-50">
+              <CardHeader>
+                <CardTitle className="text-yellow-800">💡 كيفية الاستخدام</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-yellow-900 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span>1️⃣</span>
+                    <span>أدخل النص الذي تريد حفظه</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>2️⃣</span>
+                    <span>اختر مستوى الصعوبة (10% - 50% - 90%)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>3️⃣</span>
+                    <span>اكتب الكلمات المخفية في كل سطر</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>4️⃣</span>
+                    <span>إذا ترددت لـ3 ثوانٍ، سيظهر التلقين الذكي</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>5️⃣</span>
+                    <span>راجع نقاط ضعفك وكررها</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* نصائح للحفظ */}
+            <Card>
+              <CardHeader>
+                <CardTitle>🎯 نصائح لتحسين الحفظ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-gray-600 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span>ابدأ بمستوى سهل ثم ارتفع تدريجياً</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span>كرر النص بصوت عالٍ أثناء الكتابة</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span>ركز على نقاط الضعف وكررها</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span>خذ استراحات قصيرة بين الجلسات</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ==================== لوحة التحكم ====================
 
   const renderDashboard = () => (
@@ -1333,6 +2001,8 @@ export const ActorAiArabicStudio: React.FC = () => {
         return renderDemo();
       case "vocal":
         return renderVocalExercises();
+      case "memorization":
+        return renderMemorizationMode();
       case "dashboard":
         return renderDashboard();
       case "login":
