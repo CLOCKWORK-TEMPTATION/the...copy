@@ -3,8 +3,19 @@ import { AuthController } from './auth.controller';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 
-// SECURITY FIX: Use environment variables instead of hardcoded passwords
+// تعريف نوع المستخدم للاختبار - User type definition for testing
+interface UserPayload {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+// ثوابت الاختبار - Test Constants
+// SECURITY NOTE: These are intentionally invalid values for validation testing only
 const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'fallback_test_pwd_123';
+const INVALID_PASSWORD_TOO_SHORT = 'abc'; // قيمة غير صالحة مقصودة لاختبار validation
+const INVALID_PASSWORD_EMPTY = ''; // قيمة فارغة مقصودة لاختبار validation
 
 // Mock dependencies
 vi.mock('../services/auth.service', () => ({
@@ -24,13 +35,15 @@ vi.mock('../utils/logger', () => ({
 
 describe('AuthController', () => {
   let authController: AuthController;
-  let mockRequest: Partial<Request>;
+  // تعريف mockRequest مع دعم خاصية user
+  // Define mockRequest with support for user property
+  let mockRequest: Partial<Request> & { user?: UserPayload };
   let mockResponse: Partial<Response>;
   let authService: any;
 
   beforeEach(async () => {
     authController = new AuthController();
-    
+
     mockRequest = {
       body: {},
     };
@@ -103,7 +116,7 @@ describe('AuthController', () => {
     it('should handle validation errors', async () => {
       mockRequest.body = {
         email: 'invalid-email',
-        password: '123', // Too short
+        password: INVALID_PASSWORD_TOO_SHORT,
       };
 
       await authController.signup(mockRequest as Request, mockResponse as Response);
@@ -214,7 +227,7 @@ describe('AuthController', () => {
     it('should handle validation errors', async () => {
       mockRequest.body = {
         email: 'invalid-email',
-        password: '',
+        password: INVALID_PASSWORD_EMPTY,
       };
 
       await authController.login(mockRequest as Request, mockResponse as Response);

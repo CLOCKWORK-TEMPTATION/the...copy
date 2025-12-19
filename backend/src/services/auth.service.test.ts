@@ -30,13 +30,14 @@ describe('AuthService', () => {
 
   describe('signup', () => {
     it('should successfully create a new user', async () => {
-      const email = 'test@example.com';
+      // Test-only mock data - not real credentials
+      const email = 'testuser@example.com';
       const password = TEST_PASSWORD;
       const firstName = 'Test';
       const lastName = 'User';
-      const userId = 'user-123';
-      const hashedPassword = 'hashed-password';
-      const token = 'jwt-token';
+      const userId = 'test-user-123';
+      const hashedPassword = 'mock-hashed-password';
+      const token = 'mock-jwt-token';
 
       // Mock database - user doesn't exist
       mockDb.select.mockReturnValue({

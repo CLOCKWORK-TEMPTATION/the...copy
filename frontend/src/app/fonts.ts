@@ -1,47 +1,27 @@
 /**
- * Font Configuration using next/font/local
+ * تكوين الخطوط - Font Configuration
  *
- * This file defines local font loading with Next.js font optimization.
- * NOTE: Actual font files need to be placed in /public/fonts/
- * Currently using fallback to system fonts until real woff2 files are available.
+ * الخط الموحد: Cairo فقط
+ * تم توحيد جميع الخطوط لاستخدام Cairo لضمان التناسق في التصميم
  */
 
-// Using system fonts as fallback until proper font files are added
-export const amiri = {
-  variable: "--font-amiri",
-  style: { fontFamily: "serif" },
-};
-
+// الخط الموحد - Cairo
 export const cairo = {
   variable: "--font-cairo",
-  style: { fontFamily: "sans-serif" },
+  className: "font-cairo",
+  style: { fontFamily: '"Cairo", system-ui, -apple-system, sans-serif' },
 };
 
-export const literata = {
-  variable: "--font-literata",
-  style: { fontFamily: "serif" },
-};
-
+// للتوافق مع الاستخدامات القديمة - جميعها تشير إلى Cairo
+export const amiri = cairo;
+export const literata = cairo;
 export const sourceCodePro = {
-  variable: "--font-source-code-pro",
-  style: { fontFamily: "monospace" },
+  ...cairo,
+  variable: "--font-mono",
 };
 
 /**
- * To use these fonts in layout.tsx:
- *
- * import { amiri, cairo, literata, sourceCodePro } from './fonts';
- *
- * <html className={`${amiri.variable} ${cairo.variable} ${literata.variable} ${sourceCodePro.variable}`}>
- *
- * Then in globals.css:
- *
- * @layer base {
- *   :root {
- *     --font-body: var(--font-cairo);
- *     --font-headline: var(--font-amiri);
- *     --font-serif: var(--font-literata);
- *     --font-mono: var(--font-source-code-pro);
- *   }
- * }
+ * ملاحظة: تم توحيد جميع الخطوط لاستخدام Cairo
+ * لتغيير الخط، عدل هذا الملف فقط
  */
+export default cairo;

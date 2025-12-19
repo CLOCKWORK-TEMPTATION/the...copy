@@ -35,13 +35,13 @@ GOOGLE_GENAI_API_KEY=your-gemini-api-key-here
 GEMINI_API_KEY=your-gemini-api-key-here
 
 # Database (PostgreSQL)
-DATABASE_URL=postgresql://the_copy_app:STRONG_PASSWORD@postgres:5432/the_copy
-POSTGRES_DB=the_copy
-POSTGRES_USER=the_copy_app
-POSTGRES_PASSWORD=STRONG_PASSWORD_HERE
+DATABASE_URL=postgresql://<username>:<password>@postgres:5432/<database>
+POSTGRES_DB=<database_name>
+POSTGRES_USER=<username>
+POSTGRES_PASSWORD=<strong_password>
 
 # Security (REQUIRED - minimum 32 characters)
-JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
+JWT_SECRET=<generate_random_32_char_secret>
 
 # CORS
 CORS_ORIGIN=http://localhost:5000,https://your-frontend-domain.com
@@ -51,7 +51,7 @@ RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 
 # Redis (optional, for caching)
-REDIS_PASSWORD=your-redis-password
+REDIS_PASSWORD=<redis_password>
 ```
 
 ### 2️⃣ بناء وتشغيل الخدمات / Build and Run Services
@@ -136,16 +136,16 @@ docker-compose exec backend sh
 
 ```bash
 # Access PostgreSQL shell
-docker-compose exec postgres psql -U the_copy_app -d the_copy
+docker-compose exec postgres psql -U <username> -d <database>
 
 # Create database backup
-docker-compose exec postgres pg_dump -U the_copy_app the_copy > backup_$(date +%Y%m%d).sql
+docker-compose exec postgres pg_dump -U <username> <database> > backup_$(date +%Y%m%d).sql
 
 # Restore database backup
-docker-compose exec -T postgres psql -U the_copy_app -d the_copy < backup_20250106.sql
+docker-compose exec -T postgres psql -U <username> -d <database> < backup_20250106.sql
 
 # View database tables
-docker-compose exec postgres psql -U the_copy_app -d the_copy -c "\dt"
+docker-compose exec postgres psql -U <username> -d <database> -c "\dt"
 ```
 
 ### التنظيف / Cleanup
@@ -188,8 +188,8 @@ services:
 
 ```bash
 # Create secrets (Swarm mode)
-echo "your-jwt-secret" | docker secret create jwt_secret -
-echo "your-db-password" | docker secret create db_password -
+echo "<your_jwt_secret>" | docker secret create jwt_secret -
+echo "<your_db_password>" | docker secret create db_password -
 
 # Reference in docker-compose.yml
 secrets:
@@ -214,7 +214,7 @@ open http://localhost:3000  # Grafana
 
 ```bash
 # Add to crontab (crontab -e)
-0 2 * * * cd /path/to/backend && docker-compose exec -T postgres pg_dump -U the_copy_app the_copy | gzip > /backups/the_copy_$(date +\%Y\%m\%d).sql.gz
+0 2 * * * cd /path/to/backend && docker-compose exec -T postgres pg_dump -U <username> <database> | gzip > /backups/the_copy_$(date +\%Y\%m\%d).sql.gz
 ```
 
 ---
@@ -252,7 +252,7 @@ kill -9 $(lsof -t -i:3001)
 docker-compose ps postgres
 
 # Test connection
-docker-compose exec postgres pg_isready -U the_copy_app
+docker-compose exec postgres pg_isready -U <username>
 ```
 
 **الحل:**

@@ -39,7 +39,7 @@ export default function ExportDialog({
             <title>${title}</title>
             <style>
               body {
-                font-family: 'Amiri', 'Cairo', sans-serif;
+                font-family: 'Cairo', system-ui, sans-serif;
                 direction: rtl;
                 padding: 2rem;
               }
@@ -66,7 +66,7 @@ export default function ExportDialog({
             <meta charset="utf-8" />
             <style>
               body {
-                font-family: 'Amiri', 'Cairo', sans-serif;
+                font-family: 'Cairo', system-ui, sans-serif;
                 direction: rtl;
                 padding: 2rem;
               }

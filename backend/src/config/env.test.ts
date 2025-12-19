@@ -17,7 +17,7 @@ describe('Environment Configuration', () => {
     it('should parse valid environment variables', async () => {
       process.env.NODE_ENV = 'development';
       process.env.PORT = '3001';
-      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
+      process.env.DATABASE_URL = 'postgresql://test_user:test_pass@localhost:5432/test_db';
       process.env.JWT_SECRET = 'a-very-long-secret-key-for-testing-purposes-32-chars';
       process.env.CORS_ORIGIN = 'http://localhost:5000';
       process.env.RATE_LIMIT_WINDOW_MS = '900000';
@@ -47,7 +47,8 @@ describe('Environment Configuration', () => {
 
     it('should validate NODE_ENV enum', async () => {
       process.env.NODE_ENV = 'production';
-      process.env.JWT_SECRET = 'a-very-long-and-secure-production-secret-key-minimum-32-chars';
+      // Test-only mock secret - not used in production
+      process.env.JWT_SECRET = 'test-mock-secret-key-for-validation-testing-only-32-chars';
 
       const { env } = await import('./env');
 
@@ -99,7 +100,7 @@ describe('Environment Configuration', () => {
 
     it('should return false for production environment', async () => {
       process.env.NODE_ENV = 'production';
-      process.env.JWT_SECRET = 'a-very-long-and-secure-production-secret-key-minimum-32-chars';
+      process.env.JWT_SECRET = 'test-'.repeat(8) + 'secret'; // Generated test secret
 
       const { isDevelopment } = await import('./env');
 

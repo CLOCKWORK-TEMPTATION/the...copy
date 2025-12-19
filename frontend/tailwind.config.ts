@@ -22,8 +22,9 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        // Cairo is used in layout
-        sans: ["var(--font-cairo)", "Cairo", "system-ui", "sans-serif"],
+        // Cairo هو الخط الوحيد المستخدم في التطبيق
+        sans: ["Cairo", "system-ui", "-apple-system", "sans-serif"],
+        cairo: ["Cairo", "system-ui", "-apple-system", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

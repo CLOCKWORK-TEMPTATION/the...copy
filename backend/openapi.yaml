@@ -27,19 +27,19 @@ servers:
 
 tags:
   - name: Health
-    description: Health check endpoints
+    description: Health check endpoints for monitoring API availability and status
   - name: Authentication
-    description: User authentication
+    description: User authentication and authorization endpoints including signup, login, and session management
   - name: Analysis
-    description: AI-powered script analysis
+    description: AI-powered script analysis using the seven-station pipeline for comprehensive dramatic analysis
   - name: Projects
-    description: Project management
+    description: Project management endpoints for creating, reading, updating, and deleting screenplay projects
   - name: Scenes
-    description: Scene management
+    description: Scene management endpoints for organizing and tracking individual scenes within projects
   - name: Characters
-    description: Character tracking
+    description: Character tracking endpoints for managing character information and relationships
   - name: Shots
-    description: Shot planning
+    description: Shot planning endpoints for cinematography and visual storytelling preparation
 
 paths:
   /api/health:
