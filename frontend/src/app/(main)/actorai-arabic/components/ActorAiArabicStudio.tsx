@@ -332,16 +332,8 @@ export const ActorAiArabicStudio: React.FC = () => {
 
       setChatMessages(prev => [
         ...prev,
-        { role: "ai", text: randomResponse, typing: true },
+        { role: "ai", text: randomResponse, typing: false },
       ]);
-
-      setTimeout(() => {
-        setChatMessages(prev =>
-          prev.map((msg, idx) =>
-            idx === prev.length - 1 ? { ...msg, typing: false } : msg
-          )
-        );
-      }, 1000);
     }, 1500);
   }, [userInput]);
 
@@ -933,8 +925,8 @@ export const ActorAiArabicStudio: React.FC = () => {
                       >
                         <div
                           className={`inline-block p-4 rounded-lg max-w-[80%] ${msg.role === "user"
-                              ? "bg-blue-100 text-blue-900"
-                              : "bg-purple-100 text-purple-900"
+                            ? "bg-blue-100 text-blue-900"
+                            : "bg-purple-100 text-purple-900"
                             }`}
                         >
                           <p className="font-medium mb-1">

@@ -12,6 +12,11 @@
 # ===============================================
 
 set -e  # Exit on error
+set -u  # Exit on undefined variable
+set -o pipefail  # Exit on pipe failure
+
+# Error handler
+trap 'echo -e "${RED}❌ Script failed at line $LINENO${NC}"; exit 1' ERR
 
 echo "=================================================="
 echo "Database Performance Analysis - Setup"

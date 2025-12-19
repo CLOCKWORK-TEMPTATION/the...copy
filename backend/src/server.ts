@@ -124,7 +124,7 @@ app.get('/api/auth/me', authMiddleware, authController.getCurrentUser.bind(authC
 
 // Seven Stations Pipeline endpoints (protected)
 app.post('/api/analysis/seven-stations', authMiddleware, analysisController.runSevenStationsPipeline.bind(analysisController));
-app.get('/api/analysis/stations-info', analysisController.getStationDetails.bind(analysisController));
+app.get('/api/analysis/stations-info', authMiddleware, analysisController.getStationDetails.bind(analysisController));
 
 // Directors Studio - Projects endpoints (protected)
 app.get('/api/projects', authMiddleware, projectsController.getProjects.bind(projectsController));
@@ -297,4 +297,5 @@ process.on('SIGINT', async (): Promise<void> => {
   }
 });
 
+export { app, httpServer };
 export default app;

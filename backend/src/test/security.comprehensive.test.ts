@@ -13,6 +13,19 @@ import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vites
 import request from 'supertest';
 import express from 'express';
 
+// Constants for test data
+const TEST_EMAIL = 'test@example.com';
+const TEST_PASSWORD = 'Pass123!';
+const WRONG_PASSWORD = 'pass';
+const MOCK_TOKEN = 'mock-valid-token';
+const MOCK_INVALID_TOKEN = 'invalid.jwt.token';
+const MOCK_MALFORMED_TOKEN = 'Bearer malformed-token';
+const MOCK_EXPIRED_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0IiwiZXhwIjoxfQ.sig';
+const MOCK_TAMPERED_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbiJ9.sig';
+const MOCK_MANIPULATED_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJ1c2VySWQiOiJhdHRhY2tlciJ9.sig';
+const UUID_WITH_PREFIX = 'valid-token-';
+const SESSION_TOKEN = 'token=session-token; HttpOnly; SameSite=Strict';
+
 // Mock database and services before importing middleware
 vi.mock('@/db', () => ({
   db: {
@@ -130,7 +143,7 @@ describe('🔒 Comprehensive Security Tests', () => {
           .post('/api/auth/login')
           .send({
             email: payload,
-            password: 'testpassword123'
+            password: TEST_PASSWORD
           });
 
         // Should either reject with validation error, not find user, or rate limit
@@ -144,7 +157,7 @@ describe('🔒 Comprehensive Security Tests', () => {
         const response = await request(app)
           .post('/api/auth/login')
           .send({
-            email: 'test@example.com',
+            email: TEST_EMAIL,
             password: payload
           });
 
@@ -176,7 +189,7 @@ describe('🔒 Comprehensive Security Tests', () => {
           .post('/api/auth/signup')
           .send({
             email: `test${char}@example.com`,
-            password: 'ValidPassword123!',
+            password: TEST_PASSWORD,
             firstName: 'Test',
             lastName: 'User'
           });
@@ -230,8 +243,8 @@ describe('🔒 Comprehensive Security Tests', () => {
         const response = await request(app)
           .post('/api/auth/signup')
           .send({
-            email: 'test@example.com',
-            password: 'ValidPassword123!',
+            email: TEST_EMAIL,
+            password: TEST_PASSWORD,
             firstName: payload,
             lastName: 'User'
           });
@@ -265,7 +278,7 @@ describe('🔒 Comprehensive Security Tests', () => {
         .post('/api/auth/login')
         .send({
           email: xssAttempt,
-          password: 'test'
+          password: TEST_PASSWORD
         });
 
       // Error message should not contain raw XSS payload
@@ -291,7 +304,7 @@ describe('🔒 Comprehensive Security Tests', () => {
             .post('/api/auth/login')
             .send({
               email: `test${i}@example.com`,
-              password: 'wrongpassword'
+              password: WRONG_PASSWORD
             })
         );
       }
@@ -307,8 +320,8 @@ describe('🔒 Comprehensive Security Tests', () => {
       const response = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'test@example.com',
-          password: 'test123'
+          email: TEST_EMAIL,
+          password: TEST_PASSWORD
         });
 
       // Should have rate limit headers
@@ -320,7 +333,7 @@ describe('🔒 Comprehensive Security Tests', () => {
       // Auth endpoints have stricter limits (5 per 15 min)
       const authResponse = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'test@example.com', password: 'test' });
+        .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
 
       // General API endpoints have more relaxed limits (100 per 15 min)
       const healthResponse = await request(app)
@@ -362,9 +375,9 @@ describe('🔒 Comprehensive Security Tests', () => {
   describe('4️⃣ JWT & Authentication Security', () => {
     it('should reject requests with invalid JWT tokens', async () => {
       const invalidTokens = [
-        'invalid.jwt.token',
+        MOCK_INVALID_TOKEN,
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.signature',
-        'Bearer malformed-token',
+        MOCK_MALFORMED_TOKEN,
         '',
         'null',
         'undefined'
@@ -381,23 +394,17 @@ describe('🔒 Comprehensive Security Tests', () => {
     });
 
     it('should reject expired JWT tokens', async () => {
-      // Mock an expired token
-      const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0IiwiZXhwIjoxfQ.signature';
-
       const response = await request(app)
         .get('/api/protected')
-        .set('Authorization', `Bearer ${expiredToken}`);
+        .set('Authorization', `Bearer ${MOCK_EXPIRED_TOKEN}`);
 
       expect(response.status).toBe(401);
     });
 
     it('should validate JWT signature', async () => {
-      // Token with wrong signature
-      const tamperedToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbiJ9.wrong_signature';
-
       const response = await request(app)
         .get('/api/protected')
-        .set('Authorization', `Bearer ${tamperedToken}`);
+        .set('Authorization', `Bearer ${MOCK_TAMPERED_TOKEN}`);
 
       expect(response.status).toBe(401);
     });
@@ -406,7 +413,7 @@ describe('🔒 Comprehensive Security Tests', () => {
       // Attempt to escalate privileges by modifying payload
       const response = await request(app)
         .get('/api/protected')
-        .set('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJ1c2VySWQiOiJhdHRhY2tlciJ9.signature');
+        .set('Authorization', MOCK_MANIPULATED_TOKEN);
 
       expect(response.status).toBe(401);
     });
@@ -416,8 +423,8 @@ describe('🔒 Comprehensive Security Tests', () => {
       const signupResponse = await request(app)
         .post('/api/auth/signup')
         .send({
-          email: 'cookietest@example.com',
-          password: 'TestPassword123!',
+          email: 'user@example.com',
+          password: TEST_PASSWORD,
           firstName: 'Test',
           lastName: 'User'
         });
@@ -449,7 +456,7 @@ describe('🔒 Comprehensive Security Tests', () => {
       for (const uuid of invalidUUIDs) {
         const response = await request(app)
           .get(`/api/protected`)
-          .set('Authorization', `Bearer valid-token-${uuid}`);
+          .set('Authorization', `Bearer ${UUID_WITH_PREFIX}${uuid}`);
 
         // Should be rejected (401 due to invalid token)
         expect(response.status).toBe(401);
@@ -460,8 +467,8 @@ describe('🔒 Comprehensive Security Tests', () => {
       const signupResponse = await request(app)
         .post('/api/auth/signup')
         .send({
-          email: 'jwttest@example.com',
-          password: 'TestPassword123!',
+          email: 'user@example.com',
+          password: TEST_PASSWORD,
           firstName: 'JWT',
           lastName: 'Test'
         });
@@ -601,8 +608,8 @@ describe('🔒 Comprehensive Security Tests', () => {
       const response = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'nonexistent@example.com',
-          password: 'wrongpassword'
+          email: 'user@example.com',
+          password: WRONG_PASSWORD
         });
 
       // Error message should be generic, not revealing if email exists

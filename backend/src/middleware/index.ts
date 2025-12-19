@@ -10,21 +10,81 @@ import {
   SecurityEventType,
 } from "./security-logger.middleware";
 
+/**
+ * Rate Limiting Strategy Notes:
+ *
+ * Current implementation uses in-memory store which works for single-server deployments.
+ * For distributed deployments (multiple servers), install 'rate-limit-redis' package
+ * and configure a Redis store:
+ *
+ * npm install rate-limit-redis
+ *
+ * Then update the rate limiters to use:
+ * store: new RedisStore({ sendCommand: (...args) => redisClient.sendCommand(args) })
+ */
+
 export const setupMiddleware = (app: express.Application): void => {
+  // CORS Configuration with strict origin validation
+  const allowedOrigins = env.CORS_ORIGIN.split(",").map((origin) =>
+    origin.trim()
+  );
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, etc.) only in development
+        if (!origin) {
+          if (env.NODE_ENV === "development") {
+            return callback(null, true);
+          }
+          return callback(new Error("Origin required in production"));
+        }
+
+        // Check if origin is in the allowed list
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        // Log CORS violation
+        logSecurityEvent(SecurityEventType.CORS_VIOLATION, {} as any, {
+          blockedOrigin: origin,
+          allowedOrigins,
+        });
+
+        return callback(new Error("CORS policy violation"));
+      },
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+      exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
+      maxAge: 86400, // 24 hours
+    })
+  );
+
+  // CSP directives - stricter in production
+  const isProduction = env.NODE_ENV === "production";
+  const scriptSrc = isProduction
+    ? ["'self'"] // No unsafe-inline in production
+    : ["'self'", "'unsafe-inline'"]; // Allow in development for hot reload
+  const styleSrc = isProduction
+    ? ["'self'"] // No unsafe-inline in production
+    : ["'self'", "'unsafe-inline'"]; // Allow in development
+
   // Enhanced Security middleware with strict CSP
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc,
+          styleSrc,
           imgSrc: ["'self'", "data:", "https:"],
           connectSrc: ["'self'"],
           fontSrc: ["'self'"],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],
           frameSrc: ["'none'"],
+          upgradeInsecureRequests: isProduction ? [] : null,
         },
       },
       crossOriginEmbedderPolicy: true,
@@ -129,10 +189,29 @@ export const errorHandler = (
   res: express.Response,
   next: express.NextFunction
 ): void => {
-  logger.error("Unhandled error:", error);
+  // Sanitize error details before logging - remove sensitive data
+  const sanitizedError = {
+    message: error.message,
+    name: error.name,
+    // Only include stack trace in development
+    ...(env.NODE_ENV === "development" && { stack: error.stack }),
+  };
 
+  // Log sanitized error (no sensitive request body data)
+  logger.error("Unhandled error:", {
+    error: sanitizedError,
+    path: req.path,
+    method: req.method,
+    // Don't log request body as it may contain sensitive data
+  });
+
+  // Never expose internal error details to client in production
   res.status(500).json({
     success: false,
     error: "حدث خطأ داخلي في الخادم",
+    // Only include error details in development
+    ...(env.NODE_ENV === "development" && {
+      details: error.message,
+    }),
   });
 };

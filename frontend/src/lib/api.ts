@@ -18,6 +18,46 @@ import type {
 } from "./api-types";
 
 /**
+ * Authenticated fetch wrapper
+ * Automatically includes auth token and handles common headers
+ */
+async function fetchWithAuth(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  // Get token from localStorage (client-side) or cookie
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+
+  // Add Authorization header if token exists
+  if (token) {
+    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: "include", // Include cookies for httpOnly token
+  });
+
+  // Handle 401 Unauthorized - redirect to login
+  if (response.status === 401) {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token");
+      // Optionally redirect to login page
+      // window.location.href = '/login';
+    }
+    throw new Error("غير مصرح - يرجى تسجيل الدخول");
+  }
+
+  return response;
+}
+
+/**
  * API functions for AI services
  */
 
@@ -25,9 +65,8 @@ export async function analyzeScript(
   projectId: string,
   script: string
 ): Promise<ApiResponse<AnalyzeScriptResponse>> {
-  const response = await fetch("/api/cineai/analyze", {
+  const response = await fetchWithAuth("/api/cineai/analyze", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ projectId, script }),
   });
 
@@ -43,9 +82,8 @@ export async function getShotSuggestion(
   sceneId: string,
   sceneDescription: string
 ): Promise<ApiResponse<ShotSuggestionResponse>> {
-  const response = await fetch("/api/cineai/generate-shots", {
+  const response = await fetchWithAuth("/api/cineai/generate-shots", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ projectId, sceneId, sceneDescription }),
   });
 
@@ -61,9 +99,8 @@ export async function chatWithAI(
   projectId?: string,
   context?: Record<string, unknown>
 ): Promise<ApiResponse<ChatResponse>> {
-  const response = await fetch("/api/ai/chat", {
+  const response = await fetchWithAuth("/api/ai/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, projectId, context }),
   });
 
@@ -76,13 +113,13 @@ export async function chatWithAI(
 
 // Project API functions
 export async function getProjects(): Promise<ApiResponse<Project[]>> {
-  const response = await fetch("/api/projects");
+  const response = await fetchWithAuth("/api/projects");
   if (!response.ok) throw new Error("Failed to fetch projects");
   return response.json();
 }
 
 export async function getProject(id: string): Promise<ApiResponse<Project>> {
-  const response = await fetch(`/api/projects/${id}`);
+  const response = await fetchWithAuth(`/api/projects/${id}`);
   if (!response.ok) throw new Error("Failed to fetch project");
   return response.json();
 }
@@ -90,9 +127,8 @@ export async function getProject(id: string): Promise<ApiResponse<Project>> {
 export async function createProject(
   data: CreateProjectInput
 ): Promise<ApiResponse<Project>> {
-  const response = await fetch("/api/projects", {
+  const response = await fetchWithAuth("/api/projects", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create project");
@@ -103,9 +139,8 @@ export async function updateProject(
   id: string,
   data: UpdateProjectInput
 ): Promise<ApiResponse<Project>> {
-  const response = await fetch(`/api/projects/${id}`, {
+  const response = await fetchWithAuth(`/api/projects/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to update project");
@@ -113,7 +148,7 @@ export async function updateProject(
 }
 
 export async function deleteProject(id: string): Promise<ApiResponse<void>> {
-  const response = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+  const response = await fetchWithAuth(`/api/projects/${id}`, { method: "DELETE" });
   if (!response.ok) throw new Error("Failed to delete project");
   return response.json();
 }
@@ -122,7 +157,7 @@ export async function deleteProject(id: string): Promise<ApiResponse<void>> {
 export async function getProjectScenes(
   projectId: string
 ): Promise<ApiResponse<Scene[]>> {
-  const response = await fetch(`/api/projects/${projectId}/scenes`);
+  const response = await fetchWithAuth(`/api/projects/${projectId}/scenes`);
   if (!response.ok) throw new Error("Failed to fetch scenes");
   return response.json();
 }
@@ -131,9 +166,8 @@ export async function createScene(
   projectId: string,
   data: CreateSceneInput
 ): Promise<ApiResponse<Scene>> {
-  const response = await fetch(`/api/projects/${projectId}/scenes`, {
+  const response = await fetchWithAuth(`/api/projects/${projectId}/scenes`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create scene");
@@ -144,9 +178,8 @@ export async function updateScene(
   sceneId: string,
   data: UpdateSceneInput
 ): Promise<ApiResponse<Scene>> {
-  const response = await fetch(`/api/scenes/${sceneId}`, {
+  const response = await fetchWithAuth(`/api/scenes/${sceneId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to update scene");
@@ -154,7 +187,7 @@ export async function updateScene(
 }
 
 export async function deleteScene(sceneId: string): Promise<ApiResponse<void>> {
-  const response = await fetch(`/api/scenes/${sceneId}`, { method: "DELETE" });
+  const response = await fetchWithAuth(`/api/scenes/${sceneId}`, { method: "DELETE" });
   if (!response.ok) throw new Error("Failed to delete scene");
   return response.json();
 }
@@ -163,7 +196,7 @@ export async function deleteScene(sceneId: string): Promise<ApiResponse<void>> {
 export async function getProjectCharacters(
   projectId: string
 ): Promise<ApiResponse<Character[]>> {
-  const response = await fetch(`/api/projects/${projectId}/characters`);
+  const response = await fetchWithAuth(`/api/projects/${projectId}/characters`);
   if (!response.ok) throw new Error("Failed to fetch characters");
   return response.json();
 }
@@ -172,9 +205,8 @@ export async function createCharacter(
   projectId: string,
   data: CreateCharacterInput
 ): Promise<ApiResponse<Character>> {
-  const response = await fetch(`/api/projects/${projectId}/characters`, {
+  const response = await fetchWithAuth(`/api/projects/${projectId}/characters`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create character");
@@ -185,9 +217,8 @@ export async function updateCharacter(
   characterId: string,
   data: UpdateCharacterInput
 ): Promise<ApiResponse<Character>> {
-  const response = await fetch(`/api/characters/${characterId}`, {
+  const response = await fetchWithAuth(`/api/characters/${characterId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to update character");
@@ -197,7 +228,7 @@ export async function updateCharacter(
 export async function deleteCharacter(
   characterId: string
 ): Promise<ApiResponse<void>> {
-  const response = await fetch(`/api/characters/${characterId}`, {
+  const response = await fetchWithAuth(`/api/characters/${characterId}`, {
     method: "DELETE",
   });
   if (!response.ok) throw new Error("Failed to delete character");
@@ -208,7 +239,7 @@ export async function deleteCharacter(
 export async function getSceneShots(
   sceneId: string
 ): Promise<ApiResponse<Shot[]>> {
-  const response = await fetch(`/api/scenes/${sceneId}/shots`);
+  const response = await fetchWithAuth(`/api/scenes/${sceneId}/shots`);
   if (!response.ok) throw new Error("Failed to fetch shots");
   return response.json();
 }
@@ -217,9 +248,8 @@ export async function createShot(
   sceneId: string,
   data: CreateShotInput
 ): Promise<ApiResponse<Shot>> {
-  const response = await fetch(`/api/scenes/${sceneId}/shots`, {
+  const response = await fetchWithAuth(`/api/scenes/${sceneId}/shots`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create shot");
@@ -230,9 +260,8 @@ export async function updateShot(
   shotId: string,
   data: UpdateShotInput
 ): Promise<ApiResponse<Shot>> {
-  const response = await fetch(`/api/shots/${shotId}`, {
+  const response = await fetchWithAuth(`/api/shots/${shotId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to update shot");
@@ -240,7 +269,7 @@ export async function updateShot(
 }
 
 export async function deleteShot(shotId: string): Promise<ApiResponse<void>> {
-  const response = await fetch(`/api/shots/${shotId}`, { method: "DELETE" });
+  const response = await fetchWithAuth(`/api/shots/${shotId}`, { method: "DELETE" });
   if (!response.ok) throw new Error("Failed to delete shot");
   return response.json();
 }
