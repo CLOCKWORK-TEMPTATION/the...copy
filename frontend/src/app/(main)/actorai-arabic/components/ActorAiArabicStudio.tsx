@@ -82,6 +82,52 @@ interface VocalExercise {
   category: "breathing" | "articulation" | "projection" | "resonance";
 }
 
+// ==================== أنواع بيانات تحليل الإيقاع ====================
+
+interface RhythmPoint {
+  position: number; // موضع في النص (0-100%)
+  intensity: number; // شدة الإيقاع (0-100)
+  tempo: "slow" | "medium" | "fast" | "very-fast";
+  emotion: string;
+  beat: string; // وصف اللحظة
+}
+
+interface MonotonyAlert {
+  startPosition: number;
+  endPosition: number;
+  severity: "low" | "medium" | "high";
+  description: string;
+  suggestion: string;
+}
+
+interface RhythmComparison {
+  aspect: string;
+  yourScore: number;
+  optimalScore: number;
+  difference: number;
+  feedback: string;
+}
+
+interface EmotionalColorSuggestion {
+  segment: string;
+  currentEmotion: string;
+  suggestedEmotion: string;
+  technique: string;
+  example: string;
+}
+
+interface SceneRhythmAnalysis {
+  overallTempo: "slow" | "medium" | "fast";
+  rhythmScore: number; // 0-100
+  rhythmMap: RhythmPoint[];
+  monotonyAlerts: MonotonyAlert[];
+  comparisons: RhythmComparison[];
+  emotionalSuggestions: EmotionalColorSuggestion[];
+  peakMoments: string[];
+  valleyMoments: string[];
+  summary: string;
+}
+
 // واجهة تحليل الأداء البصري
 interface WebcamAnalysisResult {
   eyeLine: {
@@ -117,7 +163,7 @@ interface WebcamSession {
   alerts: string[];
 }
 
-type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "webcam" | "ar" | "memorization";
+type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "rhythm" | "webcam" | "ar" | "memorization";
 
 // ==================== واجهات وضع اختبار الحفظ ====================
 
@@ -373,6 +419,11 @@ export const ActorAiArabicStudio: React.FC = () => {
   const [showPromptHint, setShowPromptHint] = useState(false);
   const [currentPromptWord, setCurrentPromptWord] = useState("");
 
+  // حالة تحليل إيقاع المشهد
+  const [rhythmScriptText, setRhythmScriptText] = useState("");
+  const [analyzingRhythm, setAnalyzingRhythm] = useState(false);
+  const [rhythmAnalysis, setRhythmAnalysis] = useState<SceneRhythmAnalysis | null>(null);
+  const [selectedRhythmTab, setSelectedRhythmTab] = useState<"map" | "comparison" | "monotony" | "suggestions">("map");
   // حالة تحليل الأداء البصري (Webcam Analysis)
   const [webcamActive, setWebcamActive] = useState(false);
   const [webcamAnalyzing, setWebcamAnalyzing] = useState(false);
@@ -632,52 +683,35 @@ export const ActorAiArabicStudio: React.FC = () => {
 
   // ==================== وظائف وضع اختبار الحفظ ====================
 
-  // دالة لحذف كلمات من النص بنسبة معينة
-  const processTextForMemorization = useCallback((text: string, deletionLevel: 10 | 50 | 90): { processedLines: string[]; hiddenWords: Map<number, string[]> } => {
-    const lines = text.split('\n').filter(line => line.trim());
-    const hiddenWords = new Map<number, string[]>();
+  // دالة معالجة النص للحفظ - حذف كلمات بنسبة محددة
+  const processTextForMemorization = useCallback((text: string, deletionLevel: number): string => {
+    const words = text.split(/\s+/);
+    const totalWords = words.length;
+    const wordsToDelete = Math.floor(totalWords * (deletionLevel / 100));
 
-    const processedLines = lines.map((line, lineIndex) => {
-      const words = line.split(/(\s+)/);
-      const contentWords = words.filter(w => w.trim() && !/^\s+$/.test(w));
-      const numToHide = Math.ceil(contentWords.length * (deletionLevel / 100));
+    // اختيار كلمات عشوائية للحذف
+    const indicesToDelete = new Set<number>();
+    while (indicesToDelete.size < wordsToDelete) {
+      const randomIndex = Math.floor(Math.random() * totalWords);
+      indicesToDelete.add(randomIndex);
+    }
 
-      const indices = contentWords.map((_, i) => i);
-      const shuffled = indices.sort(() => Math.random() - 0.5);
-      const hideIndices = shuffled.slice(0, numToHide);
-
-      const lineHiddenWords: string[] = [];
-      let wordIndex = 0;
-
-      const processedWords = words.map(word => {
-        if (!word.trim() || /^\s+$/.test(word)) return word;
-
-        if (hideIndices.includes(wordIndex)) {
-          lineHiddenWords.push(word);
-          wordIndex++;
-          return "______";
-        }
-        wordIndex++;
-        return word;
-      });
-
-      hiddenWords.set(lineIndex, lineHiddenWords);
-      return processedWords.join('');
-    });
-
-    return { processedLines, hiddenWords };
+    return words.map((word, index) =>
+      indicesToDelete.has(index) ? "____" : word
+    ).join(" ");
   }, []);
 
   // بدء جلسة الحفظ
   const startMemorizationSession = useCallback(() => {
     if (!memorizationScript.trim()) {
-      showNotification("error", "يرجى إدخال النص أولاً");
+      showNotification("error", "الرجاء إدخال نص للحفظ أولاً");
       return;
     }
-
     setMemorizationActive(true);
     setMemorizationPaused(false);
     setCurrentLineIndex(0);
+    setUserMemorizationInput("");
+    setHesitationDetected(false);
     setAttemptStartTime(Date.now());
     setMemorizationStats({
       totalAttempts: 0,
@@ -685,192 +719,295 @@ export const ActorAiArabicStudio: React.FC = () => {
       incorrectWords: 0,
       hesitationCount: 0,
       weakPoints: [],
-      averageResponseTime: 0,
+      averageResponseTime: 0
     });
-    setResponseTimes([]);
-    setWeakPointsMap(new Map());
-    showNotification("info", "بدأت جلسة الحفظ! حاول تذكر الكلمات المخفية 🧠");
+    showNotification("success", "بدأت جلسة الحفظ - حاول تذكر الكلمات المحذوفة");
   }, [memorizationScript, showNotification]);
 
   // إيقاف جلسة الحفظ
   const stopMemorizationSession = useCallback(() => {
     setMemorizationActive(false);
     setMemorizationPaused(false);
-    setPromptMode(false);
-    setShowPromptHint(false);
-    setCurrentPromptWord("");
-    setUserMemorizationInput("");
-
     if (hesitationTimer) {
       clearTimeout(hesitationTimer);
       setHesitationTimer(null);
     }
 
-    const avgTime = responseTimes.length > 0
-      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-      : 0;
+    // حساب متوسط وقت الاستجابة
+    if (responseTimes.length > 0) {
+      const avgTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+      setMemorizationStats(prev => ({
+        ...prev,
+        averageResponseTime: Math.round(avgTime / 1000 * 10) / 10 // بالثواني
+      }));
+    }
 
-    const sortedWeakPoints = Array.from(weakPointsMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([word]) => word);
-
-    setMemorizationStats(prev => ({
-      ...prev,
-      averageResponseTime: avgTime,
-      weakPoints: sortedWeakPoints,
-    }));
-
-    showNotification("success", "انتهت جلسة الحفظ! تحقق من إحصائياتك 📊");
-  }, [hesitationTimer, responseTimes, weakPointsMap, showNotification]);
+    showNotification("info", "تم إنهاء جلسة الحفظ");
+  }, [hesitationTimer, responseTimes, showNotification]);
 
   // تفعيل وضع التلقين عند التردد
   const activatePromptMode = useCallback(() => {
     setPromptMode(true);
-    setMemorizationPaused(true);
     setHesitationDetected(true);
     setMemorizationStats(prev => ({
       ...prev,
-      hesitationCount: prev.hesitationCount + 1,
+      hesitationCount: prev.hesitationCount + 1
     }));
-    showNotification("info", "لا بأس! إليك تلميحاً... 💡");
-  }, [showNotification]);
 
-  // إظهار تلميح الكلمة الأولى
-  const showFirstLetterHint = useCallback((word: string) => {
-    if (word.length > 0) {
-      setCurrentPromptWord(word[0] + "...");
-      setShowPromptHint(true);
+    // عرض تلميح للكلمة التالية
+    const lines = memorizationScript.split('\n');
+    if (currentLineIndex < lines.length) {
+      const currentLine = lines[currentLineIndex];
+      const words = currentLine.split(/\s+/);
+      if (words.length > 0) {
+        setCurrentPromptWord(words[0]);
+        setShowPromptHint(true);
+      }
     }
-  }, []);
 
-  // إظهار الكلمة الكاملة
-  const showFullWordHint = useCallback((word: string) => {
-    setCurrentPromptWord(word);
-    setShowPromptHint(true);
-  }, []);
+    showNotification("info", "تم اكتشاف تردد - إليك تلميح");
+  }, [memorizationScript, currentLineIndex, showNotification]);
+
+  // معالجة إدخال المستخدم في وضع الحفظ
+  const handleMemorizationInput = useCallback((value: string) => {
+    setUserMemorizationInput(value);
+
+    // إعادة تعيين مؤقت التردد
+    if (hesitationTimer) {
+      clearTimeout(hesitationTimer);
+    }
+
+    // بدء مؤقت جديد (3 ثواني للتردد)
+    const timer = setTimeout(() => {
+      if (memorizationActive && !memorizationPaused) {
+        activatePromptMode();
+      }
+    }, 3000);
+
+    setHesitationTimer(timer);
+  }, [hesitationTimer, memorizationActive, memorizationPaused, activatePromptMode]);
 
   // التحقق من إجابة المستخدم
-  const checkUserAnswer = useCallback((userAnswer: string, correctWord: string): boolean => {
-    const normalizedUser = userAnswer.trim().toLowerCase();
-    const normalizedCorrect = correctWord.trim().toLowerCase();
-    return normalizedUser === normalizedCorrect;
-  }, []);
-
-  // معالجة إدخال المستخدم
   const handleMemorizationSubmit = useCallback(() => {
-    const lines = memorizationScript.split('\n').filter(line => line.trim());
-    const currentLine = lines[currentLineIndex];
-
-    if (!currentLine) return;
-
-    const { hiddenWords } = processTextForMemorization(memorizationScript, memorizationDeletionLevel);
-    const currentHiddenWords = hiddenWords.get(currentLineIndex) || [];
-
     const responseTime = Date.now() - attemptStartTime;
     setResponseTimes(prev => [...prev, responseTime]);
 
-    const userWords = userMemorizationInput.split(/\s+/).filter(w => w.trim());
-    let correct = 0;
-    let incorrect = 0;
+    const lines = memorizationScript.split('\n');
+    if (currentLineIndex < lines.length) {
+      const correctLine = lines[currentLineIndex].trim();
+      const userLine = userMemorizationInput.trim();
 
-    currentHiddenWords.forEach((hiddenWord, index) => {
-      const userWord = userWords[index] || "";
-      if (checkUserAnswer(userWord, hiddenWord)) {
-        correct++;
+      // مقارنة كلمة بكلمة
+      const correctWords = correctLine.split(/\s+/);
+      const userWords = userLine.split(/\s+/);
+
+      let correct = 0;
+      let incorrect = 0;
+      const weakWords: string[] = [];
+
+      correctWords.forEach((word, index) => {
+        if (userWords[index] && userWords[index].toLowerCase() === word.toLowerCase()) {
+          correct++;
+        } else {
+          incorrect++;
+          weakWords.push(word);
+
+          // تتبع نقاط الضعف
+          const currentCount = weakPointsMap.get(word) || 0;
+          setWeakPointsMap(prev => new Map(prev).set(word, currentCount + 1));
+        }
+      });
+
+      setMemorizationStats(prev => ({
+        ...prev,
+        totalAttempts: prev.totalAttempts + 1,
+        correctWords: prev.correctWords + correct,
+        incorrectWords: prev.incorrectWords + incorrect,
+        weakPoints: [...new Set([...prev.weakPoints, ...weakWords])].slice(-10) // آخر 10 نقاط ضعف
+      }));
+
+      // الانتقال للسطر التالي
+      if (currentLineIndex < lines.length - 1) {
+        setCurrentLineIndex(prev => prev + 1);
+        setUserMemorizationInput("");
+        setAttemptStartTime(Date.now());
+        setShowPromptHint(false);
+        setPromptMode(false);
+        showNotification("success", `صحيح: ${correct}، خطأ: ${incorrect}`);
       } else {
-        incorrect++;
-        setWeakPointsMap(prev => {
-          const newMap = new Map(prev);
-          newMap.set(hiddenWord, (newMap.get(hiddenWord) || 0) + 1);
-          return newMap;
-        });
+        // انتهاء النص
+        stopMemorizationSession();
+        showNotification("success", "أحسنت! أكملت النص بالكامل");
       }
-    });
-
-    setMemorizationStats(prev => ({
-      ...prev,
-      totalAttempts: prev.totalAttempts + 1,
-      correctWords: prev.correctWords + correct,
-      incorrectWords: prev.incorrectWords + incorrect,
-    }));
-
-    if (currentLineIndex < lines.length - 1) {
-      setCurrentLineIndex(prev => prev + 1);
-      setUserMemorizationInput("");
-      setAttemptStartTime(Date.now());
-      setPromptMode(false);
-      setShowPromptHint(false);
-      setHesitationDetected(false);
-
-      if (correct === currentHiddenWords.length) {
-        showNotification("success", "أحسنت! الإجابة صحيحة ✓");
-      } else if (correct > 0) {
-        showNotification("info", `${correct} من ${currentHiddenWords.length} صحيحة`);
-      } else {
-        showNotification("error", "حاول مرة أخرى في السطر التالي");
-      }
-    } else {
-      stopMemorizationSession();
     }
   }, [
-    memorizationScript,
-    currentLineIndex,
-    memorizationDeletionLevel,
-    userMemorizationInput,
-    attemptStartTime,
-    processTextForMemorization,
-    checkUserAnswer,
-    showNotification,
-    stopMemorizationSession
+    attemptStartTime, memorizationScript, currentLineIndex,
+    userMemorizationInput, weakPointsMap, stopMemorizationSession, showNotification
   ]);
 
-  // كشف التردد (3 ثوانٍ بدون إدخال)
-  useEffect(() => {
-    if (memorizationActive && !memorizationPaused && userMemorizationInput === "") {
-      const timer = setTimeout(() => {
-        activatePromptMode();
-      }, 3000);
-      setHesitationTimer(timer);
-
-      return () => clearTimeout(timer);
-    } else if (hesitationTimer && userMemorizationInput !== "") {
-      clearTimeout(hesitationTimer);
-      setHesitationTimer(null);
-      setHesitationDetected(false);
-    }
-  }, [memorizationActive, memorizationPaused, userMemorizationInput, activatePromptMode, hesitationTimer]);
-
-  // استخدام النص التجريبي للحفظ
+  // استخدام نص نموذجي
   const useSampleScriptForMemorization = useCallback(() => {
-    setMemorizationScript(SAMPLE_SCRIPT);
-    showNotification("info", "تم تحميل النص التجريبي للحفظ");
+    const sampleScript = `أكون أو لا أكون، ذلك هو السؤال
+هل من الأنبل في العقل أن نحتمل
+سهام القدر الجائر ورماحه
+أم أن نتسلح ضد بحر من المتاعب
+وبالمقاومة ننهيها؟`;
+    setMemorizationScript(sampleScript);
+    showNotification("success", "تم تحميل نص نموذجي");
   }, [showNotification]);
 
   // زيادة مستوى الصعوبة
   const increaseDeletionLevel = useCallback(() => {
-    if (memorizationDeletionLevel === 10) {
-      setMemorizationDeletionLevel(50);
-      showNotification("info", "تم زيادة مستوى الصعوبة إلى 50%");
-    } else if (memorizationDeletionLevel === 50) {
-      setMemorizationDeletionLevel(90);
-      showNotification("info", "تم زيادة مستوى الصعوبة إلى 90%");
-    } else {
-      showNotification("info", "أنت في أعلى مستوى!");
-    }
-  }, [memorizationDeletionLevel, showNotification]);
+    setMemorizationDeletionLevel(prev => {
+      if (prev === 10) return 50;
+      if (prev === 50) return 90;
+      return prev;
+    });
+    showNotification("info", "تم زيادة مستوى الصعوبة");
+  }, [showNotification]);
 
-  // إعادة تكرار الأجزاء الصعبة
+  // تكرار الأجزاء الصعبة
   const repeatDifficultParts = useCallback(() => {
-    if (memorizationStats.weakPoints.length === 0) {
-      showNotification("info", "لا توجد نقاط ضعف محددة حتى الآن");
+    const weakWords = Array.from(weakPointsMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([word]) => word);
+
+    if (weakWords.length === 0) {
+      showNotification("info", "لا توجد نقاط ضعف مسجلة بعد");
       return;
     }
 
-    const difficultText = memorizationStats.weakPoints.join(" • ");
-    showNotification("info", `كلمات تحتاج للتكرار: ${difficultText}`);
-  }, [memorizationStats.weakPoints, showNotification]);
+    showNotification("info", `نقاط الضعف: ${weakWords.join('، ')}`);
+  }, [weakPointsMap, showNotification]);
 
+  // ==================== وظائف تحليل إيقاع المشهد ====================
+
+  const useRhythmSampleScript = useCallback(() => {
+    setRhythmScriptText(SAMPLE_SCRIPT);
+    showNotification("info", "تم تحميل النص التجريبي لتحليل الإيقاع");
+  }, [showNotification]);
+
+  const analyzeSceneRhythm = useCallback(() => {
+    if (!rhythmScriptText.trim()) {
+      showNotification("error", "يرجى إدخال نص أولاً لتحليل الإيقاع");
+      return;
+    }
+
+    setAnalyzingRhythm(true);
+
+    // محاكاة تحليل الإيقاع
+    setTimeout(() => {
+      const analysis: SceneRhythmAnalysis = {
+        overallTempo: "medium",
+        rhythmScore: 78,
+        rhythmMap: [
+          { position: 0, intensity: 30, tempo: "slow", emotion: "ترقب", beat: "افتتاحية هادئة - وصف المكان" },
+          { position: 15, intensity: 45, tempo: "medium", emotion: "شوق", beat: "دخول أحمد للمشهد" },
+          { position: 30, intensity: 65, tempo: "medium", emotion: "توتر رومانسي", beat: "المونولوج الأول" },
+          { position: 45, intensity: 80, tempo: "fast", emotion: "تصاعد عاطفي", beat: "ظهور ليلى على الشرفة" },
+          { position: 60, intensity: 70, tempo: "medium", emotion: "حوار متوتر", beat: "تبادل المشاعر" },
+          { position: 75, intensity: 90, tempo: "very-fast", emotion: "ذروة عاطفية", beat: "الوعد بالتغلب على العقبات" },
+          { position: 90, intensity: 60, tempo: "medium", emotion: "أمل مشوب بالقلق", beat: "الختام المفتوح" },
+        ],
+        monotonyAlerts: [
+          {
+            startPosition: 15,
+            endPosition: 35,
+            severity: "medium",
+            description: "فترة طويلة من الإيقاع المتوسط دون تنويع كافٍ",
+            suggestion: "أضف لحظة صمت درامي أو تغيير مفاجئ في نبرة الصوت لكسر الرتابة"
+          },
+          {
+            startPosition: 55,
+            endPosition: 65,
+            severity: "low",
+            description: "الحوار يميل للنمطية في هذا القسم",
+            suggestion: "جرب تسريع إيقاع بعض الجمل أو إضافة وقفات استراتيجية"
+          }
+        ],
+        comparisons: [
+          { aspect: "التصاعد الدرامي", yourScore: 75, optimalScore: 85, difference: -10, feedback: "يمكن تعزيز التصاعد بإضافة نبضات صغرى قبل الذروة" },
+          { aspect: "التنوع الإيقاعي", yourScore: 70, optimalScore: 80, difference: -10, feedback: "أضف المزيد من التباين بين المقاطع السريعة والبطيئة" },
+          { aspect: "توقيت الذروة", yourScore: 85, optimalScore: 85, difference: 0, feedback: "ممتاز! الذروة في المكان الصحيح" },
+          { aspect: "الختام", yourScore: 72, optimalScore: 78, difference: -6, feedback: "الختام سريع قليلاً، فكر في إطالته لإشباع عاطفي أكبر" },
+          { aspect: "الافتتاحية", yourScore: 80, optimalScore: 82, difference: -2, feedback: "جيد جداً، افتتاحية مناسبة للمشهد الرومانسي" }
+        ],
+        emotionalSuggestions: [
+          {
+            segment: "يا ليلى، يا قمر الليل",
+            currentEmotion: "شوق عادي",
+            suggestedEmotion: "شوق ملتهب",
+            technique: "تنفس عميق قبل النداء، ثم إخراج الكلمات بنفس طويل متصاعد",
+            example: "ابدأ بهمس ثم تصاعد تدريجي: يا... ليـ...ـلى (مد الحروف مع تصاعد)"
+          },
+          {
+            segment: "أنتِ نور عيني وروحي",
+            currentEmotion: "إعلان مباشر",
+            suggestedEmotion: "اكتشاف داخلي",
+            technique: "كأنك تكتشف هذه الحقيقة للمرة الأولى أثناء الكلام",
+            example: "توقف قصير بين 'عيني' و'روحي' كأنك تبحث عن الكلمة الأعمق"
+          },
+          {
+            segment: "ماذا سنفعل؟",
+            currentEmotion: "تساؤل بسيط",
+            suggestedEmotion: "قلق ممزوج بأمل",
+            technique: "اجعل السؤال معلقاً في الهواء، لا تنهيه بشكل حاسم",
+            example: "ارفع نبرتك قليلاً في النهاية مع نظرة تنتظر الجواب"
+          },
+          {
+            segment: "سأجد طريقة، مهما كانت الصعوبات",
+            currentEmotion: "وعد عادي",
+            suggestedEmotion: "عزم لا يتزعزع",
+            technique: "أنزل صوتك قليلاً واجعله أكثر ثباتاً - صوت القرار",
+            example: "سأجد (وقفة قصيرة مع نظرة مباشرة) طريقة... مهما كانت الصعوبات (بثبات)"
+          }
+        ],
+        peakMoments: [
+          "لحظة ظهور ليلى على الشرفة - ذروة بصرية",
+          "جملة 'حبنا أقوى من كل العوائق' - ذروة عاطفية",
+          "التقاء النظرات الأول - ذروة صامتة"
+        ],
+        valleyMoments: [
+          "الوصف الافتتاحي للحديقة - لحظة سكون ضرورية",
+          "تردد ليلى قبل الرد - وقفة درامية"
+        ],
+        summary: "المشهد يتبع قوساً إيقاعياً كلاسيكياً رومانسياً مع بداية هادئة وتصاعد تدريجي نحو ذروة عاطفية. الإيقاع العام جيد لكن يمكن تحسينه بإضافة المزيد من التنوع في القسم الأوسط وإطالة لحظات الصمت الدرامي."
+      };
+
+      setRhythmAnalysis(analysis);
+      setAnalyzingRhythm(false);
+      showNotification("success", "تم تحليل إيقاع المشهد بنجاح!");
+    }, 3000);
+  }, [rhythmScriptText, showNotification]);
+
+  const getTempoColor = (tempo: string): string => {
+    switch (tempo) {
+      case "slow": return "bg-blue-400";
+      case "medium": return "bg-green-400";
+      case "fast": return "bg-orange-400";
+      case "very-fast": return "bg-red-500";
+      default: return "bg-gray-400";
+    }
+  };
+
+  const getTempoLabel = (tempo: string): string => {
+    switch (tempo) {
+      case "slow": return "بطيء";
+      case "medium": return "متوسط";
+      case "fast": return "سريع";
+      case "very-fast": return "سريع جداً";
+      default: return tempo;
+    }
+  };
+
+  const getSeverityColor = (severity: string): string => {
+    switch (severity) {
+      case "low": return "bg-yellow-100 border-yellow-400 text-yellow-800";
+      case "medium": return "bg-orange-100 border-orange-400 text-orange-800";
+      case "high": return "bg-red-100 border-red-400 text-red-800";
+      default: return "bg-gray-100 border-gray-400 text-gray-800";
+    }
   // ==================== وظائف تحليل الأداء البصري ====================
 
   // مؤقت تحليل الكاميرا
@@ -1061,6 +1198,13 @@ export const ActorAiArabicStudio: React.FC = () => {
               className={currentView === "vocal" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
             >
               🎤 تمارين الصوت
+            </Button>
+            <Button
+              onClick={() => navigate("rhythm")}
+              variant={currentView === "rhythm" ? "secondary" : "ghost"}
+              className={currentView === "rhythm" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
+            >
+              🎵 إيقاع المشهد
             </Button>
             <Button
               onClick={() => navigate("webcam")}
@@ -2177,11 +2321,6 @@ export const ActorAiArabicStudio: React.FC = () => {
               <span>تنفس بعمق لتقليل التوتر ومعدل الرمش المرتفع</span>
             </li>
           </ul>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
   // ==================== صفحة تدريب AR/MR ====================
 
   const renderARTraining = () => (
@@ -2863,327 +3002,6 @@ export const ActorAiArabicStudio: React.FC = () => {
     </div>
   );
 
-  // ==================== صفحة اختبار الحفظ ====================
-
-  const renderMemorizationMode = () => {
-    const lines = memorizationScript.split('\n').filter(line => line.trim());
-    const { processedLines, hiddenWords } = processTextForMemorization(memorizationScript, memorizationDeletionLevel);
-    const currentHiddenWords = hiddenWords.get(currentLineIndex) || [];
-    const totalProgress = lines.length > 0 ? Math.round((currentLineIndex / lines.length) * 100) : 0;
-
-    return (
-      <div className="max-w-6xl mx-auto py-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">🧠 وضع اختبار الحفظ</h2>
-        <p className="text-gray-600 mb-8">اختبر قدرتك على حفظ النصوص مع نظام تلقين ذكي</p>
-
-        {memorizationActive && (
-          <Card className="mb-6 bg-gradient-to-l from-indigo-500 to-purple-500 text-white">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-4">
-                  <Badge className="bg-white/20 text-white text-lg px-4 py-2">
-                    السطر {currentLineIndex + 1} من {lines.length}
-                  </Badge>
-                  <Badge className="bg-white/20 text-white">
-                    المستوى: {memorizationDeletionLevel}%
-                  </Badge>
-                </div>
-                <div className="flex gap-2">
-                  {hesitationDetected && (
-                    <Badge className="bg-yellow-500 animate-pulse">
-                      تم اكتشاف تردد! 💡
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <Progress value={totalProgress} className="h-3 bg-white/20" />
-              <p className="text-sm mt-2 opacity-90">التقدم: {totalProgress}%</p>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>📝 النص للحفظ</CardTitle>
-                  <div className="flex gap-2">
-                    {!memorizationActive && (
-                      <Button variant="outline" size="sm" onClick={useSampleScriptForMemorization}>
-                        📄 نص تجريبي
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <CardDescription>
-                  أدخل النص الذي تريد حفظه ثم اختر مستوى الصعوبة
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!memorizationActive ? (
-                  <>
-                    <Textarea
-                      placeholder="الصق نصك هنا للحفظ..."
-                      className="min-h-[200px]"
-                      value={memorizationScript}
-                      onChange={(e) => setMemorizationScript(e.target.value)}
-                    />
-                    <div className="space-y-2">
-                      <Label>مستوى حذف الكلمات</Label>
-                      <div className="flex gap-4">
-                        <Button
-                          variant={memorizationDeletionLevel === 10 ? "default" : "outline"}
-                          onClick={() => setMemorizationDeletionLevel(10)}
-                          className={memorizationDeletionLevel === 10 ? "bg-green-600" : ""}
-                        >
-                          سهل (10%)
-                        </Button>
-                        <Button
-                          variant={memorizationDeletionLevel === 50 ? "default" : "outline"}
-                          onClick={() => setMemorizationDeletionLevel(50)}
-                          className={memorizationDeletionLevel === 50 ? "bg-yellow-600" : ""}
-                        >
-                          متوسط (50%)
-                        </Button>
-                        <Button
-                          variant={memorizationDeletionLevel === 90 ? "default" : "outline"}
-                          onClick={() => setMemorizationDeletionLevel(90)}
-                          className={memorizationDeletionLevel === 90 ? "bg-red-600" : ""}
-                        >
-                          صعب (90%)
-                        </Button>
-                      </div>
-                    </div>
-                    <Button
-                      className="w-full bg-purple-600 hover:bg-purple-700"
-                      size="lg"
-                      onClick={startMemorizationSession}
-                      disabled={!memorizationScript.trim()}
-                    >
-                      🧠 ابدأ اختبار الحفظ
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-                      {processedLines.map((line, idx) => (
-                        <div
-                          key={idx}
-                          className={`p-4 rounded-lg transition-all ${
-                            idx === currentLineIndex
-                              ? "bg-purple-100 border-2 border-purple-500 shadow-lg"
-                              : idx < currentLineIndex
-                                ? "bg-green-50 opacity-60"
-                                : "bg-white opacity-40"
-                          }`}
-                        >
-                          <div className="flex items-start gap-2">
-                            {idx < currentLineIndex && <span className="text-green-600">✓</span>}
-                            {idx === currentLineIndex && <span className="text-purple-600 animate-pulse">▶</span>}
-                            <p className="text-lg leading-relaxed">
-                              {line.split("______").map((part, partIdx, arr) => (
-                                <span key={partIdx}>
-                                  {part}
-                                  {partIdx < arr.length - 1 && (
-                                    <span className="bg-purple-200 text-purple-800 px-2 py-1 rounded mx-1 font-mono">
-                                      ______
-                                    </span>
-                                  )}
-                                </span>
-                              ))}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="space-y-4 mt-6">
-                      <Label className="text-lg font-semibold">
-                        اكتب الكلمات المخفية ({currentHiddenWords.length} كلمة):
-                      </Label>
-                      {promptMode && showPromptHint && (
-                        <Alert className="bg-yellow-50 border-yellow-400">
-                          <AlertDescription className="text-yellow-800 text-lg">
-                            💡 تلميح: <strong>{currentPromptWord}</strong>
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                      {promptMode && !showPromptHint && (
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => showFirstLetterHint(currentHiddenWords[0] || "")}
-                          >
-                            💡 أظهر الحرف الأول
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => showFullWordHint(currentHiddenWords[0] || "")}
-                          >
-                            📖 أظهر الكلمة كاملة
-                          </Button>
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        <Textarea
-                          placeholder="اكتب الكلمات المخفية مفصولة بمسافة..."
-                          value={userMemorizationInput}
-                          onChange={(e) => {
-                            setUserMemorizationInput(e.target.value);
-                            if (memorizationPaused) {
-                              setMemorizationPaused(false);
-                              setPromptMode(false);
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleMemorizationSubmit();
-                            }
-                          }}
-                          className="flex-1"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                          onClick={handleMemorizationSubmit}
-                          disabled={!userMemorizationInput.trim()}
-                        >
-                          ✓ تحقق من الإجابة
-                        </Button>
-                        <Button variant="outline" onClick={increaseDeletionLevel}>
-                          📈 زيادة الصعوبة
-                        </Button>
-                        <Button variant="destructive" onClick={stopMemorizationSession}>
-                          ⏹️ إنهاء
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <Card className="bg-gradient-to-br from-blue-50 to-purple-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  📊 إحصائيات الحفظ
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                    <div className="text-3xl font-bold text-green-600">{memorizationStats.correctWords}</div>
-                    <p className="text-sm text-gray-600">كلمات صحيحة</p>
-                  </div>
-                  <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                    <div className="text-3xl font-bold text-red-600">{memorizationStats.incorrectWords}</div>
-                    <p className="text-sm text-gray-600">كلمات خاطئة</p>
-                  </div>
-                  <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                    <div className="text-3xl font-bold text-yellow-600">{memorizationStats.hesitationCount}</div>
-                    <p className="text-sm text-gray-600">مرات التردد</p>
-                  </div>
-                  <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                    <div className="text-3xl font-bold text-blue-600">{memorizationStats.totalAttempts}</div>
-                    <p className="text-sm text-gray-600">المحاولات</p>
-                  </div>
-                </div>
-                {memorizationStats.totalAttempts > 0 && (
-                  <div className="mt-4">
-                    <Label>نسبة النجاح</Label>
-                    <Progress
-                      value={
-                        memorizationStats.correctWords + memorizationStats.incorrectWords > 0
-                          ? (memorizationStats.correctWords / (memorizationStats.correctWords + memorizationStats.incorrectWords)) * 100
-                          : 0
-                      }
-                      className="h-4 mt-2"
-                    />
-                  </div>
-                )}
-                {memorizationStats.weakPoints.length > 0 && (
-                  <div className="mt-4">
-                    <Label className="text-red-600">⚠️ نقاط الضعف:</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {memorizationStats.weakPoints.map((word, idx) => (
-                        <Badge key={idx} variant="outline" className="bg-red-50 text-red-600">
-                          {word}
-                        </Badge>
-                      ))}
-                    </div>
-                    <Button variant="outline" size="sm" className="mt-2 w-full" onClick={repeatDifficultParts}>
-                      🔄 تكرار الأجزاء الصعبة
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="bg-yellow-50">
-              <CardHeader>
-                <CardTitle className="text-yellow-800">💡 كيفية الاستخدام</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-yellow-900 text-sm">
-                  <li className="flex items-start gap-2">
-                    <span>1️⃣</span>
-                    <span>أدخل النص الذي تريد حفظه</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span>2️⃣</span>
-                    <span>اختر مستوى الصعوبة (10% - 50% - 90%)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span>3️⃣</span>
-                    <span>اكتب الكلمات المخفية في كل سطر</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span>4️⃣</span>
-                    <span>إذا ترددت لـ3 ثوانٍ، سيظهر التلقين الذكي</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span>5️⃣</span>
-                    <span>راجع نقاط ضعفك وكررها</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>🎯 نصائح لتحسين الحفظ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-gray-600 text-sm">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>ابدأ بمستوى سهل ثم ارتفع تدريجياً</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>كرر النص بصوت عالٍ أثناء الكتابة</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>ركز على نقاط الضعف وكررها</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>خذ استراحات قصيرة بين الجلسات</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // ==================== لوحة التحكم ====================
 
   const renderDashboard = () => (
@@ -3320,6 +3138,741 @@ export const ActorAiArabicStudio: React.FC = () => {
     </div>
   );
 
+  // ==================== صفحة إيقاع المشهد ====================
+
+  const renderSceneRhythm = () => (
+    <div className="max-w-6xl mx-auto py-8">
+      <div className="flex items-center gap-3 mb-2">
+        <span className="text-4xl">🎵</span>
+        <h2 className="text-3xl font-bold text-gray-800">تحليل إيقاع المشهد</h2>
+      </div>
+      <p className="text-gray-600 mb-8">اكتشف إيقاع أدائك وحسّنه بأدوات التحليل المتقدمة</p>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* قسم إدخال النص */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span>📝</span>
+              النص المسرحي
+            </CardTitle>
+            <CardDescription>أدخل نصك لتحليل الإيقاع</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={useRhythmSampleScript}>
+                📄 نص تجريبي
+              </Button>
+            </div>
+            <Textarea
+              placeholder="الصق نصك هنا..."
+              className="min-h-[300px]"
+              value={rhythmScriptText}
+              onChange={(e) => setRhythmScriptText(e.target.value)}
+            />
+            <Button
+              className="w-full"
+              onClick={analyzeSceneRhythm}
+              disabled={analyzingRhythm || !rhythmScriptText.trim()}
+            >
+              {analyzingRhythm ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  جاري تحليل الإيقاع...
+                </>
+              ) : (
+                <>🎵 تحليل الإيقاع</>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* قسم النتائج */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span>📊</span>
+              نتائج التحليل
+            </CardTitle>
+            {rhythmAnalysis && (
+              <div className="flex items-center gap-4 mt-2">
+                <Badge className="text-lg px-4 py-1">
+                  النتيجة: {rhythmAnalysis.rhythmScore}/100
+                </Badge>
+                <Badge variant="outline" className="text-lg px-4 py-1">
+                  الإيقاع: {getTempoLabel(rhythmAnalysis.overallTempo)}
+                </Badge>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            {!rhythmAnalysis ? (
+              <div className="text-center py-16 text-gray-500">
+                <div className="text-8xl mb-4 opacity-30">🎵</div>
+                <p className="text-xl">أدخل نصاً وابدأ التحليل لرؤية النتائج</p>
+              </div>
+            ) : (
+              <>
+                {/* تابات التحليل */}
+                <div className="flex gap-2 mb-6 flex-wrap">
+                  <Button
+                    variant={selectedRhythmTab === "map" ? "default" : "outline"}
+                    onClick={() => setSelectedRhythmTab("map")}
+                    size="sm"
+                  >
+                    🗺️ خريطة الإيقاع
+                  </Button>
+                  <Button
+                    variant={selectedRhythmTab === "comparison" ? "default" : "outline"}
+                    onClick={() => setSelectedRhythmTab("comparison")}
+                    size="sm"
+                  >
+                    📊 المقارنة
+                  </Button>
+                  <Button
+                    variant={selectedRhythmTab === "monotony" ? "default" : "outline"}
+                    onClick={() => setSelectedRhythmTab("monotony")}
+                    size="sm"
+                  >
+                    ⚠️ اكتشاف الرتابة
+                  </Button>
+                  <Button
+                    variant={selectedRhythmTab === "suggestions" ? "default" : "outline"}
+                    onClick={() => setSelectedRhythmTab("suggestions")}
+                    size="sm"
+                  >
+                    🎨 التلوين العاطفي
+                  </Button>
+                </div>
+
+                {/* محتوى خريطة الإيقاع */}
+                {selectedRhythmTab === "map" && (
+                  <div className="space-y-6">
+                    {/* الملخص */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">📋 ملخص التحليل:</h4>
+                      <p className="text-gray-700">{rhythmAnalysis.summary}</p>
+                    </div>
+
+                    {/* الخريطة البصرية */}
+                    <div>
+                      <h4 className="font-semibold mb-4">🗺️ خريطة الإيقاع البصرية:</h4>
+                      <div className="relative bg-gray-100 rounded-lg p-4">
+                        {/* المحور الأفقي */}
+                        <div className="h-40 relative">
+                          {/* خطوط الشبكة */}
+                          <div className="absolute inset-0 flex flex-col justify-between">
+                            <div className="border-b border-gray-300 border-dashed" />
+                            <div className="border-b border-gray-300 border-dashed" />
+                            <div className="border-b border-gray-300 border-dashed" />
+                            <div className="border-b border-gray-300 border-dashed" />
+                          </div>
+
+                          {/* نقاط الإيقاع */}
+                          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                            {/* الخط المنحني */}
+                            <path
+                              d={`M ${rhythmAnalysis.rhythmMap.map((point, idx) =>
+                                `${(point.position / 100) * 100}%,${100 - point.intensity}%`
+                              ).join(' L ')}`}
+                              fill="none"
+                              stroke="url(#rhythmGradient)"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <defs>
+                              <linearGradient id="rhythmGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#3b82f6" />
+                                <stop offset="50%" stopColor="#8b5cf6" />
+                                <stop offset="100%" stopColor="#ec4899" />
+                              </linearGradient>
+                            </defs>
+                          </svg>
+
+                          {/* نقاط البيانات */}
+                          {rhythmAnalysis.rhythmMap.map((point, idx) => (
+                            <div
+                              key={idx}
+                              className="absolute transform -translate-x-1/2 -translate-y-1/2 group"
+                              style={{
+                                left: `${point.position}%`,
+                                top: `${100 - point.intensity}%`
+                              }}
+                            >
+                              <div className={`w-4 h-4 rounded-full ${getTempoColor(point.tempo)} border-2 border-white shadow-lg cursor-pointer hover:scale-150 transition-transform`} />
+                              {/* Tooltip */}
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+                                <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                                  <div className="font-bold">{point.beat}</div>
+                                  <div>الشدة: {point.intensity}%</div>
+                                  <div>المشاعر: {point.emotion}</div>
+                                  <div>السرعة: {getTempoLabel(point.tempo)}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* مفتاح الألوان */}
+                        <div className="flex justify-center gap-4 mt-4 text-sm">
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-blue-400" />
+                            <span>بطيء</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-green-400" />
+                            <span>متوسط</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-orange-400" />
+                            <span>سريع</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-red-500" />
+                            <span>سريع جداً</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* لحظات الذروة والوادي */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <h5 className="font-semibold mb-2 text-green-800">📈 لحظات الذروة:</h5>
+                        <ul className="space-y-1 text-sm">
+                          {rhythmAnalysis.peakMoments.map((peak, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-green-600">▲</span>
+                              {peak}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <h5 className="font-semibold mb-2 text-purple-800">📉 لحظات السكون:</h5>
+                        <ul className="space-y-1 text-sm">
+                          {rhythmAnalysis.valleyMoments.map((valley, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-purple-600">▼</span>
+                              {valley}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* تفاصيل النبضات */}
+                    <div>
+                      <h4 className="font-semibold mb-3">🎯 تفاصيل النبضات:</h4>
+                      <div className="space-y-2">
+                        {rhythmAnalysis.rhythmMap.map((point, idx) => (
+                          <div key={idx} className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                            <div className={`w-10 h-10 rounded-full ${getTempoColor(point.tempo)} flex items-center justify-center text-white font-bold`}>
+                              {idx + 1}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium">{point.beat}</div>
+                              <div className="text-sm text-gray-600">
+                                {point.emotion} • {getTempoLabel(point.tempo)}
+                              </div>
+                            </div>
+                            <div className="text-left">
+                              <Progress value={point.intensity} className="w-20" />
+                              <span className="text-xs text-gray-500">{point.intensity}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* محتوى المقارنة */}
+                {selectedRhythmTab === "comparison" && (
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-l from-blue-50 to-purple-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">📊 مقارنة إيقاعك بالمعايير المثالية:</h4>
+                      <p className="text-gray-600 text-sm">تقييم أدائك مقارنة بأفضل الممارسات في المشاهد المشابهة</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {rhythmAnalysis.comparisons.map((comp, idx) => (
+                        <div key={idx} className="bg-white p-4 rounded-lg border">
+                          <div className="flex justify-between items-start mb-3">
+                            <h5 className="font-semibold">{comp.aspect}</h5>
+                            <Badge
+                              variant={comp.difference >= 0 ? "default" : "outline"}
+                              className={comp.difference >= 0 ? "bg-green-600" : "bg-orange-100 text-orange-800"}
+                            >
+                              {comp.difference >= 0 ? `+${comp.difference}` : comp.difference}
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm w-16">أنت:</span>
+                              <div className="flex-1 bg-gray-100 rounded-full h-3">
+                                <div
+                                  className="h-full bg-blue-500 rounded-full transition-all"
+                                  style={{ width: `${comp.yourScore}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium w-12">{comp.yourScore}%</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm w-16">المثالي:</span>
+                              <div className="flex-1 bg-gray-100 rounded-full h-3">
+                                <div
+                                  className="h-full bg-green-500 rounded-full transition-all"
+                                  style={{ width: `${comp.optimalScore}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium w-12">{comp.optimalScore}%</span>
+                            </div>
+                          </div>
+
+                          <p className="text-sm text-gray-600 mt-3 bg-gray-50 p-2 rounded">
+                            💡 {comp.feedback}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ملخص المقارنة */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h5 className="font-semibold mb-2">📈 ملخص الأداء:</h5>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-3xl font-bold text-blue-600">
+                            {Math.round(rhythmAnalysis.comparisons.reduce((a, b) => a + b.yourScore, 0) / rhythmAnalysis.comparisons.length)}%
+                          </div>
+                          <div className="text-sm text-gray-600">متوسط نتيجتك</div>
+                        </div>
+                        <div>
+                          <div className="text-3xl font-bold text-green-600">
+                            {rhythmAnalysis.comparisons.filter(c => c.difference >= 0).length}
+                          </div>
+                          <div className="text-sm text-gray-600">جوانب متفوقة</div>
+                        </div>
+                        <div>
+                          <div className="text-3xl font-bold text-orange-600">
+                            {rhythmAnalysis.comparisons.filter(c => c.difference < 0).length}
+                          </div>
+                          <div className="text-sm text-gray-600">جوانب للتحسين</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* محتوى اكتشاف الرتابة */}
+                {selectedRhythmTab === "monotony" && (
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-l from-orange-50 to-yellow-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">⚠️ اكتشاف الرتابة (Monotony Detection):</h4>
+                      <p className="text-gray-600 text-sm">تحديد المناطق التي قد تفقد انتباه الجمهور بسبب الرتابة</p>
+                    </div>
+
+                    {rhythmAnalysis.monotonyAlerts.length === 0 ? (
+                      <div className="text-center py-8 bg-green-50 rounded-lg">
+                        <div className="text-6xl mb-4">✨</div>
+                        <h4 className="text-xl font-semibold text-green-800">ممتاز!</h4>
+                        <p className="text-green-600">لم يتم اكتشاف مناطق رتابة في أدائك</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {rhythmAnalysis.monotonyAlerts.map((alert, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-4 rounded-lg border-2 ${getSeverityColor(alert.severity)}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="text-2xl">
+                                {alert.severity === "high" ? "🔴" : alert.severity === "medium" ? "🟠" : "🟡"}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Badge variant="outline">
+                                    الموقع: {alert.startPosition}% - {alert.endPosition}%
+                                  </Badge>
+                                  <Badge className={
+                                    alert.severity === "high" ? "bg-red-600" :
+                                    alert.severity === "medium" ? "bg-orange-600" : "bg-yellow-600"
+                                  }>
+                                    {alert.severity === "high" ? "عالية" :
+                                     alert.severity === "medium" ? "متوسطة" : "منخفضة"}
+                                  </Badge>
+                                </div>
+                                <h5 className="font-semibold mb-1">{alert.description}</h5>
+                                <div className="bg-white bg-opacity-50 p-3 rounded mt-2">
+                                  <span className="text-sm font-medium">💡 الحل المقترح:</span>
+                                  <p className="text-sm mt-1">{alert.suggestion}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* شريط بصري للرتابة */}
+                    <div>
+                      <h4 className="font-semibold mb-3">📊 خريطة الرتابة:</h4>
+                      <div className="relative h-8 bg-green-200 rounded-full overflow-hidden">
+                        {rhythmAnalysis.monotonyAlerts.map((alert, idx) => (
+                          <div
+                            key={idx}
+                            className={`absolute top-0 h-full ${
+                              alert.severity === "high" ? "bg-red-400" :
+                              alert.severity === "medium" ? "bg-orange-400" : "bg-yellow-400"
+                            }`}
+                            style={{
+                              left: `${alert.startPosition}%`,
+                              width: `${alert.endPosition - alert.startPosition}%`
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>البداية</span>
+                        <span>النهاية</span>
+                      </div>
+                    </div>
+
+                    {/* نصائح عامة */}
+                    <Card className="bg-blue-50">
+                      <CardHeader>
+                        <CardTitle className="text-lg">💡 نصائح لتجنب الرتابة</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2 text-sm">
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600">✓</span>
+                            غيّر سرعة الكلام كل 2-3 جمل
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600">✓</span>
+                            استخدم الوقفات الدرامية بشكل استراتيجي
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600">✓</span>
+                            نوّع في نبرة الصوت بين الارتفاع والانخفاض
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-600">✓</span>
+                            أضف حركة جسدية مصاحبة للكلام
+                          </li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* محتوى التلوين العاطفي */}
+                {selectedRhythmTab === "suggestions" && (
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-l from-pink-50 to-purple-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">🎨 اقتراحات التلوين العاطفي:</h4>
+                      <p className="text-gray-600 text-sm">تقنيات لإضافة عمق عاطفي وتنوع في أدائك</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {rhythmAnalysis.emotionalSuggestions.map((sugg, idx) => (
+                        <Card key={idx} className="overflow-hidden">
+                          <div className="bg-gradient-to-l from-purple-100 to-pink-100 p-3">
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-purple-600">{idx + 1}</Badge>
+                              <h5 className="font-semibold text-purple-900">"{sugg.segment}"</h5>
+                            </div>
+                          </div>
+                          <CardContent className="p-4 space-y-3">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-gray-50 p-3 rounded-lg">
+                                <div className="text-xs text-gray-500 mb-1">الحالي:</div>
+                                <div className="font-medium text-gray-700">{sugg.currentEmotion}</div>
+                              </div>
+                              <div className="bg-green-50 p-3 rounded-lg">
+                                <div className="text-xs text-green-600 mb-1">المقترح:</div>
+                                <div className="font-medium text-green-700">{sugg.suggestedEmotion}</div>
+                              </div>
+                            </div>
+
+                            <div className="bg-blue-50 p-3 rounded-lg">
+                              <div className="text-xs text-blue-600 mb-1">🎭 التقنية:</div>
+                              <p className="text-sm">{sugg.technique}</p>
+                            </div>
+
+                            <div className="bg-yellow-50 p-3 rounded-lg">
+                              <div className="text-xs text-yellow-700 mb-1">📝 مثال تطبيقي:</div>
+                              <p className="text-sm italic">"{sugg.example}"</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {/* لوحة الألوان العاطفية */}
+                    <Card className="bg-gradient-to-l from-blue-50 via-purple-50 to-pink-50">
+                      <CardHeader>
+                        <CardTitle className="text-lg">🎨 لوحة الألوان العاطفية</CardTitle>
+                        <CardDescription>استخدم هذه المشاعر لتلوين أدائك</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {["شوق ملتهب", "حنين عميق", "خوف مكتوم", "أمل مشرق", "حزن رقيق", "فرح طافح", "غضب مكبوت", "حب صادق", "قلق خفي", "شجاعة متردية"].map((emotion, idx) => (
+                            <Badge key={idx} variant="outline" className="px-3 py-1">
+                              {emotion}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
+  // ==================== وضع اختبار الحفظ ====================
+
+  const renderMemorizationMode = () => (
+    <div className="container mx-auto px-4 py-8" dir="rtl">
+      <div className="grid gap-6">
+        {/* العنوان الرئيسي */}
+        <Card className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-3">
+              🧠 وضع اختبار الحفظ
+            </CardTitle>
+            <CardDescription className="text-purple-100">
+              تدرب على حفظ نصوصك مع حذف تدريجي للكلمات وتلقين ذكي عند التردد
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        {/* إدخال النص */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              📝 النص للحفظ
+            </CardTitle>
+            <CardDescription>أدخل النص الذي تريد حفظه</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={useSampleScriptForMemorization}>
+                📄 نص نموذجي
+              </Button>
+            </div>
+            <Textarea
+              placeholder="أدخل النص هنا..."
+              value={memorizationScript}
+              onChange={(e) => setMemorizationScript(e.target.value)}
+              className="min-h-[150px] text-right"
+              dir="rtl"
+              disabled={memorizationActive}
+            />
+
+            {/* مستوى الصعوبة */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">مستوى الحذف:</span>
+              <div className="flex gap-2">
+                {[10, 50, 90].map((level) => (
+                  <Button
+                    key={level}
+                    variant={memorizationDeletionLevel === level ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setMemorizationDeletionLevel(level as 10 | 50 | 90)}
+                    disabled={memorizationActive}
+                  >
+                    {level}%
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* أزرار التحكم */}
+            <div className="flex gap-2 justify-center">
+              {!memorizationActive ? (
+                <Button onClick={startMemorizationSession} className="bg-purple-600 hover:bg-purple-700">
+                  ▶️ بدء جلسة الحفظ
+                </Button>
+              ) : (
+                <>
+                  <Button onClick={stopMemorizationSession} variant="destructive">
+                    ⏹️ إنهاء الجلسة
+                  </Button>
+                  <Button onClick={increaseDeletionLevel} variant="outline">
+                    ⬆️ زيادة الصعوبة
+                  </Button>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* منطقة التدريب */}
+        {memorizationActive && (
+          <Card className="border-2 border-purple-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                🎯 منطقة التدريب
+                <Badge variant={hesitationDetected ? "destructive" : "secondary"}>
+                  {hesitationDetected ? "تم اكتشاف تردد" : "جاري الحفظ"}
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                السطر {currentLineIndex + 1} من {memorizationScript.split('\n').length}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* النص مع الكلمات المحذوفة */}
+              <div className="p-4 bg-gray-100 rounded-lg text-right">
+                <p className="text-lg leading-relaxed">
+                  {memorizationScript.split('\n')[currentLineIndex] &&
+                    processTextForMemorization(
+                      memorizationScript.split('\n')[currentLineIndex],
+                      memorizationDeletionLevel
+                    )}
+                </p>
+              </div>
+
+              {/* تلميح عند التردد */}
+              {showPromptHint && (
+                <Alert className="border-yellow-400 bg-yellow-50">
+                  <AlertDescription className="text-right">
+                    💡 تلميح: الكلمة التالية تبدأ بـ &quot;{currentPromptWord.slice(0, 2)}...&quot;
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* إدخال المستخدم */}
+              <div className="space-y-2">
+                <Label>اكتب السطر كاملاً:</Label>
+                <Textarea
+                  value={userMemorizationInput}
+                  onChange={(e) => handleMemorizationInput(e.target.value)}
+                  placeholder="اكتب النص من ذاكرتك..."
+                  className="text-right"
+                  dir="rtl"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleMemorizationSubmit();
+                    }
+                  }}
+                />
+              </div>
+
+              <Button onClick={handleMemorizationSubmit} className="w-full bg-green-600 hover:bg-green-700">
+                ✓ تحقق من الإجابة
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* إحصائيات الأداء */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              📊 إحصائيات الأداء
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">{memorizationStats.totalAttempts}</p>
+                <p className="text-sm text-gray-600">المحاولات</p>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">{memorizationStats.correctWords}</p>
+                <p className="text-sm text-gray-600">كلمات صحيحة</p>
+              </div>
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <p className="text-2xl font-bold text-red-600">{memorizationStats.incorrectWords}</p>
+                <p className="text-sm text-gray-600">كلمات خاطئة</p>
+              </div>
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <p className="text-2xl font-bold text-yellow-600">{memorizationStats.hesitationCount}</p>
+                <p className="text-sm text-gray-600">مرات التردد</p>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <p className="text-2xl font-bold text-purple-600">{memorizationStats.averageResponseTime}s</p>
+                <p className="text-sm text-gray-600">متوسط الاستجابة</p>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-2xl font-bold text-gray-600">
+                  {memorizationStats.totalAttempts > 0
+                    ? Math.round((memorizationStats.correctWords / (memorizationStats.correctWords + memorizationStats.incorrectWords)) * 100)
+                    : 0}%
+                </p>
+                <p className="text-sm text-gray-600">نسبة النجاح</p>
+              </div>
+            </div>
+
+            {/* نقاط الضعف */}
+            {memorizationStats.weakPoints.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold mb-2">نقاط الضعف:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {memorizationStats.weakPoints.map((word, index) => (
+                    <Badge key={index} variant="destructive">{word}</Badge>
+                  ))}
+                </div>
+                <Button
+                  onClick={repeatDifficultParts}
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                >
+                  🔄 تكرار الأجزاء الصعبة
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* دليل الاستخدام */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              📖 دليل الاستخدام
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-gray-600">
+              <li className="flex items-start gap-2">
+                <span className="text-purple-600">1.</span>
+                أدخل النص الذي تريد حفظه أو استخدم النص النموذجي
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-600">2.</span>
+                اختر مستوى الحذف (10% للمبتدئين، 90% للمتقدمين)
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-600">3.</span>
+                ابدأ الجلسة واكتب الكلمات المحذوفة من ذاكرتك
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-600">4.</span>
+                إذا ترددت لأكثر من 3 ثواني، سيظهر تلميح للمساعدة
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-600">5.</span>
+                راجع إحصائياتك وركز على نقاط الضعف
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
   // ==================== الـ Footer ====================
 
   const renderFooter = () => (
@@ -3369,6 +3922,8 @@ export const ActorAiArabicStudio: React.FC = () => {
         return renderDemo();
       case "vocal":
         return renderVocalExercises();
+      case "rhythm":
+        return renderSceneRhythm();
       case "webcam":
         return renderWebcamAnalysis();
       case "ar":
