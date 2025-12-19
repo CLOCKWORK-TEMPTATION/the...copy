@@ -183,10 +183,25 @@ paths:
       tags:
         - Authentication
       summary: Logout from account
-      description: Invalidate current session
+      description: Invalidate current session and clear authentication token
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: تم تسجيل الخروج بنجاح
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /api/auth/me:
     get:
@@ -216,7 +231,17 @@ paths:
       tags:
         - Analysis
       summary: Run Seven Stations analysis pipeline
-      description: Comprehensive AI-powered script analysis
+      description: |
+        Comprehensive AI-powered script analysis using seven analytical stations:
+        1. Structure Analysis
+        2. Character Development
+        3. Dialogue Quality
+        4. Theme Exploration
+        5. Pacing & Rhythm
+        6. Visual Storytelling
+        7. Emotional Impact
+        
+        Note: This is a long-running operation that may take 30-60 seconds.
       security:
         - bearerAuth: []
       requestBody:
@@ -230,10 +255,13 @@ paths:
               properties:
                 text:
                   type: string
+                  description: Full screenplay text in Arabic or English
                   example: "FADE IN:\n\nEXT. PARK - DAY\n\n..."
+                  minLength: 100
+                  maxLength: 100000
       responses:
         '200':
-          description: Analysis completed
+          description: Analysis completed successfully
           content:
             application/json:
               schema:
@@ -241,24 +269,67 @@ paths:
                 properties:
                   success:
                     type: boolean
+                    example: true
                   data:
                     type: object
+                    description: Analysis results from all seven stations
+                    properties:
+                      structure:
+                        type: object
+                        description: Structural analysis results
+                      characters:
+                        type: object
+                        description: Character development analysis
+                      dialogue:
+                        type: object
+                        description: Dialogue quality assessment
+        '400':
+          description: Invalid input - text too short or malformed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '429':
           $ref: '#/components/responses/RateLimitError'
+        '500':
+          description: AI service error or internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/projects:
     get:
       tags:
         - Projects
       summary: Get all projects
-      description: List all projects for authenticated user
+      description: |
+        Retrieve all screenplay projects for the authenticated user.
+        Results are sorted by most recently updated first.
+        Supports pagination via query parameters.
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of projects to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of projects to skip for pagination
       responses:
         '200':
-          description: Projects list
+          description: Projects list retrieved successfully
           content:
             application/json:
               schema:
@@ -266,15 +337,23 @@ paths:
                 properties:
                   success:
                     type: boolean
+                    example: true
                   data:
                     type: array
                     items:
                       $ref: '#/components/schemas/Project'
+                  total:
+                    type: integer
+                    description: Total number of projects
+                    example: 42
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
     post:
       tags:
         - Projects
       summary: Create new project
+      description: Create a new screenplay project with title and optional script content
       security:
         - bearerAuth: []
       requestBody:
@@ -288,17 +367,42 @@ paths:
               properties:
                 title:
                   type: string
+                  description: Project title
+                  example: مشروع فيلم جديد
+                  minLength: 1
+                  maxLength: 200
                 scriptContent:
                   type: string
+                  description: Initial screenplay content (optional)
+                  example: "FADE IN:\n\nEXT. DESERT - DAY"
       responses:
         '201':
-          description: Project created
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '400':
+          description: Validation error - invalid title or content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /api/projects/{id}:
     get:
       tags:
         - Projects
       summary: Get project by ID
+      description: Retrieve detailed information for a specific project including scenes and characters
       security:
         - bearerAuth: []
       parameters:
@@ -308,9 +412,23 @@ paths:
           schema:
             type: string
             format: uuid
+          description: Unique project identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
       responses:
         '200':
-          description: Project details
+          description: Project details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
           $ref: '#/components/responses/NotFoundError'
 
@@ -318,6 +436,7 @@ paths:
       tags:
         - Projects
       summary: Update project
+      description: Update project title, script content, or other metadata
       security:
         - bearerAuth: []
       parameters:
@@ -326,7 +445,10 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: Unique project identifier
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -334,16 +456,43 @@ paths:
               properties:
                 title:
                   type: string
+                  description: Updated project title
+                  minLength: 1
+                  maxLength: 200
                 scriptContent:
                   type: string
+                  description: Updated screenplay content
       responses:
         '200':
-          description: Project updated
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
     delete:
       tags:
         - Projects
       summary: Delete project
+      description: |
+        Permanently delete a project and all associated data (scenes, shots, characters).
+        This action cannot be undone.
       security:
         - bearerAuth: []
       parameters:
@@ -352,9 +501,26 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+          description: Unique project identifier
       responses:
         '200':
-          description: Project deleted
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: تم حذف المشروع بنجاح
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
 components:
   securitySchemes:
@@ -366,12 +532,28 @@ components:
   schemas:
     Error:
       type: object
+      required:
+        - success
+        - error
       properties:
         success:
           type: boolean
           example: false
+          description: Always false for error responses
         error:
           type: string
+          description: Human-readable error message in Arabic or English
+          example: حدث خطأ في معالجة الطلب
+        details:
+          type: array
+          description: Additional error details (validation errors, etc.)
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
 
     User:
       type: object
@@ -415,22 +597,50 @@ components:
 
   responses:
     UnauthorizedError:
-      description: غير مصرح - يرجى تسجيل الدخول
+      description: |
+        Unauthorized - Authentication required or token invalid/expired.
+        غير مصرح - يرجى تسجيل الدخول أو تجديد الرمز
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: غير مصرح - يرجى تسجيل الدخول
 
     NotFoundError:
-      description: المورد غير موجود
+      description: |
+        Resource not found or user does not have access.
+        المورد غير موجود أو ليس لديك صلاحية الوصول
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: المورد غير موجود
 
     RateLimitError:
-      description: تم تجاوز الحد المسموح من الطلبات
+      description: |
+        Rate limit exceeded - too many requests.
+        تم تجاوز الحد المسموح من الطلبات - يرجى المحاولة لاحقاً
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: تم تجاوز الحد المسموح من الطلبات
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Maximum requests allowed per window
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when rate limit resets

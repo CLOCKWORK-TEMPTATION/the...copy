@@ -1,6 +1,14 @@
 # دليل استخدام Docker للـ Backend
 # Docker Usage Guide for Backend
 
+## ⚠️ تحذير أمني / Security Warning
+
+**CRITICAL**: Never commit actual credentials to version control!
+- Use `.env` files (already in `.gitignore`)
+- Generate strong random secrets: `openssl rand -base64 32`
+- Use Docker secrets or environment variables in production
+- Rotate credentials regularly
+
 ## 🚀 البدء السريع / Quick Start
 
 ### المتطلبات / Prerequisites
@@ -30,18 +38,19 @@ NODE_ENV=production
 PORT=3001
 
 # AI Services (REQUIRED)
-GOOGLE_GENAI_API_KEY=your-gemini-api-key-here
+GOOGLE_GENAI_API_KEY=<YOUR_GEMINI_API_KEY>
 # OR
-GEMINI_API_KEY=your-gemini-api-key-here
+GEMINI_API_KEY=<YOUR_GEMINI_API_KEY>
 
 # Database (PostgreSQL)
-DATABASE_URL=postgresql://<username>:<password>@postgres:5432/<database>
-POSTGRES_DB=<database_name>
-POSTGRES_USER=<username>
-POSTGRES_PASSWORD=<strong_password>
+DATABASE_URL=postgresql://<USERNAME>:<PASSWORD>@postgres:5432/<DATABASE>
+POSTGRES_DB=<DATABASE_NAME>
+POSTGRES_USER=<USERNAME>
+POSTGRES_PASSWORD=<STRONG_PASSWORD>
 
 # Security (REQUIRED - minimum 32 characters)
-JWT_SECRET=<generate_random_32_char_secret>
+# Generate with: openssl rand -base64 32
+JWT_SECRET=<GENERATE_RANDOM_32_CHAR_SECRET>
 
 # CORS
 CORS_ORIGIN=http://localhost:5000,https://your-frontend-domain.com
@@ -51,7 +60,7 @@ RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 
 # Redis (optional, for caching)
-REDIS_PASSWORD=<redis_password>
+REDIS_PASSWORD=<REDIS_PASSWORD>
 ```
 
 ### 2️⃣ بناء وتشغيل الخدمات / Build and Run Services
@@ -136,16 +145,16 @@ docker-compose exec backend sh
 
 ```bash
 # Access PostgreSQL shell
-docker-compose exec postgres psql -U <username> -d <database>
+docker-compose exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB
 
 # Create database backup
-docker-compose exec postgres pg_dump -U <username> <database> > backup_$(date +%Y%m%d).sql
+docker-compose exec postgres pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup_$(date +%Y%m%d).sql
 
 # Restore database backup
-docker-compose exec -T postgres psql -U <username> -d <database> < backup_20250106.sql
+docker-compose exec -T postgres psql -U $POSTGRES_USER -d $POSTGRES_DB < backup_20250106.sql
 
 # View database tables
-docker-compose exec postgres psql -U <username> -d <database> -c "\dt"
+docker-compose exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB -c "\dt"
 ```
 
 ### التنظيف / Cleanup
@@ -188,8 +197,9 @@ services:
 
 ```bash
 # Create secrets (Swarm mode)
-echo "<your_jwt_secret>" | docker secret create jwt_secret -
-echo "<your_db_password>" | docker secret create db_password -
+# WARNING: Never commit actual secrets to version control
+echo "$JWT_SECRET" | docker secret create jwt_secret -
+echo "$POSTGRES_PASSWORD" | docker secret create db_password -
 
 # Reference in docker-compose.yml
 secrets:
@@ -214,7 +224,7 @@ open http://localhost:3000  # Grafana
 
 ```bash
 # Add to crontab (crontab -e)
-0 2 * * * cd /path/to/backend && docker-compose exec -T postgres pg_dump -U <username> <database> | gzip > /backups/the_copy_$(date +\%Y\%m\%d).sql.gz
+0 2 * * * cd /path/to/backend && docker-compose exec -T postgres pg_dump -U $POSTGRES_USER $POSTGRES_DB | gzip > /backups/the_copy_$(date +\%Y\%m\%d).sql.gz
 ```
 
 ---
@@ -252,7 +262,7 @@ kill -9 $(lsof -t -i:3001)
 docker-compose ps postgres
 
 # Test connection
-docker-compose exec postgres pg_isready -U <username>
+docker-compose exec postgres pg_isready -U $POSTGRES_USER
 ```
 
 **الحل:**
