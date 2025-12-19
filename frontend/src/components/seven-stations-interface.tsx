@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,9 +37,25 @@ import {
   GitMerge,
   Scale,
   MessageSquare,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
+/**
+ * Seven Stations Interface - Enhanced Version
+ * Based on UI_DESIGN_SUGGESTIONS.md
+ *
+ * Features:
+ * - Interactive Station Flow with scroll-snap
+ * - Progress Ring visualization
+ * - Cinematic animations
+ * - View Transitions API support
+ * - Particle effects on completion
+ */
 
 const FileUpload = dynamic(() => import("@/components/file-upload"), {
   loading: () => (
@@ -377,6 +393,7 @@ export default function SevenStationsInterface() {
                   station={station}
                   isActive={isAnalyzing && station.status === "analyzing"}
                   onDebate={handleDebateOpen}
+                  index={index}
                 />
               ))}
             </div>
@@ -444,93 +461,217 @@ export default function SevenStationsInterface() {
 
 // --- Sub-Components ---
 
+// Progress Ring Component for Station Status
+function ProgressRing({
+  progress,
+  size = 48,
+  strokeWidth = 4,
+  className,
+}: {
+  progress: number;
+  size?: number;
+  strokeWidth?: number;
+  className?: string;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      className={cn("progress-ring", className)}
+    >
+      {/* Background circle */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        className="text-muted opacity-20"
+      />
+      {/* Progress circle */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        className="progress-ring__circle text-brand"
+      />
+    </svg>
+  );
+}
+
+// Enhanced Station Card with modern styling
 function StationCard({
   station,
   isActive,
-  onDebate
+  onDebate,
+  index,
 }: {
   station: StationResult;
   isActive: boolean;
   onDebate: (finding: string) => void;
+  index: number;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
   const StatusIcon = () => {
-    if (station.status === "analyzing") return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
-    if (station.status === "completed") return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-    if (station.status === "error") return <AlertTriangle className="h-5 w-5 text-destructive" />;
-    return <station.icon className="h-5 w-5 text-muted-foreground" />;
+    if (station.status === "analyzing") {
+      return (
+        <div className="relative">
+          <ProgressRing progress={50} size={40} strokeWidth={3} />
+          <Loader2 className="absolute inset-0 m-auto h-4 w-4 animate-spin text-brand" />
+        </div>
+      );
+    }
+    if (station.status === "completed") {
+      return (
+        <div className="relative">
+          <ProgressRing progress={100} size={40} strokeWidth={3} />
+          <CheckCircle2 className="absolute inset-0 m-auto h-4 w-4 text-accent-success" />
+        </div>
+      );
+    }
+    if (station.status === "error") {
+      return <AlertTriangle className="h-5 w-5 text-accent-error" />;
+    }
+    return (
+      <div className="relative">
+        <ProgressRing progress={0} size={40} strokeWidth={3} />
+        <station.icon className="absolute inset-0 m-auto h-4 w-4 text-muted-foreground" />
+      </div>
+    );
   };
 
   return (
-    <Card className={cn(
-      "transition-all duration-300 border-l-4",
-      isActive ? "border-l-primary shadow-lg scale-[1.01]" : "border-l-transparent",
-      station.status === "completed" ? "border-l-green-500/50" : ""
-    )}>
-      <CardHeader className="pb-2">
+    <Card
+      ref={cardRef}
+      data-active={isActive}
+      data-completed={station.status === "completed"}
+      className={cn(
+        "station-card relative overflow-hidden transition-all duration-300",
+        "scroll-animate",
+        isActive && "glow-brand",
+        station.status === "completed" && "border-accent-success/30"
+      )}
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      {/* Animated background gradient for active state */}
+      {isActive && (
+        <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent pointer-events-none" />
+      )}
+
+      {/* Station number badge */}
+      <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-bold">
+        {index}
+      </div>
+
+      <CardHeader className="pb-2 pr-14">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "p-2 rounded-full bg-muted",
-              isActive && "bg-primary/10 text-primary"
-            )}>
-              <StatusIcon />
-            </div>
+          <div className="flex items-center gap-4">
+            <StatusIcon />
             <div>
-              <CardTitle className="text-lg">{station.name}</CardTitle>
-              <CardDescription>{station.description}</CardDescription>
+              <CardTitle className="text-lg flex items-center gap-2">
+                {station.name}
+                {isActive && (
+                  <Zap className="h-4 w-4 text-brand animate-pulse" />
+                )}
+              </CardTitle>
+              <CardDescription className="mt-1">{station.description}</CardDescription>
             </div>
           </div>
           {station.status === "completed" && (
-            <Badge variant={station.confidence > 0.8 ? "default" : "secondary"}>
+            <Badge
+              variant={station.confidence > 0.8 ? "default" : "secondary"}
+              className={cn(
+                "transition-all",
+                station.confidence > 0.8 && "bg-accent-success text-white"
+              )}
+            >
+              <Sparkles className="h-3 w-3 ml-1" />
               ثقة: {Math.round(station.confidence * 100)}%
             </Badge>
           )}
         </div>
       </CardHeader>
-      
+
       {station.status === "completed" && (
-        <CardContent className="pt-2 space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
-          {/* Metrics Grid */}
+        <CardContent className="pt-2 space-y-4 animate-fade-in">
+          {/* Metrics Grid with improved styling */}
           {station.metrics && station.metrics.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="grid grid-cols-3 gap-3 mb-4">
               {station.metrics.map((m, i) => (
-                <div key={i} className="bg-muted/30 p-2 rounded text-center">
-                  <div className="text-xs text-muted-foreground mb-1">{m.label}</div>
-                  <div className="text-lg font-bold text-primary">{Math.round(m.value)}</div>
+                <div
+                  key={i}
+                  className="metric-card p-3 rounded-lg text-center card-interactive"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                >
+                  <div className="text-xs text-muted-foreground mb-2">{m.label}</div>
+                  <div className="metric-card__value text-2xl font-bold text-brand">
+                    {Math.round(m.value)}
+                  </div>
+                  <div className={cn(
+                    "metric-card__trend text-xs mt-1",
+                    m.trend === "up" && "text-accent-success",
+                    m.trend === "down" && "text-accent-error",
+                    m.trend === "stable" && "text-muted-foreground"
+                  )}>
+                    {m.trend === "up" && "↑"}
+                    {m.trend === "down" && "↓"}
+                    {m.trend === "stable" && "→"}
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Findings List */}
+          {/* Findings List with hover effects */}
           <div className="space-y-2">
             {station.findings.map((finding, idx) => (
-              <div key={idx} className="flex items-start gap-2 group p-2 rounded hover:bg-muted/50 transition-colors">
-                <div className="mt-1 h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
-                <p className="text-sm flex-1">{finding}</p>
+              <div
+                key={idx}
+                className="flex items-start gap-3 group p-3 rounded-lg hover:bg-muted/50 transition-all duration-200 cursor-pointer"
+              >
+                <div className="mt-1.5 h-2 w-2 rounded-full bg-accent-error shrink-0 group-hover:scale-125 transition-transform" />
+                <p className="text-sm flex-1 leading-relaxed">{finding}</p>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="opacity-0 group-hover:opacity-100 h-6 text-xs text-muted-foreground hover:text-destructive transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 h-7 text-xs text-muted-foreground hover:text-accent-error hover:bg-accent-error/10 transition-all"
                   onClick={() => onDebate(finding)}
                 >
+                  <Gavel className="h-3 w-3 ml-1" />
                   اعترض!
                 </Button>
               </div>
             ))}
           </div>
 
-          {/* Cross-Station Alerts */}
+          {/* Cross-Station Alerts with improved styling */}
           {station.alerts && station.alerts.length > 0 && (
-            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
-              <h4 className="text-xs font-bold text-amber-600 mb-2 flex items-center gap-1">
-                <GitMerge className="h-3 w-3" /> تعارض مع محطات أخرى
+            <div className="mt-4 p-4 bg-accent-warning/10 border border-accent-warning/20 rounded-xl">
+              <h4 className="text-sm font-bold text-accent-warning mb-3 flex items-center gap-2">
+                <GitMerge className="h-4 w-4" /> تعارض مع محطات أخرى
               </h4>
-              {station.alerts.map((alert, i) => (
-                <div key={i} className="text-xs text-amber-800/80">
-                  • يتعارض مع <strong>{alert.targetStation}</strong>: {alert.issue}
-                </div>
-              ))}
+              <div className="space-y-2">
+                {station.alerts.map((alert, i) => (
+                  <div key={i} className="text-sm text-foreground/80 flex items-start gap-2">
+                    <span className="text-accent-warning">•</span>
+                    <span>
+                      يتعارض مع <strong className="text-foreground">{alert.targetStation}</strong>: {alert.issue}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
