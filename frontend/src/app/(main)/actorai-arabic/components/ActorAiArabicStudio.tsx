@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VoiceCoach } from "./VoiceCoach";
 
 // ==================== أنواع البيانات ====================
 
@@ -82,7 +83,7 @@ interface VocalExercise {
   category: "breathing" | "articulation" | "projection" | "resonance";
 }
 
-type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "rhythm";
+type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "voicecoach" | "rhythm" | "webcam" | "ar";
 
 // ==================== أنواع بيانات تحليل الإيقاع ====================
 
@@ -1195,6 +1196,13 @@ export const ActorAiArabicStudio: React.FC = () => {
               🎤 تمارين الصوت
             </Button>
             <Button
+              onClick={() => navigate("voicecoach")}
+              variant={currentView === "voicecoach" ? "secondary" : "ghost"}
+              className={currentView === "voicecoach" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
+            >
+              🎙️ مدرب الصوت
+            </Button>
+            <Button
               onClick={() => navigate("rhythm")}
               variant={currentView === "rhythm" ? "secondary" : "ghost"}
               className={currentView === "rhythm" ? "bg-white text-blue-900" : "text-white hover:bg-blue-800"}
@@ -1419,6 +1427,9 @@ export const ActorAiArabicStudio: React.FC = () => {
           <Button size="lg" variant="outline" onClick={() => navigate("vocal")}>
             🎤 تمارين الصوت
           </Button>
+<Button size="lg" onClick={() => navigate("voicecoach")} className="bg-purple-600 hover:bg-purple-700">
+            🎙️ مدرب الصوت
+          </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("webcam")}>
             👁️ التحليل البصري
           </Button>
@@ -1437,7 +1448,7 @@ export const ActorAiArabicStudio: React.FC = () => {
         <div className="text-8xl opacity-30 mb-12">🎭</div>
 
         {/* الميزات */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mt-12">
           <Card className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <div className="text-5xl mb-4">🧠</div>
@@ -1455,6 +1466,17 @@ export const ActorAiArabicStudio: React.FC = () => {
               <p className="text-gray-600">
                 تدرب على المشاهد مع شريك ذكي يستجيب بطبيعية
               </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+            <CardContent className="p-6 text-center">
+              <div className="text-5xl mb-4">🎙️</div>
+              <h3 className="text-xl font-semibold mb-2 text-purple-900">مدرب الصوت اللحظي</h3>
+              <p className="text-purple-700">
+                تحليل فوري: طبقة الصوت، الشدة، السرعة، الوقفات، التنفس
+              </p>
+              <Badge className="mt-3 bg-purple-600">جديد ✨</Badge>
             </CardContent>
           </Card>
 
@@ -1488,7 +1510,7 @@ export const ActorAiArabicStudio: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card
+<Card
             className="hover:shadow-lg transition-shadow border-2 border-red-500/30 bg-gradient-to-br from-red-50 to-pink-50 cursor-pointer"
             onClick={() => window.location.href = "/actorai-arabic/self-tape-suite"}
           >
@@ -1499,6 +1521,9 @@ export const ActorAiArabicStudio: React.FC = () => {
                 Teleprompter ذكي • تسجيل متعدد • مقارنة • ملاحظات AI • تصدير Casting
               </p>
               <Badge className="mt-2 bg-red-500">جديد - المرحلة 3</Badge>
+            </CardContent>
+          </Card>
+
           <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
             <CardContent className="p-6 text-center">
               <div className="text-5xl mb-4">🥽</div>
@@ -3205,6 +3230,25 @@ export const ActorAiArabicStudio: React.FC = () => {
                     {session.score}/100
                   </Badge>
                 </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+// ==================== صفحة مدرب الصوت ====================
+
+  const renderVoiceCoach = () => (
+    <div className="max-w-6xl mx-auto py-8">
+      <h2 className="text-3xl font-bold text-gray-800 mb-2">🎙️ مدرب الصوت اللحظي</h2>
+      <p className="text-gray-600 mb-8">تحليل صوتي متقدم لتطوير أدائك التمثيلي</p>
+      <VoiceCoach />
+    </div>
+  );
+
+  // ==================== صفحة إيقاع المشهد ====================
               ))}
             </div>
           </CardContent>
@@ -4831,3 +4875,44 @@ export const ActorAiArabicStudio: React.FC = () => {
   );
 
   // ==================== تحديد المحتوى الرئيسي ====================
+
+  const renderMainContent = () => {
+    switch (currentView) {
+      case "home":
+        return renderHome();
+      case "demo":
+        return renderDemo();
+      case "vocal":
+        return renderVocalExercises();
+      case "voicecoach":
+        return renderVoiceCoach();
+      case "rhythm":
+        return renderSceneRhythm();
+      case "webcam":
+        return renderWebcamAnalysis();
+      case "ar":
+        return renderARTraining();
+      case "dashboard":
+        return renderDashboard();
+      case "login":
+        return renderLogin();
+      case "register":
+        return renderRegister();
+      default:
+        return renderHome();
+    }
+  };
+
+  // ==================== العرض النهائي ====================
+
+  return (
+    <div className={`min-h-screen ${theme === "dark" ? "dark bg-gray-900" : "bg-gray-50"}`} dir="rtl">
+      {renderHeader()}
+      {renderNotification()}
+      <main className="container mx-auto px-4 py-8">
+        {renderMainContent()}
+      </main>
+      {renderFooter()}
+    </div>
+  );
+};
