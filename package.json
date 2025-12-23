@@ -21,6 +21,7 @@
     "check:exports:json": "node scripts/check-duplicate-exports.mjs --output json",
     "check:exports:fix": "node scripts/check-duplicate-exports.mjs --fix",
     "approve-builds": "node scripts/approve-build-warnings.js",
+    "audit:code": "npx tsx scripts/code-auditor.ts",
     "dev": "pnpm start:dev",
     "preview": "pnpm --filter frontend start"
   },
