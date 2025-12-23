@@ -72,6 +72,9 @@ export interface PipelineRunResult {
     totalExecutionTime: number;
     startedAt: string;
     finishedAt: string;
+    agentsUsed?: number;
+    averageConfidence?: number;
+    successfulAgents?: number;
   };
 }
 
