@@ -130,7 +130,7 @@ function detectPitch(buffer: Float32Array, sampleRate: number): number {
 
   // حساب RMS لتحديد إذا كان هناك صوت
   for (let i = 0; i < SIZE; i++) {
-    const val = buffer[i];
+    const val = buffer[i] ?? 0;
     rms += val * val;
   }
   rms = Math.sqrt(rms / SIZE);
@@ -143,7 +143,9 @@ function detectPitch(buffer: Float32Array, sampleRate: number): number {
     let correlation = 0;
 
     for (let i = 0; i < MAX_SAMPLES; i++) {
-      correlation += Math.abs(buffer[i] - buffer[i + offset]);
+      const val1 = buffer[i] ?? 0;
+      const val2 = buffer[i + offset] ?? 0;
+      correlation += Math.abs(val1 - val2);
     }
     correlation = 1 - correlation / MAX_SAMPLES;
     correlations[offset] = correlation;
@@ -213,7 +215,8 @@ export function useVoiceAnalytics() {
     // حساب مستوى الصوت (RMS to dB)
     let sum = 0;
     for (let i = 0; i < bufferLength; i++) {
-      sum += dataArray[i] * dataArray[i];
+      const val = dataArray[i] ?? 0;
+      sum += val * val;
     }
     const rms = Math.sqrt(sum / bufferLength);
     const decibels = 20 * Math.log10(rms + 0.0001);

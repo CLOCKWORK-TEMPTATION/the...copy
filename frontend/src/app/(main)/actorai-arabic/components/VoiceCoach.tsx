@@ -63,7 +63,8 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({ data, isActive }) => 
     let x = 0;
 
     for (let i = 0; i < data.length; i++) {
-      const v = data[i] * 2 + 0.5; // تطبيع البيانات
+      const dataPoint = data[i] ?? 0;
+      const v = dataPoint * 2 + 0.5; // تطبيع البيانات
       const y = (v * height) / 2;
 
       if (i === 0) {
@@ -126,7 +127,8 @@ const FrequencyDisplay: React.FC<FrequencyDisplayProps> = ({ data, isActive }) =
     gradient.addColorStop(1, "#ec4899");
 
     for (let i = 0; i < data.length; i++) {
-      const barHeight = (data[i] / 255) * height;
+      const dataValue = data[i] ?? 0;
+      const barHeight = (dataValue / 255) * height;
       ctx.fillStyle = gradient;
       ctx.fillRect(i * barWidth, height - barHeight, barWidth - 1, barHeight);
     }

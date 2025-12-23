@@ -515,7 +515,7 @@ export function ColorGradingPreview({
                       value={[grade.temperature]}
                       min={-100}
                       max={100}
-                      onValueChange={([v]) => updateGrade("temperature", v)}
+                      onValueChange={([v]) => updateGrade("temperature", v ?? grade.temperature)}
                     />
                   </div>
                 </div>
@@ -533,7 +533,7 @@ export function ColorGradingPreview({
                     value={[grade.contrast]}
                     min={50}
                     max={200}
-                    onValueChange={([v]) => updateGrade("contrast", v)}
+                    onValueChange={([v]) => updateGrade("contrast", v ?? grade.contrast)}
                   />
                 </div>
 
@@ -550,7 +550,7 @@ export function ColorGradingPreview({
                     value={[grade.saturation]}
                     min={0}
                     max={200}
-                    onValueChange={([v]) => updateGrade("saturation", v)}
+                    onValueChange={([v]) => updateGrade("saturation", v ?? grade.saturation)}
                   />
                 </div>
 
@@ -570,7 +570,7 @@ export function ColorGradingPreview({
                     min={-2}
                     max={2}
                     step={0.1}
-                    onValueChange={([v]) => updateGrade("exposure", v)}
+                    onValueChange={([v]) => updateGrade("exposure", v ?? grade.exposure)}
                   />
                 </div>
 
@@ -585,7 +585,7 @@ export function ColorGradingPreview({
                       value={[grade.highlights]}
                       min={-100}
                       max={100}
-                      onValueChange={([v]) => updateGrade("highlights", v)}
+                      onValueChange={([v]) => updateGrade("highlights", v ?? grade.highlights)}
                     />
                   </div>
                   <div className="space-y-1">
@@ -597,7 +597,7 @@ export function ColorGradingPreview({
                       value={[grade.shadows]}
                       min={-100}
                       max={100}
-                      onValueChange={([v]) => updateGrade("shadows", v)}
+                      onValueChange={([v]) => updateGrade("shadows", v ?? grade.shadows)}
                     />
                   </div>
                 </div>

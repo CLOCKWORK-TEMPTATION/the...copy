@@ -746,7 +746,7 @@ export function SpatialScenePlanner({
               {/* Camera Presets */}
               <div className="mb-4">
                 <p className="text-xs text-muted-foreground mb-2">قوالب جاهزة</p>
-                <Select onValueChange={(v) => applyCameraPreset(CAMERA_PRESETS[parseInt(v)])}>
+                <Select onValueChange={(v) => { const preset = CAMERA_PRESETS[parseInt(v)]; if (preset) applyCameraPreset(preset); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر قالب..." />
                   </SelectTrigger>
