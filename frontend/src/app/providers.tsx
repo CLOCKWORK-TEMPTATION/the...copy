@@ -2,12 +2,14 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState } from "react";
+import { NotificationProvider } from "@/components/providers/notification-provider";
 
 /**
  * Providers Component
  *
  * Wraps the application with necessary providers:
  * - QueryClientProvider: for React Query state management
+ * - NotificationProvider: for global notifications
  *
  * This component must use 'use client' directive since it manages client-side state
  */
@@ -30,7 +32,11 @@ function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <NotificationProvider>
+        {children}
+      </NotificationProvider>
+    </QueryClientProvider>
   );
 }
 
