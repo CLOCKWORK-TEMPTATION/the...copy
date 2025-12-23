@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/react";
+import * as Sentry from "@sentry/nextjs";
 import { log } from "./loggerService";
 // No-op replacements for missing GA functions
 const sendGAEvent = (..._args: any[]) => {};

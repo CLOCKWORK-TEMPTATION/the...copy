@@ -102,7 +102,7 @@ class LoggerService {
 
     try {
       // Import Sentry dynamically to avoid issues if not available
-      import("@sentry/react")
+      import("@sentry/nextjs")
         .then(({ captureMessage, captureException }) => {
           if (entry.level === LogLevel.ERROR) {
             if (entry.context instanceof Error) {

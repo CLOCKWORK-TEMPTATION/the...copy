@@ -381,8 +381,10 @@ export function LensSimulator({ className, onLensChange }: LensSimulatorProps) {
                     max={200}
                     step={1}
                     onValueChange={([v]) => {
-                      setFocalLength(v);
-                      setSelectedPreset(null);
+                      if (v !== undefined) {
+                        setFocalLength(v);
+                        setSelectedPreset(null);
+                      }
                     }}
                     className="cursor-pointer"
                   />
@@ -407,7 +409,7 @@ export function LensSimulator({ className, onLensChange }: LensSimulatorProps) {
                     min={1.4}
                     max={22}
                     step={0.1}
-                    onValueChange={([v]) => setAperture(v)}
+                    onValueChange={([v]) => v !== undefined && setAperture(v)}
                     className="cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-zinc-600">
@@ -434,7 +436,7 @@ export function LensSimulator({ className, onLensChange }: LensSimulatorProps) {
                     min={0}
                     max={20}
                     step={1}
-                    onValueChange={([v]) => setDistortion(v)}
+                    onValueChange={([v]) => v !== undefined && setDistortion(v)}
                     className="cursor-pointer"
                   />
                 </div>

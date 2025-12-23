@@ -143,7 +143,7 @@ export function DOFCalculator({ className, onCalculate }: DOFCalculatorProps) {
   const [distance, setDistance] = React.useState(3); // meters
   const [result, setResult] = React.useState<DOFResult | null>(null);
 
-  const selectedSensor = SENSOR_PRESETS.find((s) => s.id === sensorId) || SENSOR_PRESETS[1];
+  const selectedSensor = SENSOR_PRESETS.find((s) => s.id === sensorId) ?? SENSOR_PRESETS[1] ?? SENSOR_PRESETS[0]!;
 
   // Calculate DOF when parameters change
   React.useEffect(() => {
@@ -409,7 +409,7 @@ export function DOFCalculator({ className, onCalculate }: DOFCalculatorProps) {
                     min={14}
                     max={200}
                     step={1}
-                    onValueChange={([v]) => setFocalLength(v)}
+                    onValueChange={([v]) => v !== undefined && setFocalLength(v)}
                   />
                   <div className="flex justify-between text-xs text-zinc-600">
                     <span>14mm</span>
@@ -431,7 +431,7 @@ export function DOFCalculator({ className, onCalculate }: DOFCalculatorProps) {
                     min={1.4}
                     max={22}
                     step={0.1}
-                    onValueChange={([v]) => setAperture(v)}
+                    onValueChange={([v]) => v !== undefined && setAperture(v)}
                   />
                   <div className="flex justify-between text-xs text-zinc-600">
                     <span>f/1.4 (ضحل)</span>
@@ -462,7 +462,7 @@ export function DOFCalculator({ className, onCalculate }: DOFCalculatorProps) {
                     min={0.3}
                     max={50}
                     step={0.1}
-                    onValueChange={([v]) => setDistance(v)}
+                    onValueChange={([v]) => v !== undefined && setDistance(v)}
                   />
                   <div className="flex justify-between text-xs text-zinc-600">
                     <span>30سم</span>
