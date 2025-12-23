@@ -420,7 +420,7 @@
     "Uses both PostgreSQL (Drizzle ORM) and MongoDB - dual database system"
   ],
   "metadata": {
-    "analyzedAt": "2025-12-23T20:55:32.980Z",
+    "analyzedAt": "2025-12-23T20:56:38.430Z",
     "projectRoot": "/home/runner/work/the...copy/the...copy",
     "filesAnalyzed": 22
   }
