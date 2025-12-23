@@ -20,7 +20,7 @@ import { realtimeController } from '@/controllers/realtime.controller';
 import { authMiddleware } from '@/middleware/auth.middleware';
 import { logger } from '@/utils/logger';
 import { closeDatabase } from '@/db';
-import { connectMongoDB, closeMongoDB } from '@/config/mongodb';
+
 import { initializeWorkers, shutdownQueues } from '@/queues';
 import { setupBullBoard, getAuthenticatedBullBoardRouter } from '@/middleware/bull-board.middleware';
 import { queueController } from '@/controllers/queue.controller';
@@ -61,16 +61,7 @@ try {
   logger.error('Failed to initialize WebSocket service:', error);
 }
 
-// Initialize MongoDB connection
-(async () => {
-  try {
-    await connectMongoDB();
-    logger.info('MongoDB initialized');
-  } catch (error) {
-    logger.error('Failed to initialize MongoDB:', error);
-    // Continue without MongoDB - app can still function with PostgreSQL
-  }
-})();
+
 
 // Initialize background job workers (BullMQ)
 (async () => {
@@ -107,7 +98,6 @@ app.get('/api/health', async (req, res) => {
     uptime: process.uptime(),
     services: {
       redis: redisStatus,
-      mongodb: 'connected', // Will be enhanced later
       database: 'connected'
     }
   });
@@ -252,7 +242,6 @@ process.on('SIGTERM', async (): Promise<void> => {
 
   // Close database connections
   await closeDatabase();
-  await closeMongoDB();
 
   if (runningServer) {
     runningServer.close(() => {
@@ -285,7 +274,6 @@ process.on('SIGINT', async (): Promise<void> => {
 
   // Close database connections
   await closeDatabase();
-  await closeMongoDB();
 
   if (runningServer) {
     runningServer.close(() => {
