@@ -80,6 +80,9 @@
   --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
   --easing-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
+  /* === View Transitions === */
+  --view-transition-duration: 0.3s;
+
   /* === Sidebar Colors === */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -883,5 +886,116 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* === Modern CSS Features (2025) === */
+  
+  /* View Transitions */
+  @view-transition {
+    navigation: auto;
+  }
+
+  /* Scroll-driven animations utility */
+  @utility scroll-fade-in {
+    animation: fade-in linear;
+    animation-timeline: scroll();
+    animation-range: entry 0% cover 30%;
+  }
+
+  @utility scroll-slide-up {
+    animation: slide-up linear;
+    animation-timeline: scroll();
+    animation-range: entry 0% cover 30%;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(2rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Particle effects */
+  @utility particle-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-1rem);
+    }
+  }
+
+  /* Glow effect */
+  @utility glow-primary {
+    box-shadow: 0 0 20px var(--primary);
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px var(--primary);
+    }
+    50% {
+      box-shadow: 0 0 40px var(--primary);
+    }
+  }
+
+  /* Shimmer effect */
+  @utility shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Skeleton loading */
+  @utility skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--muted) 25%,
+      var(--muted-foreground) 50%,
+      var(--muted) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
 }
