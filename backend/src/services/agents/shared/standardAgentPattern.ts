@@ -81,7 +81,7 @@ async function performRAG(
   // Sort by relevance and take top 3
   const indexed = chunks.map((chunk, i) => ({
     chunk,
-    score: relevanceScores[i],
+    score: relevanceScores[i] ?? 0,
   }));
   indexed.sort((a, b) => b.score - a.score);
 
