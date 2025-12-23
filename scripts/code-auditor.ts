@@ -29,15 +29,20 @@ interface TechStack {
   runtime: string[];
 }
 
+type DatabaseFieldType = 'varchar' | 'text' | 'timestamp' | 'integer' | 'jsonb' | 'boolean' | 'decimal' | 'uuid';
+
+interface DataModelField {
+  name: string;
+  type: DatabaseFieldType | string; // Allow string for unknown types
+  nullable?: boolean;
+  unique?: boolean;
+  primary?: boolean;
+  references?: string;
+}
+
 interface DataModel {
   name: string;
-  fields: Array<{
-    name: string;
-    type: string;
-    nullable?: boolean;
-    unique?: boolean;
-    references?: string;
-  }>;
+  fields: DataModelField[];
   relationships: Array<{
     type: 'one-to-many' | 'many-to-one' | 'many-to-many';
     target: string;
@@ -355,9 +360,9 @@ class CodeAuditor {
       const fields = [...tableDef.matchAll(fieldRegex)];
 
       for (const [, fieldName, fieldType, modifiers] of fields) {
-        const field: any = {
+        const field: DataModelField = {
           name: fieldName,
-          type: fieldType,
+          type: fieldType as DatabaseFieldType,
         };
 
         // Check modifiers
@@ -543,7 +548,7 @@ KEY CAPABILITIES (from code evidence):
 ${businessLogic.mainFeatures.map(f => `- ${f}`).join('\n')}
 
 RUNTIME:
-- Node.js ${techStack.runtime.join(', ')}
+- ${techStack.runtime.join(', ')}
 - Package Manager: ${techStack.buildSystem.find(b => b.includes('pnpm')) || 'pnpm'}
 `.trim();
 

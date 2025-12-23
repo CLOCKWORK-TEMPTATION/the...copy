@@ -48,7 +48,7 @@ KEY CAPABILITIES (from code evidence):
 - Ui
 
 RUNTIME:
-- Node.js Node.js 20.x
+- Node.js 20.x
 - Package Manager: pnpm 10.20.0
 
 2. VERIFIED TECH STACK
@@ -225,7 +225,7 @@ Main Features:
 
 METADATA
 ────────────────────────────────────────────────────────────────────────────────
-Analysis Timestamp: 2025-12-23T20:52:35.250Z
+Analysis Timestamp: 2025-12-23T20:55:32.980Z
 Project Root: /home/runner/work/the...copy/the...copy
 Files Analyzed: 22
 
