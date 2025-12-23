@@ -168,7 +168,7 @@ function Sparkline({
       {/* End point */}
       <circle
         cx="100"
-        cy={height - ((data[data.length - 1] - min) / range) * (height - 8)}
+        cy={height - (((data[data.length - 1] ?? min) - min) / range) * (height - 8)}
         r="3"
         fill={color}
         className="drop-shadow-md"
@@ -220,11 +220,12 @@ export function MetricsCard({
   className,
 }: MetricsCardProps) {
   // Calculate trend if not provided
+  const numericValue = typeof value === 'number' ? value : Number(value);
   const calculatedTrend = trend || (
     previousValue !== undefined
-      ? value > previousValue
+      ? numericValue > previousValue
         ? "up"
-        : value < previousValue
+        : numericValue < previousValue
         ? "down"
         : "stable"
       : undefined
@@ -260,7 +261,7 @@ export function MetricsCard({
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
           <span>{title}</span>
           {calculatedTrend && (
-            <TrendBadge trend={calculatedTrend} percentage={calculatedPercentage} />
+            <TrendBadge trend={calculatedTrend} percentage={calculatedPercentage ?? 0} />
           )}
         </CardTitle>
       </CardHeader>
