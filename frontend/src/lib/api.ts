@@ -61,6 +61,43 @@ async function fetchWithAuth(
  * API functions for AI services
  */
 
+/**
+ * Seven Stations Analysis - NEW BACKEND ENDPOINT
+ * Triggers multi-agent analysis pipeline on backend
+ */
+export async function runSevenStationsAnalysis(
+  text: string,
+  async: boolean = true
+): Promise<ApiResponse<any>> {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+  
+  const response = await fetchWithAuth(`${backendUrl}/api/analysis/seven-stations`, {
+    method: "POST",
+    body: JSON.stringify({ text, async }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Seven Stations analysis failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get analysis job status
+ */
+export async function getAnalysisJobStatus(jobId: string): Promise<ApiResponse<any>> {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+  
+  const response = await fetchWithAuth(`${backendUrl}/api/queue/jobs/${jobId}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to get job status: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
 export async function analyzeScript(
   projectId: string,
   script: string
@@ -276,6 +313,8 @@ export async function deleteShot(shotId: string): Promise<ApiResponse<void>> {
 
 // Export all functions as a namespace for wildcard imports
 export default {
+  runSevenStationsAnalysis,
+  getAnalysisJobStatus,
   analyzeScript,
   getShotSuggestion,
   chatWithAI,
