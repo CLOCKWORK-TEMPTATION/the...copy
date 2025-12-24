@@ -127,7 +127,7 @@
     "@next/bundle-analyzer": "^16.0.10",
     "@next/eslint-plugin-next": "^16.0.7",
     "@playwright/test": "^1.49.1",
-    "@sentry/cli": "^2.58.2",
+    "@sentry/cli": "^3.0.1",
     "@tailwindcss/postcss": "^4.1.16",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
