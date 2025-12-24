@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # 1. تحديث مكتبات الـ npm (Backend & Frontend)
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    # يفتح PR أوتوماتيك لو فيه تحديث أمني
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # 2. تحديث صور الـ Docker (عشان مشاكل Trivy)
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
