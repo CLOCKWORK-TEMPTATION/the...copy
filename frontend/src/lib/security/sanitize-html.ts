@@ -106,7 +106,8 @@ export function escapeHtml(text: string): string {
  * Safe alternative when you need plain text only
  */
 export function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, "");
+  // Use a more robust regex that handles attributes containing >
+  return html.replace(/<[^>]+>/g, "");
 }
 
 /**

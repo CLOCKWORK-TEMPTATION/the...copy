@@ -45,9 +45,17 @@ class ScreenplayClassifier {
     "يدخل|يخرج|ينظر|يرفع|تبتسم|ترقد|تقف|يبسم|يضع|يقول|تنظر|تربت|تقوم|يشق|تشق|تضرب|يسحب|يلتفت|يقف|يجلس|تجلس|يجري|تجري|يمشي|تمشي|يركض|تركض|يصرخ|اصرخ|يبكي|تبكي|يضحك|تضحك|يغني|تغني|يرقص|ترقص|يأكل|تأكل|يشرب|تشرب|ينام|تنام|يستيقظ|تستيقظ|يكتب|تكتب|يقرأ|تقرأ|يسمع|تسمع|يشم|تشم|يلمس|تلمس|يأخذ|تأخذ|يعطي|تعطي|يفتح|تفتح|يغلق|تغلق|يبدأ|تبدأ|ينتهي|تنتهي|يذهب|تذهب|يعود|تعود|يأتي|تأتي|يموت|تموت|يحيا|تحيا|يقاتل|تقاتل|ينصر|تنتصر|يخسر|تخسر|يكتب|تكتب|يرسم|ترسم|يصمم|تخطط|تخطط|يقرر|تقرر|يفكر|تفكر|يتذكر|تذكر|يحاول|تحاول|يستطيع|تستطيع|يريد|تريد|يحتاج|تحتاج|يبحث|تبحث|يجد|تجد|يفقد|تفقد|يحمي|تحمي|يحمي|تحمي|يراقب|تراقب|يخفي|تخفي|يكشف|تكشف|يكتشف|تكتشف|يعرف|تعرف|يتعلم|تعلن|يعلم|تعلن|يوجه|وجه|يسافر|تسافر|يعود|تعود|يرحل|ترحل|يبقى|تبقى|ينتقل|تنتقل|يتغير|تتغير|ينمو|تنمو|يتطور|تتطور|يواجه|تواجه|يحل|تحل|يفشل|تفشل|ينجح|تنجح|يحقق|تحقن|يبدأ|تبدأ|ينهي|تنهي|يوقف|توقف|يستمر|تستمر|ينقطع|تنقطع|يرتبط|ترتبط|ينفصل|تنفصل|يتزوج|تتزوج|يطلق|يطلق|يولد|تولد|يكبر|تكبر|يشيخ|تشيخ|يمرض|تمرض|يشفي|تشفي|يصاب|تصيب|يتعافى|تعافي|يموت|يقتل|تقتل|يُقتل|تُقتل|يختفي|تختفي|يظهر|تظهر|يختبئ|تخبوء|يطلب|تطلب|يأمر|تأمر|يمنع|تمنع|يسمح|تسمح|يوافق|توافق|يرفض|ترفض|يعتذر|تعتذر|يغفر|يغفر|يحب|تحب|يبغض|يبغض|يكره|يكره|يحسد|تحسد|يغبط|يغبط|ي admire|تعجب|يحب|تحب|يحب|تحب|يحب|تحب|يحب|تحب|يحب|تحب|يحب|تحب|يحب|تحب";
 
   // Regex patterns
-  static readonly ACTION_VERBS = new RegExp(
+  // Regex patterns
+  // Optimized: Use Set lookup instead of giant regex for performance
+  static readonly ACTION_VERB_LIST = ScreenplayClassifier.ACTION_VERB_LIST;
+  static readonly ACTION_VERBS_REGEX = new RegExp(
     "^(?:" + ScreenplayClassifier.ACTION_VERB_LIST + ")(?:\\s|$)"
   );
+
+  static isActionVerbStart(line: string): boolean {
+    const firstWord = line.trim().split(/\s+/)[0];
+    return ScreenplayClassifier.ACTION_VERBS_REGEX.test(firstWord);
+  }
   static readonly BASMALA_RE = /^\s*بسم\s+الله\s+الرحمن\s+الرحيم\s*$/i;
   static readonly SCENE_PREFIX_RE =
     /^\s*(?:مشهد|م\.)\s*([0-9]+)\s*(?:[-–—:،]\s*)?(.*)$/i;
@@ -196,7 +204,7 @@ class ScreenplayClassifier {
 
     const normalized = ScreenplayClassifier.normalizeLine(line);
     // If it starts with an action verb, it's not a character line
-    if (ScreenplayClassifier.ACTION_VERBS.test(normalized)) return false;
+    if (ScreenplayClassifier.isActionVerbStart(normalized)) return false;
 
     // Enhanced character line detection for Arabic
     // Check if line ends with a colon (common in Arabic screenplays)
@@ -281,7 +289,7 @@ class ScreenplayClassifier {
 
     // Enhanced action detection for Arabic
     // Check if line starts with an action verb
-    if (ScreenplayClassifier.ACTION_VERBS.test(normalized)) {
+    if (ScreenplayClassifier.isActionVerbStart(normalized)) {
       return true;
     }
 

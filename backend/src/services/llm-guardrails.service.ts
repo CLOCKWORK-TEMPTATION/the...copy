@@ -44,21 +44,21 @@ export interface GuardrailMetrics {
 
 // Prompt Injection Detection Patterns
 const BANNED_PATTERNS = [
-  /ignore.*previous.*instructions/i,
+  /ignore.{0,100}previous.{0,100}instructions/i,
   /you are now/i,
-  /forget.*above/i,
-  /disregard.*instructions/i,
-  /system.*prompt/i,
-  /roleplay.*as/i,
-  /act.*as.*if/i,
-  /bypass.*security/i,
-  /override.*restrictions/i,
-  /debug.*mode/i,
-  /admin.*access/i,
-  /root.*privileges/i,
-  /exploit.*vulnerability/i,
-  /hack.*system/i,
-  /malicious.*code/i,
+  /forget.{0,100}above/i,
+  /disregard.{0,100}instructions/i,
+  /system.{0,100}prompt/i,
+  /roleplay.{0,100}as/i,
+  /act.{0,100}as.{0,100}if/i,
+  /bypass.{0,100}security/i,
+  /override.{0,100}restrictions/i,
+  /debug.{0,100}mode/i,
+  /admin.{0,100}access/i,
+  /root.{0,100}privileges/i,
+  /exploit.{0,100}vulnerability/i,
+  /hack.{0,100}system/i,
+  /malicious.{0,100}code/i,
 ];
 
 const SUSPICIOUS_PATTERNS = [

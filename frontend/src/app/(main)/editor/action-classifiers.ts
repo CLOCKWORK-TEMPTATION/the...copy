@@ -220,7 +220,7 @@ export const ACTION_INDICATORS = [
 export function startsWithActionPattern(line: string): boolean {
   const actionStartPatterns = [
     /^\s*[-–—]?\s*(?:نرى|ننظر|نسمع|نلاحظ|يبدو|يظهر|يبدأ|ينتهي|يستمر|يتوقف|يتحرك|يحدث|يكون|يوجد|توجد|تظهر)/,
-    /^\s*[-–—]?\s*[ي|ت][\u0600-\u06FF]+\s+(?:[^\s\u0600-\u06FF]*\s*)*[^\s\u0600-\u06FF]/,
+    /^\s*[-–—]?\s*[ي|ت][\u0600-\u06FF]+\s+(?:[^\s\u0600-\u06FF]+\s*)*[^\s\u0600-\u06FF]/,
   ];
 
   return actionStartPatterns.some((pattern) => pattern.test(line));

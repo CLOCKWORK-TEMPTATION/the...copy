@@ -10,24 +10,23 @@
 /**
  * Sanitize HTML content to prevent XSS attacks
  */
+import DOMPurify from "dompurify";
+
+/**
+ * Sanitize HTML content to prevent XSS attacks
+ */
 export const sanitizeHTML = (input: string): string => {
   if (!input || typeof input !== "string") {
     return "";
   }
 
-  // Basic HTML sanitization - remove dangerous tags and attributes
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, "")
-    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, "")
-    .replace(/<link\b[^<]*>/gi, "")
-    .replace(/<meta\b[^<]*>/gi, "")
-    .replace(/on\w+="[^"]*"/gi, "") // Remove event handlers
-    .replace(/javascript:/gi, "") // Remove javascript: protocol
-    .replace(/vbscript:/gi, "") // Remove vbscript: protocol
-    .replace(/data:/gi, "") // Remove data: protocol
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ""); // Remove style tags
+  // Use DOMPurify if available (client-side)
+  if (typeof window !== "undefined") {
+    return DOMPurify.sanitize(input);
+  }
+
+  // Server-side fallback: strip all tags to be safe if full sanitization is not possible
+  return input.replace(/<[^>]*>/g, "");
 };
 
 /**
@@ -80,10 +79,7 @@ export const sanitizeURL = (url: string): string => {
       return "";
     }
 
-    // Remove javascript: and data: protocols
-    if (urlObj.protocol === "javascript:" || urlObj.protocol === "data:") {
-      return "";
-    }
+    return urlObj.toString();
 
     return urlObj.toString();
   } catch {
