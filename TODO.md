@@ -9,12 +9,16 @@
   - [ ] Retention: 30 days minimum
   - [ ] المسؤول: DevOps Lead
 
-- [ ] **2. اختبار Database Restore**
-  - [ ] استعادة Backup الأخير إلى Test Environment
-  - [ ] التحقق من سلامة البيانات
-  - [ ] توثيق الخطوات في Runbook
-  - [ ] المسؤول: DevOps + DBA
-  -
+- [x] **2. اختبار Database Restore**
+  - [x] استعادة Backup الأخير إلى Test Environment
+  - [x] التحقق من سلامة البيانات
+  - [x] توثيق الخطوات في Runbook
+  - [x] المسؤول: DevOps + DBA
+  - **التنفيذ**: تم إنشاء Scripts آلية في `scripts/database/`:
+    - `test-restore.sh` - اختبار الاستعادة
+    - `verify-data-integrity.sh` - التحقق من سلامة البيانات
+    - `cleanup-test-dbs.sh` - تنظيف قواعد البيانات التجريبية
+  - **التوثيق**: تم تحديث `docs/operations/RUNBOOKS.md` القسم 4.6
 
 - [ ] **3. تعقيم Logs من PII**
   - [ ] إضافة Log Sanitization Middleware
