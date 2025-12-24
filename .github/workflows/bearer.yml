@@ -33,6 +33,21 @@ jobs:
           # 0 تعني عدم كسر الـ Build حتى لو وجدت مشاكل (مهم في البداية)
           # يمكنك تغييرها لاحقاً لـ 1 لفرض الأمان بالقوة
           exit-code: 0
+          # استبعاد المسارات المعروفة بأنها false positives
+          skip-rules: ''
+          # إضافة ملف التكوين للـ exclusions
+          config: |
+            {
+              "skip_paths": [
+                "node_modules",
+                ".next",
+                "dist",
+                "build",
+                "coverage",
+                "test",
+                "__tests__"
+              ]
+            }
 
       # رفع التقرير إلى تبويب Security في GitHub
       - name: Upload SARIF file

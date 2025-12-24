@@ -27,6 +27,16 @@ jobs:
 
       - name: Run DevSkim scanner
         uses: microsoft/DevSkim-Action@v1
+        with:
+          # تحديد المسارات المراد فحصها فقط
+          source-repository-url: ${{ github.repository }}
+          skip-paths: |
+            node_modules
+            .next
+            dist
+            build
+            coverage
+            test
 
       - name: Upload DevSkim scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
