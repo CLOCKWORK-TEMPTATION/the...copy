@@ -14,6 +14,8 @@ import DOMPurify from "dompurify";
 
 /**
  * Sanitize HTML content to prevent XSS attacks
+ *
+ * SECURITY: Uses iterative tag stripping on server-side to prevent bypass attacks
  */
 export const sanitizeHTML = (input: string): string => {
   if (!input || typeof input !== "string") {
@@ -25,8 +27,18 @@ export const sanitizeHTML = (input: string): string => {
     return DOMPurify.sanitize(input);
   }
 
-  // Server-side fallback: strip all tags to be safe if full sanitization is not possible
-  return input.replace(/<[^>]*>/g, "");
+  // Server-side fallback: iteratively strip all tags to prevent multi-character bypass
+  // This handles cases like <<script>alert(1)<</script>> which could bypass single-pass regex
+  let previous = '';
+  let current = input;
+
+  // Keep removing tags until no more tags are found (prevents nested tag bypass)
+  while (previous !== current) {
+    previous = current;
+    current = current.replace(/<[^>]*>/g, "");
+  }
+
+  return current;
 };
 
 /**

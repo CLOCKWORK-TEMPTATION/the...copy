@@ -104,10 +104,22 @@ export function escapeHtml(text: string): string {
 /**
  * Strips all HTML tags from a string
  * Safe alternative when you need plain text only
+ *
+ * SECURITY: Uses iterative approach to prevent bypass via nested tags like <<script>alert(1)<</script>>
  */
 export function stripHtmlTags(html: string): string {
-  // Use a more robust regex that handles attributes containing >
-  return html.replace(/<[^>]+>/g, "");
+  // Iteratively remove tags to prevent multi-character bypass attacks
+  // This handles cases like <<script>alert(1)<</script>> which could bypass single-pass regex
+  let previous = '';
+  let current = html;
+
+  // Keep removing tags until no more tags are found (prevents nested tag bypass)
+  while (previous !== current) {
+    previous = current;
+    current = current.replace(/<[^>]*>/g, "");
+  }
+
+  return current;
 }
 
 /**
