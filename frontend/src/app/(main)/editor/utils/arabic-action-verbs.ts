@@ -355,7 +355,7 @@ export function containsActionVerb(text: string): boolean {
  */
 export const ACTION_START_PATTERNS = [
   /^\s*[-–—]?\s*(?:نرى|ننظر|نسمع|نلاحظ|يبدو|يظهر|يبدأ|ينتهي|يستمر|يتوقف|يتحرك|يحدث|يكون|يوجد|توجد|تظهر)/,
-  /^\s*[-–—]?\s*[ي|ت][\u0600-\u06FF]+\s+(?:[^\s\u0600-\u06FF]*\s*)*[^\s\u0600-\u06FF]/, // Verbs starting with ي or ت
+  /^\s*[-–—]?\s*[ي|ت][\u0600-\u06FF]+(?:\s+[^\s\u0600-\u06FF]+)*/, // Simplified: removed nested quantifier
 ];
 
 /**

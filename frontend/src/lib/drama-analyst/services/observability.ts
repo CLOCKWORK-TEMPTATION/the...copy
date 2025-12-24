@@ -262,7 +262,12 @@ const getUserId = (): string => {
   // Generate or retrieve user ID
   let userId = localStorage.getItem("drama_analyst_user_id");
   if (!userId) {
-    userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const randomBytes = new Uint8Array(6);
+    crypto.getRandomValues(randomBytes);
+    const randomStr = Array.from(randomBytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    userId = `user_${Date.now()}_${randomStr}`;
     localStorage.setItem("drama_analyst_user_id", userId);
   }
   return userId;
@@ -272,7 +277,12 @@ const getSessionId = (): string => {
   // Generate or retrieve session ID
   let sessionId = sessionStorage.getItem("drama_analyst_session_id");
   if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const randomBytes = new Uint8Array(6);
+    crypto.getRandomValues(randomBytes);
+    const randomStr = Array.from(randomBytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    sessionId = `session_${Date.now()}_${randomStr}`;
     sessionStorage.setItem("drama_analyst_session_id", sessionId);
   }
   return sessionId;
