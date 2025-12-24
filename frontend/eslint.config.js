@@ -1,18 +1,51 @@
-// Use legacy .eslintrc format without problematic extends
-module.exports = {
-  root: true,
-  parser: "@typescript-eslint/parser",
-  parserOptions: {
-    ecmaVersion: "latest",
-    sourceType: "module",
-    ecmaFeatures: {
-      jsx: true,
+const typescriptParser = require("@typescript-eslint/parser");
+const typescriptPlugin = require("@typescript-eslint/eslint-plugin");
+const importPlugin = require("eslint-plugin-import");
+
+module.exports = [
+  // Ignore patterns
+  {
+    ignores: [
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/out/**",
+      "**/build/**",
+      "**/dist/**",
+      "**/.git/**",
+      "**/coverage/**",
+      "**/*.config.js",
+      "**/*.config.mjs",
+      "**/*.config.ts",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/*.spec.tsx",
+      "**/__tests__/**",
+      "**/__smoke__/**",
+    ],
+  },
+
+  // Base configuration
+  {
+    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
     },
   },
-  env: {
-    browser: true,
-    es2021: true,
-    node: true,
+
+  // Custom rules to override extends
+  {
+    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
+    rules: {
+      "no-unused-vars": "off",
+    },
   },
   plugins: ["@typescript-eslint", "import", "react", "react-hooks"],
   rules: {
