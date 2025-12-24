@@ -497,7 +497,7 @@ describe('🔒 Comprehensive Security Tests', () => {
     it('should reject requests from unauthorized origins', async () => {
       const unauthorizedOrigins = [
         'https://evil.com',
-        'http://malicious-site.com',
+        'https://malicious-site.com',
         'https://attacker.io',
         'null' // null origin attacks
       ];
