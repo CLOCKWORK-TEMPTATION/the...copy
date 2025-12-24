@@ -19,7 +19,7 @@ export function getRedisConfig() {
       .split(',')
       .map(s => {
         const [host, port] = s.trim().split(':');
-        return { host, port: parseInt(port) };
+        return { host, port: parseInt(port || '26379') };
       });
 
     return {

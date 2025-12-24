@@ -14,8 +14,8 @@
  */
 
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { Resource } from '@opentelemetry/resources';
-import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions/incubating';
+import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
+import { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
@@ -67,10 +67,10 @@ export function initTracing(): NodeSDK | null {
   });
 
   // Define service resource attributes
-  const resource = Resource.default().merge(
-    new Resource({
-      [ATTR_SERVICE_NAME]: SERVICE_NAME,
-      [ATTR_SERVICE_VERSION]: SERVICE_VERSION,
+  const resource = defaultResource().merge(
+    resourceFromAttributes({
+      [SEMRESATTRS_SERVICE_NAME]: SERVICE_NAME,
+      [SEMRESATTRS_SERVICE_VERSION]: SERVICE_VERSION,
       'deployment.environment': ENVIRONMENT,
     })
   );
@@ -97,9 +97,6 @@ export function initTracing(): NodeSDK | null {
           enabled: true,
           // Enhance PostgreSQL traces with query parameters (be careful with PII)
           enhancedDatabaseReporting: process.env.NODE_ENV === 'development',
-        },
-        '@opentelemetry/instrumentation-redis-4': {
-          enabled: true,
         },
         '@opentelemetry/instrumentation-mongodb': {
           enabled: true,
