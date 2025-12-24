@@ -14,12 +14,12 @@
 'use client';
 
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
-  ATTR_DEPLOYMENT_ENVIRONMENT,
 } from '@opentelemetry/semantic-conventions';
+import { SEMRESATTRS_DEPLOYMENT_ENVIRONMENT } from '@opentelemetry/semantic-conventions';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
@@ -71,17 +71,10 @@ export function initBrowserTracing(): void {
 
   try {
     // Create resource with service metadata
-    const resource = Resource.default().merge(
-      new Resource({
-        [ATTR_SERVICE_NAME]: SERVICE_NAME,
-        [ATTR_SERVICE_VERSION]: SERVICE_VERSION,
-        [ATTR_DEPLOYMENT_ENVIRONMENT]: ENVIRONMENT,
-      })
-    );
-
-    // Create tracer provider
-    const provider = new WebTracerProvider({
-      resource,
+    const resource = resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: SERVICE_NAME,
+      [ATTR_SERVICE_VERSION]: SERVICE_VERSION,
+      [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: ENVIRONMENT,
     });
 
     // Create OTLP exporter
@@ -93,8 +86,14 @@ export function initBrowserTracing(): void {
       // },
     });
 
-    // Add batch span processor for efficient export
-    provider.addSpanProcessor(new BatchSpanProcessor(exporter));
+    // Create batch span processor for efficient export
+    const spanProcessor = new BatchSpanProcessor(exporter);
+    
+    // Create tracer provider with batch span processor
+    const provider = new WebTracerProvider({
+      resource,
+      spanProcessors: [spanProcessor],
+    });
 
     // Register the provider
     provider.register();
