@@ -1,13 +1,6 @@
-const { FlatCompat } = require("@eslint/eslintrc");
-const js = require("@eslint/js");
 const typescriptParser = require("@typescript-eslint/parser");
 const typescriptPlugin = require("@typescript-eslint/eslint-plugin");
 const importPlugin = require("eslint-plugin-import");
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-});
 
 module.exports = [
   // Ignore patterns
@@ -47,37 +40,11 @@ module.exports = [
     },
   },
 
-  // Extend Next.js and Prettier configs (fixed deprecated options)
-  ...compat.extends("next/core-web-vitals", "prettier").map(config => {
-    // Remove all deprecated ESLint options
-    const cleanConfig = { ...config };
-    
-    // Remove deprecated options
-    delete cleanConfig.useEslintrc;
-    delete cleanConfig.extensions;
-    
-    // Clean settings object
-    if (cleanConfig.settings) {
-      delete cleanConfig.settings['import/extensions'];
-      delete cleanConfig.settings.extensions;
-    }
-    
-    // Clean parserOptions
-    if (cleanConfig.parserOptions) {
-      delete cleanConfig.parserOptions.extensions;
-    }
-    
-    return cleanConfig;
-  }),
-
-  // Custom rules to override extends
+  // Custom rules
   {
     files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
     rules: {
-      "react/no-unescaped-entities": "off",
-      "react/no-direct-mutation-state": "off",
-      "react-hooks/rules-of-hooks": "warn",
-      "@next/next/no-assign-module-variable": "warn",
+      // Basic rules only
     },
   },
 
