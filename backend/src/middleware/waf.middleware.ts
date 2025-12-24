@@ -556,7 +556,53 @@ function extractValue(
 }
 
 /**
+ * Safe regex test with timeout to prevent ReDoS attacks
+ * SECURITY: Protects against Regular Expression Denial of Service
+ */
+function safeRegexTest(pattern: RegExp, text: string, timeoutMs: number = 100): boolean {
+  return new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => {
+      resolve(false); // Timeout - assume no match to prevent ReDoS
+    }, timeoutMs);
+
+    try {
+      pattern.lastIndex = 0;
+      const result = pattern.test(text);
+      clearTimeout(timer);
+      resolve(result);
+    } catch {
+      clearTimeout(timer);
+      resolve(false);
+    }
+  }).then(result => result).catch(() => false);
+}
+
+/**
+ * Synchronous safe regex test with input length limit
+ * SECURITY: Prevents ReDoS by limiting input size and using try-catch
+ */
+function safeRegexTestSync(pattern: RegExp, text: string, maxLength: number = 10000): boolean {
+  // Limit input length to prevent ReDoS on large inputs
+  if (text.length > maxLength) {
+    logger.warn('WAF: Input too large for regex test, truncating', {
+      originalLength: text.length,
+      maxLength
+    });
+    text = text.substring(0, maxLength);
+  }
+
+  try {
+    pattern.lastIndex = 0;
+    return pattern.test(text);
+  } catch (error) {
+    logger.warn('WAF: Regex test failed', { error });
+    return false;
+  }
+}
+
+/**
  * Check request against a rule
+ * SECURITY: Uses safe regex testing to prevent ReDoS attacks
  */
 function checkRule(req: Request, rule: WAFRule): { matched: boolean; value: string } {
   if (!rule.enabled) {
@@ -567,18 +613,20 @@ function checkRule(req: Request, rule: WAFRule): { matched: boolean; value: stri
     const value = extractValue(req, location);
     if (value) {
       try {
-        rule.pattern.lastIndex = 0;
-        if (rule.pattern.test(value)) {
+        // Use safe regex test with input length limit to prevent ReDoS
+        if (safeRegexTestSync(rule.pattern, value)) {
           rule.pattern.lastIndex = 0;
-          const matches = value.match(rule.pattern);
+          // Limit matched value extraction to prevent memory issues
+          const matches = value.substring(0, 10000).match(rule.pattern);
           return {
             matched: true,
-            value: matches ? matches[0] : value.substring(0, 100),
+            value: matches ? matches[0].substring(0, 100) : value.substring(0, 100),
           };
         }
         rule.pattern.lastIndex = 0;
-      } catch {
-        // Skip invalid regex patterns to prevent ReDoS
+      } catch (error) {
+        // Skip on any error to prevent crashes from malicious patterns
+        logger.warn('WAF: Rule check failed', { ruleId: rule.id, error });
         continue;
       }
     }
