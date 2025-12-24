@@ -9,6 +9,7 @@ import {
   cachedGeminiCall,
   getAdaptiveTTL,
 } from './gemini-cache.strategy';
+import { geminiCostTracker } from './gemini-cost-tracker.service';
 
 export class GeminiService {
   private genAI: GoogleGenerativeAI;
@@ -24,6 +25,28 @@ export class GeminiService {
     this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
   }
 
+  /**
+   * Track token usage from Gemini API response
+   */
+  private async trackTokenUsage(apiResult: any, analysisType: string): Promise<void> {
+    try {
+      // Extract usage metadata from the response
+      const usageMetadata = apiResult?.response?.usageMetadata;
+
+      if (usageMetadata) {
+        const inputTokens = usageMetadata.promptTokenCount || 0;
+        const outputTokens = usageMetadata.candidatesTokenCount || 0;
+
+        // Track usage and cost
+        await geminiCostTracker.trackUsage(inputTokens, outputTokens, analysisType);
+      } else {
+        logger.debug('No usage metadata in Gemini response', { analysisType });
+      }
+    } catch (error) {
+      logger.error('Failed to track token usage', { error, analysisType });
+    }
+  }
+
   async analyzeText(text: string, analysisType: string): Promise<string> {
     const startTime = Date.now();
 
@@ -37,6 +60,8 @@ export class GeminiService {
     logger.debug(`Using adaptive TTL: ${ttl}s (hit rate: ${stats.hitRate}%)`);
 
     try {
+      let apiResult: any = null;
+
       // Use cached call with stale-while-revalidate for better UX
       const result = await cachedGeminiCall(
         cacheKey,
@@ -45,7 +70,7 @@ export class GeminiService {
           const prompt = this.buildPrompt(text, analysisType);
 
           // Add timeout to prevent hanging requests
-          const apiResult = await Promise.race([
+          apiResult = await Promise.race([
             this.model.generateContent(prompt),
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error('Gemini request timeout')), this.REQUEST_TIMEOUT)
@@ -59,6 +84,11 @@ export class GeminiService {
           staleTTL: ttl * 2, // Keep stale data for 2x TTL
         }
       );
+
+      // Track token usage and cost
+      if (apiResult) {
+        await this.trackTokenUsage(apiResult, analysisType);
+      }
 
       // Track metrics
       const duration = Date.now() - startTime;
@@ -98,12 +128,14 @@ export class GeminiService {
 ${text}`;
 
     try {
+      let apiResult: any = null;
+
       const result = await cachedGeminiCall(
         cacheKey,
         ttl,
         async () => {
           // Add timeout
-          const apiResult = await Promise.race([
+          apiResult = await Promise.race([
             this.model.generateContent(prompt),
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error('Gemini request timeout')), this.REQUEST_TIMEOUT)
@@ -117,6 +149,11 @@ ${text}`;
           staleTTL: ttl * 2,
         }
       );
+
+      // Track token usage and cost
+      if (apiResult) {
+        await this.trackTokenUsage(apiResult, 'screenplay');
+      }
 
       const duration = Date.now() - startTime;
       trackGeminiRequest('screenplay', duration, true);
@@ -151,12 +188,14 @@ ${text}`;
 السؤال: ${message}`;
 
     try {
+      let apiResult: any = null;
+
       const result = await cachedGeminiCall(
         cacheKey,
         ttl,
         async () => {
           // Add timeout
-          const apiResult = await Promise.race([
+          apiResult = await Promise.race([
             this.model.generateContent(prompt),
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error('Gemini request timeout')), this.REQUEST_TIMEOUT)
@@ -170,6 +209,11 @@ ${text}`;
           staleTTL: ttl * 2,
         }
       );
+
+      // Track token usage and cost
+      if (apiResult) {
+        await this.trackTokenUsage(apiResult, 'chat');
+      }
 
       const duration = Date.now() - startTime;
       trackGeminiRequest('chat', duration, true);
@@ -205,12 +249,14 @@ ${text}`;
 5. المدة التقديرية`;
 
     try {
+      let apiResult: any = null;
+
       const result = await cachedGeminiCall(
         cacheKey,
         ttl,
         async () => {
           // Add timeout
-          const apiResult = await Promise.race([
+          apiResult = await Promise.race([
             this.model.generateContent(prompt),
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error('Gemini request timeout')), this.REQUEST_TIMEOUT)
@@ -224,6 +270,11 @@ ${text}`;
           staleTTL: ttl * 2,
         }
       );
+
+      // Track token usage and cost
+      if (apiResult) {
+        await this.trackTokenUsage(apiResult, 'shot-suggestion');
+      }
 
       const duration = Date.now() - startTime;
       trackGeminiRequest('shot-suggestion', duration, true);

@@ -41,13 +41,14 @@
   - [ ] المسؤول: SRE Team
   - [ ]
 
-- [ ] **6. إضافة Gemini Cost Alerts**
-  - [ ] تتبع Token Usage
-  - [ ] Alert عند تجاوز $10/day
-  - [ ] Alert عند 80% من Monthly Quota
-  - [ ] المسؤول: Backend Team
-  - [ ]
-  - [ ] الملف: `backend/src/services/gemini.service.ts`
+- [x] **6. إضافة Gemini Cost Alerts**
+  - [x] تتبع Token Usage
+  - [x] Alert عند تجاوز $10/day
+  - [x] Alert عند 80% من Monthly Quota
+  - [x] المسؤول: Backend Team
+  - [x] الملف: `backend/src/services/gemini-cost-tracker.service.ts`
+  - [x] الملف: `backend/src/services/gemini.service.ts`
+  - [x] API Endpoint: `/api/gemini/cost-summary`
 
 - [ ] **7. تطبيق Deep Health Checks**
   - [ ] `/health/live` endpoint

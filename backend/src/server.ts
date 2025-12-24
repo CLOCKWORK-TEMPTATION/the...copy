@@ -106,6 +106,25 @@ app.get('/api/health', async (req, res) => {
 // Prometheus metrics endpoint
 app.get('/metrics', metricsEndpoint);
 
+// Gemini cost monitoring endpoint (protected - admin only)
+app.get('/api/gemini/cost-summary', authMiddleware, async (req, res) => {
+  try {
+    const { geminiCostTracker } = await import('@/services/gemini-cost-tracker.service');
+    const summary = await geminiCostTracker.getCostSummary();
+    res.json({
+      success: true,
+      data: summary,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Failed to get cost summary:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve cost summary',
+    });
+  }
+});
+
 // Auth endpoints (public)
 app.post('/api/auth/signup', authController.signup.bind(authController));
 app.post('/api/auth/login', authController.login.bind(authController));
