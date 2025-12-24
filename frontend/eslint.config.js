@@ -40,12 +40,10 @@ module.exports = [
     },
   },
 
-  // Custom rules
+  // No custom rules - using defaults from TypeScript plugin
   {
     files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
-    rules: {
-      // Basic rules only
-    },
+    rules: {},
   },
 
   // TypeScript plugin
