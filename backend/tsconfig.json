@@ -55,6 +55,9 @@
     "node_modules",
     "dist",
     "db-performance-analysis/**",
-    "scripts/**"
+    "scripts/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "src/test/**"
   ]
 }

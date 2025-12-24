@@ -185,7 +185,7 @@ function calculateP95(latencies: number[]): number {
 
   const sorted = [...latencies].sort((a, b) => a - b);
   const index = Math.ceil(sorted.length * 0.95) - 1;
-  return sorted[Math.max(0, index)];
+  return sorted[Math.max(0, index)] || 0;
 }
 
 /**
@@ -215,7 +215,7 @@ function updateComplianceMetrics(service: string, sli: string, compliance: numbe
 export function trackAPIRequest(statusCode: number, latencyMs: number) {
   resetWindowIfNeeded('api');
 
-  const state = sloState.api;
+  const state = sloState.api!;
   state.totalRequests++;
   state.latencies.push(latencyMs);
 
@@ -257,7 +257,7 @@ export function trackAPIRequest(statusCode: number, latencyMs: number) {
 export function trackAuthAttempt(success: boolean) {
   resetWindowIfNeeded('auth');
 
-  const state = sloState.auth;
+  const state = sloState.auth!;
   state.totalRequests++;
 
   if (success) {
@@ -287,7 +287,7 @@ export function trackAuthAttempt(success: boolean) {
 export function trackGeminiCall(success: boolean) {
   resetWindowIfNeeded('gemini');
 
-  const state = sloState.gemini;
+  const state = sloState.gemini!;
   state.totalRequests++;
 
   if (success) {
@@ -315,7 +315,7 @@ export function trackGeminiCall(success: boolean) {
 export function trackDatabaseQuery(success: boolean, operation?: string) {
   resetWindowIfNeeded('database');
 
-  const state = sloState.database;
+  const state = sloState.database!;
   state.totalRequests++;
 
   if (success) {
@@ -383,7 +383,7 @@ export function getSLOStatus() {
   }> = {};
 
   // API Availability
-  const apiState = sloState.api;
+  const apiState = sloState.api!;
   const apiCompliance = apiState.totalRequests > 0
     ? apiState.successfulRequests / apiState.totalRequests
     : 1;
@@ -401,7 +401,7 @@ export function getSLOStatus() {
   };
 
   // Auth Success Rate
-  const authState = sloState.auth;
+  const authState = sloState.auth!;
   const authCompliance = authState.totalRequests > 0
     ? authState.successfulRequests / authState.totalRequests
     : 1;
@@ -419,7 +419,7 @@ export function getSLOStatus() {
   };
 
   // Gemini Success Rate
-  const geminiState = sloState.gemini;
+  const geminiState = sloState.gemini!;
   const geminiCompliance = geminiState.totalRequests > 0
     ? geminiState.successfulRequests / geminiState.totalRequests
     : 1;
@@ -437,7 +437,7 @@ export function getSLOStatus() {
   };
 
   // Database Availability
-  const dbState = sloState.database;
+  const dbState = sloState.database!;
   const dbCompliance = dbState.totalRequests > 0
     ? dbState.successfulRequests / dbState.totalRequests
     : 1;
