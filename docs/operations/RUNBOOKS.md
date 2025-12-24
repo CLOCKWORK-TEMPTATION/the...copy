@@ -337,6 +337,211 @@ pg_dump --schema-only $DATABASE_URL > schema_backup.sql
 psql $DATABASE_URL < backup.sql
 ```
 
+### 4.6 Database Restore Testing
+
+**Purpose**: Regularly test database restore procedures to ensure backups are valid and can be restored in case of disaster.
+
+**Frequency**: Weekly or after significant data changes
+
+**Responsible**: DevOps + DBA
+
+#### 4.6.1 Quick Restore Test
+
+Use the automated scripts for testing:
+
+```bash
+# Navigate to database scripts directory
+cd scripts/database
+
+# Step 1: Run restore test
+./test-restore.sh
+
+# Step 2: Verify data integrity
+./verify-data-integrity.sh
+
+# Step 3: Clean up test databases
+./cleanup-test-dbs.sh
+```
+
+#### 4.6.2 Manual PostgreSQL Restore Test
+
+```bash
+# 1. Create backup
+pg_dump $DATABASE_URL > backup_test_$(date +%Y%m%d_%H%M%S).sql
+
+# 2. Extract database name
+DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
+TEST_DB="${DB_NAME}_test_restore"
+
+# 3. Create test database
+psql $DATABASE_URL -c "CREATE DATABASE ${TEST_DB};"
+
+# 4. Restore to test database
+BASE_URL=$(echo $DATABASE_URL | sed 's/\/[^\/]*$//')
+psql "${BASE_URL}/${TEST_DB}" < backup_test_*.sql
+
+# 5. Verify data
+psql "${BASE_URL}/${TEST_DB}" -c "SELECT COUNT(*) FROM users;"
+psql "${BASE_URL}/${TEST_DB}" -c "SELECT COUNT(*) FROM projects;"
+
+# 6. Clean up
+psql $DATABASE_URL -c "DROP DATABASE ${TEST_DB};"
+```
+
+#### 4.6.3 Neon PITR (Point-in-Time Recovery) Test
+
+**Prerequisites**: Ensure Neon PITR is enabled in your Neon Console
+
+```bash
+# Install Neon CLI (if not installed)
+npm install -g neonctl
+
+# Authenticate
+neonctl auth
+
+# List available backups/branches
+neonctl branches list
+
+# Create a test branch from a specific point in time
+neonctl branches create \
+  --name test-restore-$(date +%Y%m%d) \
+  --parent main \
+  --type read_only
+
+# Get the new branch connection string
+neonctl connection-string test-restore-$(date +%Y%m%d)
+
+# Verify data in the restored branch
+psql <new-branch-connection-string> -c "SELECT COUNT(*) FROM users;"
+
+# Delete test branch when done
+neonctl branches delete test-restore-$(date +%Y%m%d)
+```
+
+#### 4.6.4 MongoDB Atlas Restore Test
+
+**Prerequisites**: Ensure MongoDB Atlas Continuous Backup is enabled
+
+```bash
+# Using MongoDB Atlas UI:
+# 1. Navigate to Database Deployments
+# 2. Click on "Backup" tab
+# 3. Select latest backup
+# 4. Click "Restore"
+# 5. Choose "Download" or "Restore to cluster"
+# 6. For testing, use "Download" option
+
+# Manual restore using mongodump/mongorestore:
+
+# 1. Create backup
+mongodump --uri="${MONGODB_URI}" --out=./mongodb_backup_$(date +%Y%m%d)
+
+# 2. Extract database name
+MONGO_DB=$(echo $MONGODB_URI | sed -n 's/.*\/\([^?]*\).*/\1/p')
+TEST_MONGO_DB="${MONGO_DB}_test_restore"
+
+# 3. Create test database URI
+TEST_MONGO_URI=$(echo $MONGODB_URI | sed "s/${MONGO_DB}/${TEST_MONGO_DB}/")
+
+# 4. Restore to test database
+mongorestore --uri="${TEST_MONGO_URI}" ./mongodb_backup_*/
+
+# 5. Verify data
+mongosh "${TEST_MONGO_URI}" --eval "db.stats()"
+mongosh "${TEST_MONGO_URI}" --eval "db.getCollectionNames()"
+
+# 6. Clean up
+mongosh "${TEST_MONGO_URI}" --eval "db.dropDatabase()"
+```
+
+#### 4.6.5 Data Integrity Verification Checklist
+
+After restore, verify the following:
+
+**PostgreSQL**:
+- [ ] All tables present
+- [ ] Record counts match source database
+- [ ] Foreign key constraints intact
+- [ ] Indexes present and functional
+- [ ] No NULL values in critical columns
+- [ ] Sequences reset correctly
+
+**MongoDB**:
+- [ ] All collections present
+- [ ] Document counts match source database
+- [ ] Indexes present
+- [ ] No data corruption
+
+**Cross-Database**:
+- [ ] User counts consistent between PostgreSQL and MongoDB
+- [ ] Reference integrity between databases maintained
+
+#### 4.6.6 Restore Test Documentation Template
+
+Document each restore test using this template:
+
+```markdown
+# Database Restore Test Report
+
+**Date**: YYYY-MM-DD
+**Performed By**: [Name]
+**Test Type**: [Full/Partial/PITR]
+
+## Test Results
+
+### PostgreSQL
+- Backup Size: [X GB]
+- Restore Time: [X minutes]
+- Records Verified: [X]
+- Status: [PASS/FAIL]
+- Issues: [None or describe]
+
+### MongoDB
+- Backup Size: [X GB]
+- Restore Time: [X minutes]
+- Documents Verified: [X]
+- Status: [PASS/FAIL]
+- Issues: [None or describe]
+
+## Data Integrity
+- [✓/✗] All tables/collections present
+- [✓/✗] Record counts match
+- [✓/✗] Foreign keys intact
+- [✓/✗] No data corruption
+
+## Recommendations
+[Any recommendations or action items]
+
+## Next Test Scheduled
+[Date for next test]
+```
+
+#### 4.6.7 Troubleshooting Restore Issues
+
+**Issue**: Restore fails with permission errors
+```bash
+# Solution: Check user permissions
+psql $DATABASE_URL -c "SELECT * FROM pg_roles WHERE rolname = current_user;"
+# Grant necessary permissions if needed
+```
+
+**Issue**: Foreign key constraint violations during restore
+```bash
+# Solution: Disable constraints temporarily
+psql $DATABASE_URL -c "SET session_replication_role = replica;"
+# Restore data
+# Re-enable constraints
+psql $DATABASE_URL -c "SET session_replication_role = DEFAULT;"
+```
+
+**Issue**: MongoDB restore hangs
+```bash
+# Solution: Check network connectivity and MongoDB server status
+mongosh $MONGODB_URI --eval "db.serverStatus()"
+# Use --numParallelCollections for faster restore
+mongorestore --uri=$MONGODB_URI --numParallelCollections=4
+```
+
 ---
 
 ## 5. Troubleshooting
