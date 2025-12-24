@@ -157,15 +157,23 @@ export class LLMGuardrailsService {
 
     // Check for prompt injection patterns
     for (const pattern of BANNED_PATTERNS) {
-      const matches = content.match(pattern);
-      if (matches) {
-        violations.push({
-          type: 'prompt_injection',
-          severity: 'critical',
-          description: `Prompt injection detected: ${pattern.source}`,
-          pattern: pattern.source,
-          matches,
-        });
+      if (typeof pattern === 'string') {
+        const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        try {
+          const regex = new RegExp(escapedPattern, 'i');
+          const matches = content.match(regex);
+          if (matches) {
+            violations.push({
+              type: 'prompt_injection',
+              severity: 'critical',
+              description: `Prompt injection detected: ${escapedPattern}`,
+              pattern: escapedPattern,
+              matches,
+            });
+          }
+        } catch {
+          // Skip invalid patterns
+        }
       }
     }
 
