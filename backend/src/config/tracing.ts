@@ -14,8 +14,8 @@
  */
 
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
+import { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
@@ -63,11 +63,13 @@ export function initTracing(): NodeSDK | null {
   });
 
   // Define service resource attributes
-  const resource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: SERVICE_NAME,
-    [ATTR_SERVICE_VERSION]: SERVICE_VERSION,
-    'deployment.environment': ENVIRONMENT,
-  });
+  const resource = defaultResource().merge(
+    resourceFromAttributes({
+      [SEMRESATTRS_SERVICE_NAME]: SERVICE_NAME,
+      [SEMRESATTRS_SERVICE_VERSION]: SERVICE_VERSION,
+      'deployment.environment': ENVIRONMENT,
+    })
+  );
 
   // Initialize the SDK with auto-instrumentation
   const sdk = new NodeSDK({
@@ -89,17 +91,14 @@ export function initTracing(): NodeSDK | null {
         '@opentelemetry/instrumentation-pg': {
           enabled: true,
         },
+<<<<<<< HEAD
         '@opentelemetry/instrumentation-redis': {
           enabled: true,
         },
+=======
+>>>>>>> be26bf903e4ad88aaec3d3d870de0c7e6d24f7a2
         '@opentelemetry/instrumentation-mongodb': {
           enabled: true,
-        },
-        '@opentelemetry/instrumentation-ioredis': {
-          enabled: true,
-        },
-        '@opentelemetry/instrumentation-dns': {
-          enabled: false,
         },
         '@opentelemetry/instrumentation-net': {
           enabled: false,

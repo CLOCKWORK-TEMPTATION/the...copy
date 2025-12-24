@@ -111,7 +111,7 @@ export class CacheService {
           .split(',')
           .map(s => {
             const [host, port] = s.trim().split(':');
-            return { host, port: parseInt(port) };
+            return { host, port: parseInt(port || '26379') };
           });
 
         redisConfig = {
