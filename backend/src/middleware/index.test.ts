@@ -66,6 +66,23 @@ describe('Middleware Setup', () => {
 
       expect(response.headers['access-control-allow-credentials']).toBe('true');
     });
+
+    it('should allow requests without Origin header (health checks, server-to-server)', async () => {
+      const response = await request(app).get('/test');
+      
+      // Request without Origin header should succeed
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ success: true });
+    });
+
+    it('should block requests from disallowed origins', async () => {
+      const response = await request(app)
+        .get('/test')
+        .set('Origin', 'http://malicious-site.com');
+
+      // Request from disallowed origin should fail
+      expect(response.status).not.toBe(200);
+    });
   });
 
   describe('Compression middleware', () => {
