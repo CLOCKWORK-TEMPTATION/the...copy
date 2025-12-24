@@ -1,8 +1,9 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { NotificationProvider } from "@/components/providers/notification-provider";
+import { initBrowserTracing } from "@/lib/tracing";
 
 /**
  * Providers Component
@@ -10,6 +11,7 @@ import { NotificationProvider } from "@/components/providers/notification-provid
  * Wraps the application with necessary providers:
  * - QueryClientProvider: for React Query state management
  * - NotificationProvider: for global notifications
+ * - OpenTelemetry Browser Tracing
  *
  * This component must use 'use client' directive since it manages client-side state
  */
@@ -30,6 +32,11 @@ function Providers({ children }: { children: ReactNode }) {
         },
       })
   );
+
+  // Initialize browser tracing
+  useEffect(() => {
+    initBrowserTracing();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

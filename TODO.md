@@ -3,72 +3,72 @@
 
 ### 🔴 الأولوية القصوى
 
-- [x] **1. تفعيل Database Automated Backups**
-  - [x] Neon: تفعيل PITR (Point-in-Time Recovery)
-  - [x] MongoDB Atlas: تفعيل Continuous Backup
-  - [x] Retention: 30 days minimum
-  - [x] المسؤول: DevOps Lead
-  - [x] **Documentation**: `docs/operations/DATABASE_BACKUP_SETUP.md`
+-   **1. تفعيل Database Automated Backups**
+  -   Neon: تفعيل PITR (Point-in-Time Recovery)
+  -   MongoDB Atlas: تفعيل Continuous Backup
+  -   Retention: 30 days minimum
+  -   المسؤول: DevOps Lead
+  -   **Documentation**: `docs/operations/DATABASE_BACKUP_SETUP.md`
 
-- [x] **2. اختبار Database Restore**
-  - [x] استعادة Backup الأخير إلى Test Environment
-  - [x] التحقق من سلامة البيانات
-  - [x] توثيق الخطوات في Runbook
-  - [x] المسؤول: DevOps + DBA
+-   **2. اختبار Database Restore**
+  -   استعادة Backup الأخير إلى Test Environment
+  -   التحقق من سلامة البيانات
+  -   توثيق الخطوات في Runbook
+  -   المسؤول: DevOps + DBA
   - **التنفيذ**: تم إنشاء Scripts آلية في `scripts/database/`:
     - `test-restore.sh` - اختبار الاستعادة
     - `verify-data-integrity.sh` - التحقق من سلامة البيانات
     - `cleanup-test-dbs.sh` - تنظيف قواعد البيانات التجريبية
   - **التوثيق**: تم تحديث `docs/operations/RUNBOOKS.md` القسم 4.6
 
-- [x] **3. تعقيم Logs من PII**
-  - [x] إضافة Log Sanitization Middleware
-  - [x] فحص Logs الحالية لوجود PII
-  - [x] حذف PII من Logs التاريخية
-  - [x] المسؤول: Backend Team
-  - [x] ✅ **مكتمل** - تم إضافة Log Sanitization Middleware في `backend/src/middleware/log-sanitization.middleware.ts`
-  - [x] الملف: `backend/src/middleware/index.ts`
+-   **3. تعقيم Logs من PII**
+  -   إضافة Log Sanitization Middleware
+  -   فحص Logs الحالية لوجود PII
+  -   حذف PII من Logs التاريخية
+  -   المسؤول: Backend Team
+  -   ✅ **مكتمل** - تم إضافة Log Sanitization Middleware في `backend/src/middleware/log-sanitization.middleware.ts`
+  -   الملف: `backend/src/middleware/index.ts`
 
-- [x] **4. تحديد RTO/RPO لكل Service**
-  - [x] User Auth: RTO <15min, RPO <5min
-  - [x] Projects: RTO <30min, RPO <15min
-  - [x] Cache: RTO <1h, RPO <24h
-  - [x] المسؤول: SRE/Tech Lead
-  - [x] الملف: `docs/operations/RTO_RPO.md`
+-   **4. تحديد RTO/RPO لكل Service**
+  -   User Auth: RTO <15min, RPO <5min
+  -   Projects: RTO <30min, RPO <15min
+  -   Cache: RTO <1h, RPO <24h
+  -   المسؤول: SRE/Tech Lead
+  -   الملف: `docs/operations/RTO_RPO.md`
 
 ---
 
-- [x] **5. إنشاء Emergency Runbook** ✅
-  - [x] Database failure scenario
-  - [x] Redis failure scenario
-  - [x] API failure scenario
-  - [x] جهات الاتصال للطوارئ
-  - [x] المسؤول: SRE Team
-  - [x] الملف: `docs/operations/EMERGENCY_RUNBOOK.md`
+-   **5. إنشاء Emergency Runbook** ✅
+  -   Database failure scenario
+  -   Redis failure scenario
+  -   API failure scenario
+  -   جهات الاتصال للطوارئ
+  -   المسؤول: SRE Team
+  -   الملف: `docs/operations/EMERGENCY_RUNBOOK.md`
 
-- [x] **6. إضافة Gemini Cost Alerts**
-  - [x] تتبع Token Usage
-  - [x] Alert عند تجاوز $10/day
-  - [x] Alert عند 80% من Monthly Quota
-  - [x] المسؤول: Backend Team
-  - [x] الملف: `backend/src/services/gemini-cost-tracker.service.ts`
-  - [x] الملف: `backend/src/services/gemini.service.ts`
-  - [x] API Endpoint: `/api/gemini/cost-summary`
+-   **6. إضافة Gemini Cost Alerts**
+  -   تتبع Token Usage
+  -   Alert عند تجاوز $10/day
+  -   Alert عند 80% من Monthly Quota
+  -   المسؤول: Backend Team
+  -   الملف: `backend/src/services/gemini-cost-tracker.service.ts`
+  -   الملف: `backend/src/services/gemini.service.ts`
+  -   API Endpoint: `/api/gemini/cost-summary`
 
-- [ ] **7. تطبيق Deep Health Checks**
-  - [ ] `/health/live` endpoint
-  - [ ] `/health/ready` endpoint
-  - [ ] فحص Database connectivity
-  - [ ] فحص Redis connectivity
-  - [ ] فحص Disk space
-  - [ ] المسؤول: Backend Team
-  - [ ] الملف: `backend/src/server.ts`
+-   **7. تطبيق Deep Health Checks**
+  -   `/health/live` endpoint
+  -   `/health/ready` endpoint
+  -   فحص Database connectivity
+  -   فحص Redis connectivity
+  -   فحص Disk space
+  -   المسؤول: Backend Team
+  -   الملف: `backend/src/server.ts`
 
-- [ ] **8. CORS Strict Mode في Development**
-  - [ ] إزالة `if (origin) return callback(null, true)`
-  - [ ] استخدام Dev Whitelist محدد
-  - [ ] المسؤول: Backend Team
-  - [ ] الملف: `backend/src/middleware/index.ts`
+-   **8. CORS Strict Mode في Development**
+  -   إزالة `if (origin) return callback(null, true)`
+  -   استخدام Dev Whitelist محدد
+  -   المسؤول: Backend Team
+  -   الملف: `backend/src/middleware/index.ts`
 
 ---
 

@@ -1,425 +1,437 @@
-# النسخة - The Copy
+# The Copy - Drama Analysis Platform
 
 <div align="center">
 
-**منصة للكتابة الإبداعية والتحليل الدرامي باللغة العربية**
+![The Copy Logo](./image.png)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
+**Advanced AI-Powered Drama Analysis Platform**
+
+[Features](#features) • [Getting Started](#getting-started) • [Architecture](#architecture) • [Testing](#testing) • [Contributing](#contributing) • [License](#license)
 
 </div>
 
 ---
 
-## 📖 نظرة عامة
+## 📊 Test Coverage
 
-**The Copy** هو تطبيق ويب شامل للكتابة الإبداعية والتحليل الدرامي، مصمم خصيصاً للغة العربية. يجمع التطبيق بين:
+### Frontend Coverage
 
-- 🎭 **تحليل المحطات السبع**: تحليل درامي متقدم باستخدام الذكاء الاصطناعي
-- 🎬 **استوديو المخرجين**: أدوات احترافية لإدارة المشاريع والمشاهد
-- 🤖 **ذكاء اصطناعي متقدم**: يعتمد على Google Gemini API
-- 📊 **إدارة شاملة**: تتبع الشخصيات، المشاهد، واللقطات
+[![Frontend Lines](https://img.shields.io/badge/Lines-TBD-blue)](./frontend/coverage) 
+[![Frontend Functions](https://img.shields.io/badge/Functions-TBD-blue)](./frontend/coverage)
+[![Frontend Branches](https://img.shields.io/badge/Branches-TBD-blue)](./frontend/coverage)
+[![Frontend Statements](https://img.shields.io/badge/Statements-TBD-blue)](./frontend/coverage)
 
----
+**Target Thresholds:** Lines 85% • Functions 85% • Branches 80% • Statements 85%
 
-## 🏗️ البنية التقنية
+### Backend Coverage
 
-### Frontend
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui + Radix UI
-- **State Management**: React Hooks
-- **Monitoring**: Sentry
+[![Backend Lines](https://img.shields.io/badge/Lines-TBD-blue)](./backend/coverage)
+[![Backend Functions](https://img.shields.io/badge/Functions-TBD-blue)](./backend/coverage)
+[![Backend Branches](https://img.shields.io/badge/Branches-TBD-blue)](./backend/coverage)
+[![Backend Statements](https://img.shields.io/badge/Statements-TBD-blue)](./backend/coverage)
 
-### Backend
-- **Runtime**: Node.js 20+
-- **Framework**: Express.js
-- **Language**: TypeScript
-- **Database**: PostgreSQL (Neon Serverless)
-- **ORM**: Drizzle ORM
-- **Cache**: Redis
-- **Queue**: BullMQ
-- **Real-time**: WebSocket + SSE
-- **Monitoring**: Sentry + Prometheus
-
-### DevOps
-- **Package Manager**: pnpm
-- **Containerization**: Docker + Docker Compose
-- **CI/CD**: GitHub Actions (optional)
-- **Deployment**: Vercel (Frontend) + Custom (Backend)
+**Target Thresholds:** Lines 85% • Functions 85% • Branches 80% • Statements 85%
 
 ---
 
-## 🚀 البدء السريع
+## 🚀 Quick Start
 
-### المتطلبات الأساسية
+### Prerequisites
 
-```bash
-# Node.js 20+
-node --version
+- **Node.js:** 20.x LTS or higher
+- **pnpm:** 10.0.0 or higher
+- **PostgreSQL:** 15.0 or higher
+- **Redis:** 5.9.0 or higher
 
-# pnpm
-npm install -g pnpm
-
-# PostgreSQL (أو استخدم Neon)
-psql --version
-
-# Redis (اختياري - يمكن استخدام Docker)
-redis-cli --version
-```
-
-### التثبيت
+### Installation
 
 ```bash
-# 1. استنساخ المشروع
-git clone https://github.com/your-username/the-copy.git
+# Clone the repository
+git clone https://github.com/your-org/the-copy.git
 cd the-copy
 
-# 2. تثبيت Dependencies
+# Install dependencies using pnpm
 pnpm install
 
-# 3. إعداد Environment Variables
-# Backend
-cp backend/.env.example backend/.env
-# Frontend
-cp frontend/.env.example frontend/.env
+# Set up environment variables
+cp .env.example .env.local
 
-# 4. إعداد قاعدة البيانات
+# Run database migrations
 cd backend
 pnpm db:push
-```
+cd ..
 
-### تشغيل بيئة التطوير
-
-#### الطريقة السريعة (موصى بها) ⚡
-```powershell
-# تشغيل كل شيء بأمر واحد (Windows)
-.\start-dev.ps1
-
-# إيقاف كل شيء
-.\stop-dev.ps1
-```
-
-#### الطريقة اليدوية
-```bash
-# Terminal 1 - Redis (اختياري)
-docker-compose up -d redis
-# أو على Windows
-.\redis\redis-server.exe
-
-# Terminal 2 - Backend
-cd backend
-pnpm dev
-
-# Terminal 3 - Frontend
-cd frontend
+# Start development servers
 pnpm dev
 ```
 
-📖 **[دليل السكريبتات الكامل](./DEV_SCRIPTS_README_AR.md)** | **[English Guide](./DEV_SCRIPTS_README.md)**
-
-### الوصول إلى التطبيق
-
-- **Frontend**: http://localhost:5000
-- **Backend API**: http://localhost:3001
-- **Bull Board**: http://localhost:3001/admin/queues
-- **Drizzle Studio**: `cd backend && pnpm db:studio`
+The application will be available at:
+- **Frontend:** http://localhost:5000
+- **Backend API:** http://localhost:3001
+- **Storybook:** http://localhost:6006
 
 ---
 
-## 📚 الوثائق
+## 🏗️ Architecture
 
-### الوثائق الأساسية
-- **[Backend Documentation](./backend/BACKEND_DOCUMENTATION.md)** - دليل شامل للـ Backend
-- **[Database Security](./backend/DATABASE_SECURITY.md)** - أمان قاعدة البيانات
-- **[Docker Guide](./backend/DOCKER_GUIDE.md)** - دليل Docker
+### Monorepo Structure
 
-### 🚀 تحسين الأداء (Performance Optimization)
+```
+the-copy/
+├── frontend/              # Next.js 15 Application
+│   ├── src/
+│   │   ├── app/          # App Router pages
+│   │   ├── components/   # React components
+│   │   ├── lib/          # Utilities and helpers
+│   │   ├── hooks/        # Custom React hooks
+│   │   └── __tests__/    # Integration tests
+│   └── vitest.config.ts  # Test configuration
+│
+├── backend/              # Express.js API
+│   ├── src/
+│   │   ├── controllers/  # Request handlers
+│   │   ├── services/     # Business logic
+│   │   ├── middleware/   # Express middleware
+│   │   ├── routes/       # API routes
+│   │   ├── db/           # Database layer (Drizzle ORM)
+│   │   └── test/         # Integration tests
+│   └── vitest.config.ts  # Test configuration
+│
+├── scripts/              # Build and utility scripts
+├── docs/                 # Project documentation
+├── monitoring/           # Monitoring and logging setup
+└── package.json          # Root workspace configuration
+```
 
-قمنا بإعداد دليل شامل لتحسين أداء التطبيق بنسبة **40-70%**:
+### Tech Stack
 
-#### الأدلة الرئيسية
-- **[README](./docs/performance-optimization/README.md)** - نظرة عامة شاملة
-- **[البدء السريع](./docs/performance-optimization/QUICK_START.md)** - تحسينات في 3-4 ساعات ⚡
-- **[الخطة الكاملة](./docs/performance-optimization/IMPLEMENTATION_PLAN.md)** - خطة 10 مراحل (أسبوعين)
-- **[الملخص التنفيذي](./docs/performance-optimization/EXECUTIVE_SUMMARY_AR.md)** - للمدراء وصناع القرار
+#### Frontend
+- **Framework:** Next.js 15.4.7
+- **Language:** TypeScript 5.7.2
+- **Styling:** Tailwind CSS 4.1.16
+- **UI Components:** Radix UI
+- **State Management:** TanStack Query 5.90.6
+- **Validation:** Zod 3.25.76
+- **Testing:** Vitest, Testing Library, Playwright
 
-#### الأدلة المساعدة
-- **[متتبع التقدم](./docs/performance-optimization/PROGRESS_TRACKER.md)** - تتبع التنفيذ
-- **[مرجع الأوامر](./docs/performance-optimization/COMMANDS_REFERENCE.md)** - أوامر سريعة
-- **[استكشاف الأخطاء](./docs/performance-optimization/TROUBLESHOOTING.md)** - حل المشاكل
+#### Backend
+- **Runtime:** Node.js 20+ LTS
+- **Framework:** Express.js 4.18.2
+- **Language:** TypeScript 5.0+
+- **Database:** PostgreSQL 15 (Neon Serverless)
+- **ORM:** Drizzle ORM 0.44.7
+- **Caching:** Redis 5.9.0
+- **Job Queue:** BullMQ 5.63.0
+- **AI:** Google Gemini API
+- **Testing:** Vitest, Supertest
 
-#### تحليل قاعدة البيانات
-- **[تقرير الأداء](./backend/db-performance-analysis/PERFORMANCE_ANALYSIS_REPORT.md)** - تحليل شامل
-- **[Baseline Queries](./backend/db-performance-analysis/baseline-queries.sql)** - استعلامات القياس
+---
 
-#### التحسينات المُطبقة
-- ✅ **8 فهارس مركبة جديدة** للمشاريع/المشاهد/الشخصيات/اللقطات
-- ✅ **Redis caching** للبيانات المتكررة
-- ✅ **BullMQ** لمعالجة المهام الطويلة
-- ✅ **WebSocket + SSE** للتحديثات الفورية
-- ✅ **Security hardening** مع Zod validation
-- ✅ **Monitoring** مع Sentry + Prometheus
+## 🧪 Testing
 
-#### البدء مع تحسين الأداء
+### Running Tests
 
 ```bash
-# البدء السريع (3-4 ساعات)
-# اقرأ: docs/performance-optimization/QUICK_START.md
-
-# 1. تطبيق فهارس قاعدة البيانات
-cd backend
-pnpm db:push
-
-# 2. فحص Redis
-redis-cli PING
-
-# 3. تحليل Bundle
+# Frontend tests
 cd frontend
-ANALYZE=true pnpm build
+pnpm test              # Run unit tests
+pnpm test:coverage     # Run with coverage report
+pnpm test:watch        # Watch mode
+pnpm test:ui           # UI mode with Vitest UI
+pnpm e2e               # Run end-to-end tests
 
-# 4. اختبار الأداء
-bash scripts/test-performance.sh
-```
-
-#### النتائج المتوقعة
-- ⚡ **تحسين 40-70%** في سرعة الاستجابة
-- 📊 **تقليل 60%** في استعلامات قاعدة البيانات
-- 💰 **توفير 60%** في تكاليف Gemini API
-- 🚀 **تحسين 50%** في زمن تحميل الصفحات
-
----
-
-## 🎯 الميزات الرئيسية
-
-### 1. تحليل المحطات السبع
-- تحليل درامي متقدم للنصوص
-- 7 محطات تحليلية شاملة
-- رؤى وتوصيات من الذكاء الاصطناعي
-- تقارير مفصلة قابلة للتصدير
-
-### 2. استوديو المخرجين
-- إدارة مشاريع متعددة
-- تنظيم المشاهد واللقطات
-- تتبع الشخصيات والاتساق
-- أدوات تخطيط بصري
-
-### 3. التحليل الذكي
-- استخراج تلقائي للمشاهد والشخصيات
-- اقتراحات للقطات والزوايا
-- تحليل الاتساق الدرامي
-- توصيات إبداعية
-
-### 4. الأمان والأداء
-- مصادقة آمنة (JWT)
-- تشفير البيانات
-- Rate limiting ذكي
-- تخزين مؤقت محسّن
-- معالجة غير متزامنة
-
----
-
-## 🧪 الاختبارات
-
-```bash
-# Backend Tests
+# Backend tests
 cd backend
-pnpm test
-pnpm test:coverage
+pnpm test              # Run unit tests
+pnpm test:coverage     # Run with coverage report
+pnpm test:watch        # Watch mode
 
-# Frontend Tests
-cd frontend
-pnpm test
-pnpm test:e2e
-
-# Performance Tests
-bash scripts/test-performance.sh
-
-# Linting
-cd backend && pnpm lint
-cd frontend && pnpm lint
+# All tests
+pnpm test              # From root
+pnpm test:all          # All tests with coverage
 ```
 
----
+### Coverage Requirements
 
-## 📊 المراقبة والإحصائيات
+Both frontend and backend enforce strict coverage thresholds:
 
-### Dashboards
-- **Bull Board**: http://localhost:3001/admin/queues
-- **Metrics Dashboard**: http://localhost:3000/admin/metrics
-- **Prometheus Metrics**: http://localhost:3001/metrics
-- **Sentry**: [Your Sentry Dashboard]
+| Metric | Target | Enforcement |
+|--------|--------|-------------|
+| **Lines** | 85% | Fail CI if below |
+| **Functions** | 85% | Fail CI if below |
+| **Branches** | 80% | Fail CI if below |
+| **Statements** | 85% | Fail CI if below |
 
-### Health Checks
+Coverage reports are generated in:
+- Frontend: `frontend/coverage/` and `frontend/reports/coverage/`
+- Backend: `backend/coverage/`
+
+### Test Categories
+
+#### Unit Tests
+Tests for individual functions and components in isolation.
+
 ```bash
-# Backend Health
-curl http://localhost:3001/api/health
+# Run specific test file
+pnpm test -- src/lib/utils.test.ts
 
-# Redis Health
-redis-cli PING
+# Run tests matching pattern
+pnpm test -- --grep "utility"
+```
 
-# Database Health
-psql $DATABASE_URL -c "SELECT 1;"
+#### Integration Tests
+Tests for component and API interactions.
+
+Location:
+- Frontend: `src/__tests__/integration/`
+- Backend: `src/test/integration/`
+
+#### End-to-End Tests
+Full user workflows using Playwright.
+
+```bash
+# Run E2E tests
+cd frontend
+pnpm e2e
+
+# Run with UI
+pnpm e2e:ui
+
+# Run headed (visible browser)
+pnpm e2e:headed
+```
+
+### Coverage Reports
+
+Coverage reports are automatically generated during test runs:
+
+```bash
+# View HTML coverage report
+cd frontend
+open reports/coverage/index.html
+
+cd ../backend
+open coverage/index.html
+```
+
+### CI/CD Coverage Validation
+
+The CI pipeline automatically:
+
+1. ✅ Runs all tests with coverage collection
+2. ✅ Checks coverage against thresholds
+3. ✅ Comments on PRs with coverage results
+4. ✅ Uploads reports to Codecov
+5. ✅ Fails builds if thresholds not met
+
+---
+
+## 🔒 Security
+
+### Security Features
+
+- ✅ Input validation with Zod schemas
+- ✅ SQL injection prevention via parameterized queries
+- ✅ XSS protection with DOMPurify and React escaping
+- ✅ CSRF tokens for state-changing operations
+- ✅ Rate limiting on API endpoints
+- ✅ JWT-based authentication
+- ✅ HTTPS/TLS encryption
+- ✅ Environment variable validation
+
+### Best Practices
+
+- Never commit secrets to the repository
+- Use `.env.example` for required variables
+- Rotate credentials regularly
+- Enable 2FA on GitHub and production access
+- Review dependencies: `pnpm audit`
+
+---
+
+## 📈 Performance
+
+### Optimization Strategies
+
+1. **Frontend**
+   - Dynamic imports for code splitting
+   - Image optimization with `next/image`
+   - React Query caching
+   - Memoization with `useMemo` and `useCallback`
+   - CSS-in-JS with Tailwind
+
+2. **Backend**
+   - Database query optimization
+   - Redis caching for expensive operations
+   - Connection pooling
+   - Compression middleware
+   - CDN integration
+
+3. **Monitoring**
+   - Sentry for error tracking
+   - Prometheus for metrics
+   - Grafana for dashboards
+   - Performance monitoring
+
+---
+
+## 🚀 Deployment
+
+### Production Deployment
+
+See [PRODUCTION_DEPLOYMENT_SETUP.md](./PRODUCTION_DEPLOYMENT_SETUP.md) for comprehensive deployment instructions.
+
+Quick deployment:
+
+```bash
+# Build for production
+pnpm build
+
+# Deploy using blue-green strategy
+bash scripts/deploy-production.sh blue
+
+# Switch traffic to new version
+bash scripts/switch-traffic-to-green.sh
+```
+
+### Staging Environment
+
+```bash
+# Deploy to staging
+bash scripts/deploy-staging.sh
+
+# Run staging validation
+pnpm test:staging
 ```
 
 ---
 
-## 🔒 الأمان
+## 📚 Documentation
 
-- ✅ **CORS** مُكوّن بشكل صارم
-- ✅ **Helmet** مع CSP محسّن
-- ✅ **Rate Limiting** متعدد المستويات
-- ✅ **UUID Validation** شامل
-- ✅ **SQL Injection Prevention**
-- ✅ **XSS Protection**
-- ✅ **Security Event Logging**
-- ✅ **JWT Authentication**
-
-راجع [Database Security Guide](./backend/DATABASE_SECURITY.md) للمزيد.
+- [Architecture Documentation](./docs/architecture/)
+- [API Documentation](./backend/openapi.yaml)
+- [Database Schema](./backend/src/db/schema.ts)
+- [Deployment Guide](./PRODUCTION_DEPLOYMENT_SETUP.md)
+- [Performance Optimization](./docs/performance-optimization/)
+- [Monitoring Setup](./MONITORING_SETUP.md)
 
 ---
 
-## 🤝 المساهمة
+## 🤝 Contributing
 
-نرحب بمساهماتكم! يرجى:
+### Development Workflow
 
-1. Fork المشروع
-2. إنشاء branch للميزة (`git checkout -b feature/AmazingFeature`)
-3. Commit التغييرات (`git commit -m 'Add some AmazingFeature'`)
-4. Push للـ branch (`git push origin feature/AmazingFeature`)
-5. فتح Pull Request
+1. **Create Feature Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-### إرشادات المساهمة
-- اتبع معايير الكود الحالية
-- أضف اختبارات للميزات الجديدة
-- حدّث الوثائق عند الحاجة
-- تأكد من نجاح جميع الاختبارات
+2. **Make Changes**
+   - Follow code style guidelines
+   - Write tests for new features
+   - Keep commits atomic and descriptive
 
----
+3. **Run Quality Checks**
+   ```bash
+   pnpm lint
+   pnpm typecheck
+   pnpm test
+   pnpm test:coverage
+   ```
 
-## 📝 الترخيص
+4. **Create Pull Request**
+   - Reference related issues
+   - Provide clear description
+   - Ensure CI passes
+   - Request review from team
 
-هذا المشروع مرخص تحت [MIT License](./LICENSE).
+### Code Standards
 
----
+- **TypeScript:** Strict mode enabled
+- **ESLint:** All warnings must be resolved
+- **Prettier:** Automatic code formatting
+- **Coverage:** 85% minimum (lines, functions, statements), 80% branches
 
-## 👥 الفريق
+### Commit Message Format
 
-صُمم وطُور بواسطة **The Copy Team**
+Follow Conventional Commits:
 
----
+```
+type(scope): brief description
 
-## 📞 الدعم
+Detailed explanation of changes (if needed).
 
-- 📧 Email: [support@the-copy.app]
-- 📖 Documentation: [docs/](./docs/)
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/the-copy/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/your-username/the-copy/discussions)
+Fixes #123
+```
 
----
-
-## 🚀 الجاهزية للنشر
-
-### 📚 **[فهرس التقارير الكامل](./REPORTS_INDEX.md)** - ابدأ من هنا!
-
-### 🎉 **[الحالة النهائية للخدمات](./FINAL_SERVICES_STATUS.md)** - جميع الخدمات جاهزة! ✅
-
-### 🔧 **[تحليل الخدمات والأدوات](./SERVICES_ANALYSIS_REPORT.md)** - تقرير شامل للخدمات
-
-### ⚡ **[دليل الإصلاح السريع](./SERVICES_QUICK_FIX_AR.md)** - إصلاح الخدمات في 5 دقائق
-
-### 👍 **[تكوينات الإنتاج](./PRODUCTION_CONFIG_ANALYSIS.md)** - تحليل .env.production
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
 
 ---
 
-### 📋 التقارير الرئيسية
+## 📋 Project Status
 
-#### للمدراء وصناع القرار 👔
-**[الملخص التنفيذي](./EXECUTIVE_SUMMARY_AR.md)** (5 دقائق)
-- نظرة عامة سريعة
-- المشاكل الحرجة والتكاليف
-- التوصيات والخطة
+### Current Phase
 
-#### للمطورين والتقنيين 💻
-**[التقرير الشامل](./PRODUCTION_READINESS_REPORT.md)** (30 دقيقة)
-- تحليل تفصيلي كامل
-- جميع المشاكل والحلول
-- خطة النشر الكاملة
+- ✅ Core architecture complete
+- ✅ API endpoints implemented
+- ✅ UI components built
+- ✅ Testing framework configured
+- ✅ CI/CD pipeline active
+- 🔄 Production deployment in progress
 
-#### للتنفيذ السريع ⚡
-**[قائمة المهام](./DEPLOYMENT_CHECKLIST.md)** (دليل عملي)
-- خطوات النشر بالترتيب
-- Checklist قابل للتنفيذ
-- الوقت المتوقع لكل مرحلة
+### Roadmap
 
-#### مراجع إضافية 📖
-- **[الأوامر المفيدة](./QUICK_COMMANDS.md)** - مرجع سريع للأوامر
-- **[التحقق قبل النشر](./PRE_DEPLOYMENT_VERIFICATION.md)** - Checklist نهائي
-- **[قائمة المهام الحالية](./todos.md)** - تتبع التقدم
+- [ ] Advanced analytics dashboard
+- [ ] Real-time collaboration features
+- [ ] Mobile app (React Native)
+- [ ] Enhanced AI capabilities
+- [ ] Community features
 
 ---
 
-### ⚠️ الحالة الحالية
+## 🐛 Reporting Issues
 
-**الجاهزية**: 75% ⚠️ يتطلب إجراءات حرجة
+If you find a bug, please create an issue with:
 
-**المشاكل الحرجة (يجب حلها قبل النشر):**
-- 🔴 **الأمان**: API Keys مكشوفة في `.env` files
-- 🔴 **قاعدة البيانات**: SQLite (يجب التبديل لـ PostgreSQL)
-- 🔴 **MongoDB**: Credentials تحتاج تدوير
-- 🟡 **Redis**: غير مفعّل (مطلوب للأداء الأمثل)
-- 🟡 **الاختبارات**: بعض الاختبارات فاشلة
-
-**الوقت المتوقع للجاهزية الكاملة**: 3-5 أيام عمل
-
-**التوصية**: ابدأ بـ [الملخص التنفيذي](./EXECUTIVE_SUMMARY_AR.md) ثم اتبع [قائمة المهام](./DEPLOYMENT_CHECKLIST.md)
+1. Clear title describing the problem
+2. Steps to reproduce
+3. Expected vs actual behavior
+4. Environment details
+5. Screenshots/logs if applicable
 
 ---
 
-## 🗺️ خارطة الطريق
+## 📞 Support
 
-### الإصدار الحالي (v1.0)
-- ✅ تحليل المحطات السبع
-- ✅ استوديو المخرجين
-- ✅ تحسينات الأداء
-- ✅ نظام الطوابير
-- ✅ التحديثات الفورية
-- ⚠️ **يتطلب إجراءات أمنية قبل النشر**
+For questions and support:
 
-### القادم (v1.1)
-- [ ] تصدير PDF/DOCX محسّن
-- [ ] تعاون متعدد المستخدمين
-- [ ] تطبيق الهاتف المحمول
-- [ ] دعم لغات إضافية
-- [ ] تحليلات متقدمة
-
-### المستقبل (v2.0)
-- [ ] AI-powered scene generation
-- [ ] Visual storyboarding
-- [ ] Budget estimation tools
-- [ ] Production scheduling
-- [ ] Asset management
+- **GitHub Issues:** [Project Issues](https://github.com/your-org/the-copy/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/your-org/the-copy/discussions)
+- **Email:** support@thecopy.app
 
 ---
 
-## 🌟 شكر خاص
+## 📄 License
 
-- [Next.js](https://nextjs.org/) - React Framework
-- [Drizzle ORM](https://orm.drizzle.team/) - TypeScript ORM
-- [Google Gemini](https://deepmind.google/technologies/gemini/) - AI Analysis
-- [shadcn/ui](https://ui.shadcn.com/) - UI Components
-- [BullMQ](https://docs.bullmq.io/) - Queue System
-- [Sentry](https://sentry.io/) - Error Monitoring
+This project is licensed under the MIT License - see [LICENSE](./LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+Built with ❤️ by the The Copy team
+
+Special thanks to:
+- The open-source community
+- Our contributors and users
+- The drama and storytelling communities
 
 ---
 
 <div align="center">
 
-**صُنع بـ ❤️ للمبدعين العرب**
+Made with 💡 Intelligence and 🎭 Creativity
 
-[الموقع الرسمي](#) | [الوثائق](./docs/) | [التحديثات](#) | [المجتمع](#)
+[GitHub](https://github.com/your-org/the-copy) • [Website](https://thecopy.app) • [Documentation](./docs)
 
 </div>
