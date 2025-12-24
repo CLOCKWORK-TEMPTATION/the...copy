@@ -22,7 +22,6 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit --skipLibCheck",
-    "type-check": "tsc --noEmit",
     "test": "vitest run \"src/app/(main)/directors-studio/helpers/__tests__/projectSummary.test.ts\"",
     "test:smoke": "vitest run \"src/app/__smoke__/simple.test.ts\"",
     "test:ui": "vitest --ui",
