@@ -448,9 +448,13 @@ let wafConfig: WAFConfig = { ...defaultWAFConfig };
 function getClientIP(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
   if (forwarded) {
-    return (Array.isArray(forwarded) ? forwarded[0] : forwarded)
-      .split(",")[0]
-      .trim();
+    const forwardedValue = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+    if (forwardedValue) {
+      const parts = forwardedValue.split(",");
+      if (parts[0]) {
+        return parts[0].trim();
+      }
+    }
   }
   return req.socket.remoteAddress || req.ip || "unknown";
 }
