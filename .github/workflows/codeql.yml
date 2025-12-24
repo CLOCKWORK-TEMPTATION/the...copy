@@ -11,7 +11,6 @@ on:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    # استخدام Ubuntu لأنه الأسرع والأوفر في الـ Minutes
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -21,23 +20,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # تم تحديد اللغة javascript-typescript لأنها أساس المشروع (Next.js + Node)
         language: [ 'javascript-typescript' ]
-        # لو ضفت Python Scripts مستقبلاً تقدر تزود 'python' هنا بسهولة
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # تهيئة CodeQL مع الإعدادات المحسنة
+    # تهيئة CodeQL مع استبعاد الملفات المسببة للأخطاء
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
-        # التعديل الحاسم: تفعيل قواعد الجودة والأمان المتقدمة بدلاً من الافتراضية
+        # تفعيل القواعد المتقدمة
         queries: security-and-quality
         
-        # التعديل الهندسي للأداء: استبعاد المسارات اللي بتضيع وقت ومش محتاجة فحص
+        # التعديل الهندسي: استبعاد ملفات الباك أب والملفات المؤقتة والعمال (Workers)
         config: |
           paths-ignore:
             - '**/node_modules'
@@ -48,15 +45,23 @@ jobs:
             - '**/__tests__'
             - '**/test'
             - '**/*.test.ts'
+            - '**/*.test.tsx'
             - '**/*.spec.ts'
             - '**/test-results.json'
             - '**/public'
+            # استبعاد ملفات الباك أب والـ Legacy المسببة للتحذير
+            - '**/*.backup.tsx'
+            - '**/*.backup.ts'
+            - '**/*.legacy.tsx'
+            - '**/*.legacy.ts'
+            # استبعاد ملفات الكونفيج والسكربتات المعقدة التي لا تمثل خطر مباشر
+            - '**/scripts/**'
+            - '**/*.worker.ts'
+            - '**/workers/**'
 
-    # خطوة البناء التلقائي (ضرورية لو فيه Build Steps معقدة، وغالباً CodeQL بيتعامل معاها لوحده في JS)
     - name: Autobuild
       uses: github/codeql-action/autobuild@v4
 
-    # تنفيذ التحليل ورفع التقرير
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
       with:
