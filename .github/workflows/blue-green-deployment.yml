@@ -22,6 +22,9 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '8'
