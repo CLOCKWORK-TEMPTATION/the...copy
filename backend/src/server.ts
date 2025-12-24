@@ -85,11 +85,11 @@ try {
   logger.error('Failed to setup Bull Board:', error);
 }
 
-// Health check endpoint
+// Health check endpoint (legacy - kept for backward compatibility)
 app.get('/api/health', async (req, res) => {
   const { getRedisStatus } = await import('@/utils/redis-health');
   const redisStatus = await getRedisStatus();
-  
+
   res.json({
     success: true,
     status: 'ok',
@@ -101,6 +101,34 @@ app.get('/api/health', async (req, res) => {
       database: 'connected'
     }
   });
+});
+
+// Liveness probe - simple check to verify the application is alive
+app.get('/health/live', (req, res) => {
+  res.status(200).json({
+    status: 'alive',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+// Readiness probe - comprehensive check to verify all dependencies are healthy
+app.get('/health/ready', async (req, res) => {
+  try {
+    const { performReadinessCheck } = await import('@/utils/health-checks');
+    const result = await performReadinessCheck();
+
+    const statusCode = result.status === 'ready' ? 200 : 503;
+
+    res.status(statusCode).json(result);
+  } catch (error) {
+    logger.error('Readiness check failed:', error);
+    res.status(503).json({
+      status: 'not_ready',
+      error: error instanceof Error ? error.message : 'Health check failed',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Prometheus metrics endpoint
