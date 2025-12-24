@@ -38,14 +38,18 @@ function isSafeCSSProperty(property: string): boolean {
  * Removes dangerous patterns like url(), import, etc.
  */
 function sanitizeCSSValue(value: string): string {
-  // Remove potentially dangerous CSS functions
-  const dangerous = /url\(|import|expression|behavior|@import|javascript:/gi;
+  if (!value) return "";
+  
+  // Escape special characters that could be dangerous
+  const escaped = value
+    .replace(/[<>]/g, "")
+    .replace(/javascript:/gi, "")
+    .replace(/expression\(/gi, "")
+    .replace(/import/gi, "")
+    .replace(/behavior/gi, "")
+    .replace(/@import/gi, "");
 
-  if (dangerous.test(value)) {
-    return "";
-  }
-
-  return value.trim();
+  return escaped.trim();
 }
 
 /**
@@ -106,7 +110,7 @@ export function escapeHtml(text: string): string {
  * Safe alternative when you need plain text only
  */
 export function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, "");
+  return html.replace(/<[^>]*>/g, "").trim();
 }
 
 /**

@@ -15,19 +15,16 @@ export const sanitizeHTML = (input: string): string => {
     return "";
   }
 
-  // Basic HTML sanitization - remove dangerous tags and attributes
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, "")
-    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, "")
-    .replace(/<link\b[^<]*>/gi, "")
-    .replace(/<meta\b[^<]*>/gi, "")
-    .replace(/on\w+="[^"]*"/gi, "") // Remove event handlers
-    .replace(/javascript:/gi, "") // Remove javascript: protocol
-    .replace(/vbscript:/gi, "") // Remove vbscript: protocol
-    .replace(/data:/gi, "") // Remove data: protocol
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ""); // Remove style tags
+  const map: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+    "/": "&#x2F;",
+  };
+
+  return input.replace(/[&<>"'\/]/g, (char) => map[char] ?? char);
 };
 
 /**

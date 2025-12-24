@@ -256,7 +256,7 @@ describe('🔒 Comprehensive Security Tests', () => {
         if (response.status === 201) {
           const userData = response.body.data?.user?.firstName || '';
           // Should not contain executable script tags
-          expect(userData).not.toMatch(/<script[\s\S]*?>[\s\S]*?<\/script>/gi);
+          expect(userData).not.toMatch(/<script[^>]*>/gi);
         }
       }
     });
