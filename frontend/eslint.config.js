@@ -37,10 +37,6 @@ module.exports = [
           jsx: true,
         },
       },
-      globals: {
-        React: "readonly",
-        JSX: "readonly",
-      },
     },
   },
 

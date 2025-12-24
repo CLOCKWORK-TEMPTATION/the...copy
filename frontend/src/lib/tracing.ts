@@ -36,13 +36,34 @@ export function initBrowserTracing(): void {
     return;
   }
   
-  console.warn('[Tracing] OpenTelemetry packages not installed. Tracing is disabled.');
-  console.warn('[Tracing] To enable tracing, install the required OpenTelemetry packages:');
-  console.warn('[Tracing]   pnpm add @opentelemetry/sdk-trace-web @opentelemetry/resources');
-  console.warn('[Tracing]   pnpm add @opentelemetry/semantic-conventions @opentelemetry/exporter-trace-otlp-http');
-  console.warn('[Tracing]   pnpm add @opentelemetry/sdk-trace-base @opentelemetry/instrumentation-fetch');
-  console.warn('[Tracing]   pnpm add @opentelemetry/instrumentation-xml-http-request @opentelemetry/instrumentation');
-  console.warn('[Tracing]   pnpm add @opentelemetry/api');
+  // Only show warning once
+  if (!(window as any).__TRACING_WARNING_SHOWN) {
+    console.warn('[Tracing] OpenTelemetry packages not installed. Tracing is disabled.');
+    console.warn('[Tracing] To enable tracing, install the required OpenTelemetry packages:');
+    console.warn('[Tracing]   pnpm add @opentelemetry/sdk-trace-web @opentelemetry/resources');
+    console.warn('[Tracing]   pnpm add @opentelemetry/semantic-conventions @opentelemetry/exporter-trace-otlp-http');
+    console.warn('[Tracing]   pnpm add @opentelemetry/sdk-trace-base @opentelemetry/instrumentation-fetch');
+    console.warn('[Tracing]   pnpm add @opentelemetry/instrumentation-xml-http-request @opentelemetry/instrumentation');
+    console.warn('[Tracing]   pnpm add @opentelemetry/api');
+    (window as any).__TRACING_WARNING_SHOWN = true;
+  }
+}
+
+/**
+ * Stub tracer span interface for when OpenTelemetry is not available
+ */
+interface StubSpan {
+  end: () => void;
+  setAttribute: (key: string, value: unknown) => void;
+  setStatus: (status: { code: number }) => void;
+  recordException: (error: Error) => void;
+}
+
+/**
+ * Stub tracer interface for when OpenTelemetry is not available
+ */
+interface StubTracer {
+  startSpan: (name: string) => StubSpan;
 }
 
 /**
@@ -52,8 +73,8 @@ export function initBrowserTracing(): void {
  * Note: Returns a no-op tracer stub if OpenTelemetry is not available
  */
 export const trace = {
-  getTracer: () => ({
-    startSpan: () => ({
+  getTracer: (name?: string): StubTracer => ({
+    startSpan: (spanName: string): StubSpan => ({
       end: () => {},
       setAttribute: () => {},
       setStatus: () => {},
