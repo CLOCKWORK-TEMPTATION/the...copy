@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, varchar, index, jsonb, integer } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, varchar, index, jsonb, integer, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 // Session storage table for Express sessions
@@ -20,12 +20,35 @@ export const users = pgTable('users', {
   firstName: varchar('first_name', { length: 100 }),
   lastName: varchar('last_name', { length: 100 }),
   profileImageUrl: varchar('profile_image_url', { length: 500 }),
+  // MFA fields
+  mfaEnabled: boolean('mfa_enabled').default(false).notNull(),
+  mfaSecret: text('mfa_secret'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+// Refresh tokens table for JWT rotation
+export const refreshTokens = pgTable(
+  'refresh_tokens',
+  {
+    id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: varchar('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    token: text('token').notNull().unique(),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_refresh_tokens_user_id').on(table.userId),
+    index('idx_refresh_tokens_token').on(table.token),
+    index('idx_refresh_tokens_expires_at').on(table.expiresAt),
+  ]
+);
+
+export type RefreshToken = typeof refreshTokens.$inferSelect;
+export type NewRefreshToken = typeof refreshTokens.$inferInsert;
 
 // Directors Studio - Projects table
 export const projects = pgTable(

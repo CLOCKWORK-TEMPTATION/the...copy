@@ -10,9 +10,35 @@ import { logger } from '@/utils/logger';
 const BULLMQ_MIN_REDIS_VERSION = '5.0.0';
 
 /**
- * Parse Redis URL or use individual configuration
+ * Parse Redis URL or use individual configuration with Sentinel support
  */
 export function getRedisConfig() {
+  // Sentinel configuration
+  if (process.env.REDIS_SENTINEL_ENABLED === 'true') {
+    const sentinels = (process.env.REDIS_SENTINELS || '127.0.0.1:26379,127.0.0.1:26380,127.0.0.1:26381')
+      .split(',')
+      .map(s => {
+        const [host, port] = s.trim().split(':');
+        return { host, port: parseInt(port) };
+      });
+
+    return {
+      sentinels,
+      name: process.env.REDIS_MASTER_NAME || 'mymaster',
+      password: process.env.REDIS_PASSWORD,
+      sentinelPassword: process.env.REDIS_SENTINEL_PASSWORD,
+      socket: {
+        reconnectStrategy: (retries: number) => {
+          if (retries > 10) {
+            logger.error('Redis Sentinel retry exhausted');
+            return false;
+          }
+          return Math.min(retries * 100, 3000);
+        },
+      },
+    };
+  }
+
   // If REDIS_URL is provided, use it directly
   if (process.env.REDIS_URL) {
     return {

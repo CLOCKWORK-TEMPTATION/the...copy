@@ -10,6 +10,7 @@ import {
   SecurityEventType,
 } from "./security-logger.middleware";
 import { sanitizeRequestLogs } from "./log-sanitization.middleware";
+import { sloMetricsMiddleware } from "./slo-metrics.middleware";
 
 /**
  * Rate Limiting Strategy Notes:
@@ -129,6 +130,9 @@ export const setupMiddleware = (app: express.Application): void => {
   // PII Sanitization - Apply BEFORE logging to ensure no PII is logged
   app.use(sanitizeRequestLogs as any);
 
+  // SLO Metrics - Track service level objectives
+  app.use(sloMetricsMiddleware);
+
   // Rate limiting - General API rate limit
   const generalLimiter = rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS, // 15 minutes by default
@@ -198,6 +202,18 @@ export {
   commonSchemas,
   detectAttacks,
 } from "./validation.middleware";
+
+// Export SLO metrics utilities
+export {
+  sloMetricsMiddleware,
+  trackAPIRequest,
+  trackAuthAttempt,
+  trackGeminiCall,
+  trackDatabaseQuery,
+  getSLOStatus,
+  SLO_TARGETS,
+  ERROR_BUDGETS,
+} from "./slo-metrics.middleware";
 
 // Error handling middleware - must be registered separately in server.ts after all routes
 export const errorHandler = (

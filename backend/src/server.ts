@@ -1,4 +1,9 @@
 import 'module-alias/register';
+
+// Initialize OpenTelemetry tracing (MUST be before any other imports)
+import { initTracing } from '@/config/tracing';
+initTracing();
+
 import express, { Application } from 'express';
 import { createServer } from 'http';
 import type { Server } from 'http';
@@ -8,8 +13,10 @@ import { initializeSentry } from '@/config/sentry';
 import { setupMiddleware, errorHandler } from '@/middleware';
 import { sentryRequestHandler, sentryTracingHandler, sentryErrorHandler, trackError, trackPerformance } from '@/middleware/sentry.middleware';
 import { logAuthAttempts, logRateLimitViolations } from '@/middleware/security-logger.middleware';
+import { wafMiddleware, getWAFStats, getWAFEvents, blockIP, unblockIP, getBlockedIPs, updateWAFConfig, getWAFConfig } from '@/middleware/waf.middleware';
 import { metricsMiddleware, metricsEndpoint } from '@/middleware/metrics.middleware';
 import { AnalysisController } from '@/controllers/analysis.controller';
+import { HealthController } from '@/controllers/health.controller';
 import { authController } from '@/controllers/auth.controller';
 import { projectsController } from '@/controllers/projects.controller';
 import { scenesController } from '@/controllers/scenes.controller';
@@ -35,6 +42,7 @@ const app: Application = express();
 // Create HTTP server for WebSocket integration
 const httpServer: Server = createServer(app);
 const analysisController = new AnalysisController();
+const healthController = new HealthController();
 
 // Sentry request handling (must be first middleware)
 app.use(sentryRequestHandler);
@@ -44,6 +52,9 @@ app.use(trackPerformance);
 
 // Prometheus metrics tracking
 app.use(metricsMiddleware);
+
+// WAF (Web Application Firewall) - must be early in the chain
+app.use(wafMiddleware);
 
 // Security logging middleware
 app.use(logAuthAttempts);
@@ -85,51 +96,13 @@ try {
   logger.error('Failed to setup Bull Board:', error);
 }
 
-// Health check endpoint (legacy - kept for backward compatibility)
-app.get('/api/health', async (req, res) => {
-  const { getRedisStatus } = await import('@/utils/redis-health');
-  const redisStatus = await getRedisStatus();
-
-  res.json({
-    success: true,
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    uptime: process.uptime(),
-    services: {
-      redis: redisStatus,
-      database: 'connected'
-    }
-  });
-});
-
-// Liveness probe - simple check to verify the application is alive
-app.get('/health/live', (req, res) => {
-  res.status(200).json({
-    status: 'alive',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
-});
-
-// Readiness probe - comprehensive check to verify all dependencies are healthy
-app.get('/health/ready', async (req, res) => {
-  try {
-    const { performReadinessCheck } = await import('@/utils/health-checks');
-    const result = await performReadinessCheck();
-
-    const statusCode = result.status === 'ready' ? 200 : 503;
-
-    res.status(statusCode).json(result);
-  } catch (error) {
-    logger.error('Readiness check failed:', error);
-    res.status(503).json({
-      status: 'not_ready',
-      error: error instanceof Error ? error.message : 'Health check failed',
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
+// Health check endpoints for Blue-Green deployment
+app.get('/api/health', healthController.getHealth.bind(healthController));
+app.get('/health', healthController.getHealth.bind(healthController));
+app.get('/health/live', healthController.getLiveness.bind(healthController));
+app.get('/health/ready', healthController.getReadiness.bind(healthController));
+app.get('/health/startup', healthController.getStartup.bind(healthController));
+app.get('/health/detailed', healthController.getDetailedHealth.bind(healthController));
 
 // Prometheus metrics endpoint
 app.get('/metrics', metricsEndpoint);
@@ -157,6 +130,7 @@ app.get('/api/gemini/cost-summary', authMiddleware, async (req, res) => {
 app.post('/api/auth/signup', authController.signup.bind(authController));
 app.post('/api/auth/login', authController.login.bind(authController));
 app.post('/api/auth/logout', authController.logout.bind(authController));
+app.post('/api/auth/refresh', authController.refresh.bind(authController));
 app.get('/api/auth/me', authMiddleware, authController.getCurrentUser.bind(authController));
 
 // Seven Stations Pipeline endpoints (protected)
@@ -223,6 +197,92 @@ app.get('/api/metrics/cache/snapshot', authMiddleware, metricsController.getCach
 app.get('/api/metrics/cache/realtime', authMiddleware, metricsController.getCacheRealtime.bind(metricsController));
 app.get('/api/metrics/cache/health', authMiddleware, metricsController.getCacheHealth.bind(metricsController));
 app.get('/api/metrics/cache/report', authMiddleware, metricsController.getCacheReport.bind(metricsController));
+
+// APM (Application Performance Monitoring) endpoints (protected)
+app.get('/api/metrics/apm/dashboard', authMiddleware, metricsController.getApmDashboard.bind(metricsController));
+app.get('/api/metrics/apm/config', authMiddleware, metricsController.getApmConfig.bind(metricsController));
+app.post('/api/metrics/apm/reset', authMiddleware, metricsController.resetApmMetrics.bind(metricsController));
+app.get('/api/metrics/apm/alerts', authMiddleware, metricsController.getApmAlerts.bind(metricsController));
+
+// WAF Management endpoints (protected - admin only)
+app.get('/api/waf/stats', authMiddleware, (req, res) => {
+  try {
+    const stats = getWAFStats();
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    logger.error('Failed to get WAF stats:', error);
+    res.status(500).json({ success: false, error: 'Failed to retrieve WAF stats' });
+  }
+});
+
+app.get('/api/waf/events', authMiddleware, (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 100;
+    const events = getWAFEvents(limit);
+    res.json({ success: true, data: events });
+  } catch (error) {
+    logger.error('Failed to get WAF events:', error);
+    res.status(500).json({ success: false, error: 'Failed to retrieve WAF events' });
+  }
+});
+
+app.get('/api/waf/config', authMiddleware, (req, res) => {
+  try {
+    const config = getWAFConfig();
+    res.json({ success: true, data: config });
+  } catch (error) {
+    logger.error('Failed to get WAF config:', error);
+    res.status(500).json({ success: false, error: 'Failed to retrieve WAF config' });
+  }
+});
+
+app.put('/api/waf/config', authMiddleware, (req, res) => {
+  try {
+    updateWAFConfig(req.body);
+    res.json({ success: true, message: 'WAF configuration updated' });
+  } catch (error) {
+    logger.error('Failed to update WAF config:', error);
+    res.status(500).json({ success: false, error: 'Failed to update WAF config' });
+  }
+});
+
+app.get('/api/waf/blocked-ips', authMiddleware, (req, res) => {
+  try {
+    const ips = getBlockedIPs();
+    res.json({ success: true, data: ips });
+  } catch (error) {
+    logger.error('Failed to get blocked IPs:', error);
+    res.status(500).json({ success: false, error: 'Failed to retrieve blocked IPs' });
+  }
+});
+
+app.post('/api/waf/block-ip', authMiddleware, (req, res) => {
+  try {
+    const { ip, reason } = req.body;
+    if (!ip) {
+      return res.status(400).json({ success: false, error: 'IP address required' });
+    }
+    blockIP(ip, reason);
+    res.json({ success: true, message: `IP ${ip} blocked successfully` });
+  } catch (error) {
+    logger.error('Failed to block IP:', error);
+    res.status(500).json({ success: false, error: 'Failed to block IP' });
+  }
+});
+
+app.post('/api/waf/unblock-ip', authMiddleware, (req, res) => {
+  try {
+    const { ip } = req.body;
+    if (!ip) {
+      return res.status(400).json({ success: false, error: 'IP address required' });
+    }
+    unblockIP(ip);
+    res.json({ success: true, message: `IP ${ip} unblocked successfully` });
+  } catch (error) {
+    logger.error('Failed to unblock IP:', error);
+    res.status(500).json({ success: false, error: 'Failed to unblock IP' });
+  }
+});
 
 // 404 handler
 app.use((req, res) => {

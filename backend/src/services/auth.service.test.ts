@@ -308,4 +308,48 @@ describe('AuthService', () => {
       expect(() => authService.verifyToken(token)).toThrow('رمز التحقق غير صالح');
     });
   });
+
+  describe('generateSecureSessionToken', () => {
+    it('should generate a valid session token', async () => {
+      const userId = 'user-123';
+      const expectedToken = 'secure-session-token';
+
+      vi.mocked(jwt.sign).mockReturnValue(expectedToken as never);
+
+      const result = await authService.generateSecureSessionToken(userId);
+
+      expect(result).toBe(expectedToken);
+      expect(jwt.sign).toHaveBeenCalledWith(
+        { userId },
+        expect.any(String),
+        { expiresIn: '7d' }
+      );
+    });
+  });
+
+  describe('signup - edge cases', () => {
+    it('should throw error when user creation returns empty array', async () => {
+      const email = 'test@example.com';
+      const password = TEST_PASSWORD;
+      const hashedPassword = 'hashed-password';
+
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+
+      vi.mocked(bcrypt.hash).mockResolvedValue(hashedPassword as never);
+
+      mockDb.insert.mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
+      });
+
+      await expect(authService.signup(email, password)).rejects.toThrow('فشل إنشاء المستخدم');
+    });
+  });
 });

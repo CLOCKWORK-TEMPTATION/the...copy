@@ -27,31 +27,24 @@ export class AuthController {
     try {
       const validatedData = signupSchema.parse(req.body);
       
-      const { accessToken, user } = await authService.signup(
+      const { accessToken, refreshToken, user } = await authService.signup(
         validatedData.email,
         validatedData.password,
         validatedData.firstName,
         validatedData.lastName
       );
 
-      // SECURITY FIX: Generate secure session token instead of using user-controlled data
-      const sessionToken = await authService.generateSecureSessionToken(user.id);
-      
-      // Set httpOnly cookie with server-generated token (not user-controlled)
-      res.cookie('token', sessionToken, {
+      res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
         sameSite: 'strict',
       });
 
       res.status(201).json({
         success: true,
         message: 'تم إنشاء الحساب بنجاح',
-        data: {
-          user,
-          token: accessToken,
-        },
+        data: { user, token: accessToken },
       });
 
       logger.info('User signed up successfully', { userId: user.id });
@@ -77,29 +70,22 @@ export class AuthController {
     try {
       const validatedData = loginSchema.parse(req.body);
       
-      const { accessToken, user } = await authService.login(
+      const { accessToken, refreshToken, user } = await authService.login(
         validatedData.email,
         validatedData.password
       );
 
-      // SECURITY FIX: Generate secure session token instead of using user-controlled data
-      const sessionToken = await authService.generateSecureSessionToken(user.id);
-      
-      // Set httpOnly cookie with server-generated token (not user-controlled)
-      res.cookie('token', sessionToken, {
+      res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
         sameSite: 'strict',
       });
 
       res.json({
         success: true,
         message: 'تم تسجيل الدخول بنجاح',
-        data: {
-          user,
-          token: accessToken,
-        },
+        data: { user, token: accessToken },
       });
 
       logger.info('User logged in successfully', { userId: user.id });
@@ -121,12 +107,37 @@ export class AuthController {
     }
   }
 
-  async logout(req: Request, res: Response): Promise<void> {
-    res.clearCookie('token');
-    res.json({
-      success: true,
-      message: 'تم تسجيل الخروج بنجاح',
-    });
+  async logout(req: AuthRequest, res: Response): Promise<void> {
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+      await authService.revokeRefreshToken(refreshToken);
+    }
+    res.clearCookie('refreshToken');
+    res.json({ success: true, message: 'تم تسجيل الخروج بنجاح' });
+  }
+
+  async refresh(req: Request, res: Response): Promise<void> {
+    try {
+      const refreshToken = req.cookies?.refreshToken;
+      if (!refreshToken) {
+        res.status(401).json({ success: false, error: 'رمز التحديث مطلوب' });
+        return;
+      }
+
+      const { accessToken, refreshToken: newRefreshToken } = await authService.refreshAccessToken(refreshToken);
+
+      res.cookie('refreshToken', newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: 'strict',
+      });
+
+      res.json({ success: true, data: { token: accessToken } });
+    } catch (error) {
+      logger.error('Refresh token error:', error);
+      res.status(401).json({ success: false, error: 'رمز التحديث غير صالح' });
+    }
   }
 
   async getCurrentUser(req: AuthRequest, res: Response): Promise<void> {

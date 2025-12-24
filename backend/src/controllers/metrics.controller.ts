@@ -2,6 +2,7 @@
  * Metrics Controller
  *
  * Provides comprehensive metrics API endpoints
+ * Includes APM (Application Performance Monitoring) dashboard
  */
 
 import { Request, Response } from 'express';
@@ -10,6 +11,11 @@ import { resourceMonitor } from '@/services/resource-monitor.service';
 import { queueManager } from '@/queues/queue.config';
 import { cacheMetricsService } from '@/services/cache-metrics.service';
 import { logger } from '@/utils/logger';
+import {
+  getPerformanceDashboard,
+  resetPerformanceMetrics,
+  APM_CONFIG,
+} from '@/config/sentry';
 
 export class MetricsController {
   /**
@@ -546,6 +552,129 @@ export class MetricsController {
       res.status(500).json({
         success: false,
         error: 'فشل في إنشاء تقرير أداء الكاش',
+      });
+    }
+  }
+
+  // ============================================
+  // APM (Application Performance Monitoring) Endpoints
+  // ============================================
+
+  /**
+   * Get APM Performance Dashboard
+   * GET /api/metrics/apm/dashboard
+   *
+   * Returns:
+   * - P50, P95, P99 latencies
+   * - Throughput (requests/second)
+   * - Error rates by endpoint
+   * - Operation-specific metrics (Gemini, DB, Redis)
+   * - Alert status
+   */
+  async getApmDashboard(req: Request, res: Response): Promise<void> {
+    try {
+      const dashboard = getPerformanceDashboard();
+
+      res.json({
+        success: true,
+        data: dashboard,
+      });
+    } catch (error) {
+      logger.error('Failed to get APM dashboard:', error);
+      res.status(500).json({
+        success: false,
+        error: 'فشل في الحصول على لوحة مراقبة الأداء',
+      });
+    }
+  }
+
+  /**
+   * Get APM Configuration
+   * GET /api/metrics/apm/config
+   */
+  async getApmConfig(req: Request, res: Response): Promise<void> {
+    try {
+      res.json({
+        success: true,
+        data: {
+          thresholds: APM_CONFIG.thresholds,
+          errorRateThreshold: APM_CONFIG.errorRateThreshold,
+          sampleRates: {
+            traces: APM_CONFIG.tracesSampleRate,
+            profiles: APM_CONFIG.profilesSampleRate,
+          },
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to get APM config:', error);
+      res.status(500).json({
+        success: false,
+        error: 'فشل في الحصول على إعدادات APM',
+      });
+    }
+  }
+
+  /**
+   * Reset APM Performance Metrics
+   * POST /api/metrics/apm/reset
+   *
+   * Resets all performance metrics counters.
+   * Should be called periodically (e.g., every hour) or manually for testing.
+   */
+  async resetApmMetrics(req: Request, res: Response): Promise<void> {
+    try {
+      resetPerformanceMetrics();
+
+      res.json({
+        success: true,
+        message: 'تم إعادة تعيين مقاييس الأداء',
+      });
+    } catch (error) {
+      logger.error('Failed to reset APM metrics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'فشل في إعادة تعيين مقاييس الأداء',
+      });
+    }
+  }
+
+  /**
+   * Get APM Alerts Status
+   * GET /api/metrics/apm/alerts
+   *
+   * Returns current alert status based on thresholds
+   */
+  async getApmAlerts(req: Request, res: Response): Promise<void> {
+    try {
+      const dashboard = getPerformanceDashboard();
+
+      const alerts = {
+        current: dashboard.alerts,
+        thresholds: {
+          p95Latency: APM_CONFIG.thresholds.apiResponse,
+          errorRate: APM_CONFIG.errorRateThreshold,
+          geminiLatency: APM_CONFIG.thresholds.geminiCall,
+          dbLatency: APM_CONFIG.thresholds.dbQuery,
+          redisLatency: APM_CONFIG.thresholds.redisOperation,
+        },
+        metrics: {
+          p95Latency: dashboard.latencies.p95,
+          errorRate: dashboard.summary.errorRate,
+        },
+        status: dashboard.alerts.p95AboveThreshold || dashboard.alerts.errorRateAboveThreshold
+          ? 'warning'
+          : 'ok',
+      };
+
+      res.json({
+        success: true,
+        data: alerts,
+      });
+    } catch (error) {
+      logger.error('Failed to get APM alerts:', error);
+      res.status(500).json({
+        success: false,
+        error: 'فشل في الحصول على تنبيهات الأداء',
       });
     }
   }
