@@ -14,6 +14,7 @@ import DOMPurify from "dompurify";
 
 /**
  * Sanitize HTML content to prevent XSS attacks
+ * SECURITY: Uses iterative approach to handle incomplete/nested tags
  */
 export const sanitizeHTML = (input: string): string => {
   if (!input || typeof input !== "string") {
@@ -25,8 +26,21 @@ export const sanitizeHTML = (input: string): string => {
     return DOMPurify.sanitize(input);
   }
 
-  // Server-side fallback: strip all tags to be safe if full sanitization is not possible
-  return input.replace(/<[^>]*>/g, "");
+  // Server-side fallback: iteratively strip all tags to handle nested/malformed tags
+  // This prevents bypasses like <scr<script>ipt>
+  let result = input;
+  let previousResult = "";
+
+  // Continue stripping until no more changes occur
+  while (result !== previousResult) {
+    previousResult = result;
+    result = result.replace(/<[^>]*>/g, "");
+  }
+
+  // Remove any incomplete tags at the end (e.g., "<script")
+  result = result.replace(/<[^>]*$/g, "");
+
+  return result;
 };
 
 /**
@@ -65,9 +79,25 @@ export const sanitizeFileName = (fileName: string): string => {
 
 /**
  * Sanitize URL to prevent open redirects and XSS
+ * SECURITY: Validates URL scheme and rejects dangerous protocols
  */
 export const sanitizeURL = (url: string): string => {
   if (!url || typeof url !== "string") {
+    return "";
+  }
+
+  // First, check for dangerous schemes before parsing
+  // This catches cases where URL parsing might fail but the scheme is dangerous
+  const lowerUrl = url.toLowerCase().trim();
+  const dangerousSchemes = [
+    "javascript:",
+    "data:",
+    "vbscript:",
+    "file:",
+    "blob:",
+  ];
+
+  if (dangerousSchemes.some((scheme) => lowerUrl.startsWith(scheme))) {
     return "";
   }
 
@@ -80,9 +110,9 @@ export const sanitizeURL = (url: string): string => {
     }
 
     return urlObj.toString();
-
-    return urlObj.toString();
   } catch {
+    // If URL parsing fails, it might be a relative URL or malformed
+    // Return empty string for safety
     return "";
   }
 };

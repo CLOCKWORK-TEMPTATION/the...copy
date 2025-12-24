@@ -276,9 +276,10 @@ class ScreenplayClassifier {
 
     // Check if line starts with an action description pattern
     // These are strong indicators of action lines
+    // SECURITY: Patterns simplified to avoid nested quantifiers (ReDoS vulnerability)
     const actionStartPatterns = [
       /^\s*[-–—]?\s*(?:نرى|ننظر|نسمع|نلاحظ|يبدو|يظهر|يبدأ|ينتهي|يستمر|يتوقف|يتحرك|يحدث|يكون|يوجد|توجد|تظهر)/,
-      /^\s*[-–—]?\s*[ي|ت][\u0600-\u06FF]+(?:\s+[^\s\u0600-\u06FF]+)*/, // Simplified: removed nested quantifier
+      /^\s{0,10}[-–—]?\s{0,10}[يت][\u0600-\u06FF]+\s+\S/, // Fixed: use bounded quantifiers
     ];
 
     for (const pattern of actionStartPatterns) {

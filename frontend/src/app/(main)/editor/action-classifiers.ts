@@ -216,11 +216,12 @@ export const ACTION_INDICATORS = [
 
 /**
  * Check if line starts with action pattern
+ * SECURITY: Second pattern simplified to avoid nested quantifiers (ReDoS vulnerability)
  */
 export function startsWithActionPattern(line: string): boolean {
   const actionStartPatterns = [
     /^\s*[-–—]?\s*(?:نرى|ننظر|نسمع|نلاحظ|يبدو|يظهر|يبدأ|ينتهي|يستمر|يتوقف|يتحرك|يحدث|يكون|يوجد|توجد|تظهر)/,
-    /^\s*[-–—]?\s*[ي|ت][\u0600-\u06FF]+\s+(?:[^\s\u0600-\u06FF]+\s*)*[^\s\u0600-\u06FF]/,
+    /^\s{0,10}[-–—]?\s{0,10}[يت][\u0600-\u06FF]+\s+\S/, // Simplified to avoid ReDoS
   ];
 
   return actionStartPatterns.some((pattern) => pattern.test(line));

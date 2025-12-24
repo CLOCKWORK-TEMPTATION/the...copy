@@ -154,11 +154,14 @@ export const commonSchemas = {
  */
 import { logSecurityEvent, SecurityEventType } from './security-logger.middleware';
 
+// SECURITY: Detection patterns for potential attacks
+// Using simpler patterns to avoid ReDoS and improve detection accuracy
 const suspiciousPatterns = [
-  { regex: /(\%27)|(\')|(\-\-)|(\%23)|(#)/i, type: SecurityEventType.SQL_INJECTION_ATTEMPT },
-  { regex: /(<script[^>]*>[\s\S]*?<\/script>)|(<iframe)|(<object)|(<embed)/gi, type: SecurityEventType.XSS_ATTEMPT },
-  { regex: /(javascript:|data:text\/html|onerror=|onload=|onclick=|onmouseover=)/gi, type: SecurityEventType.XSS_ATTEMPT },
-  { regex: /(\.\.)|(\/etc\/passwd)|(\.\.\/)|(\.\.\%2F)/gi, type: SecurityEventType.PATH_TRAVERSAL_ATTEMPT },
+  { regex: /(%27|'|--|%23|#)/i, type: SecurityEventType.SQL_INJECTION_ATTEMPT },
+  // XSS detection: check for script tags (opening tag is sufficient for detection)
+  { regex: /<script\b|<iframe\b|<object\b|<embed\b|<svg\b[^>]*\bon/gi, type: SecurityEventType.XSS_ATTEMPT },
+  { regex: /javascript:|data:text\/html|on(?:error|load|click|mouse\w+|focus|blur|key\w+)\s*=/gi, type: SecurityEventType.XSS_ATTEMPT },
+  { regex: /\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e\/|\/etc\/passwd/gi, type: SecurityEventType.PATH_TRAVERSAL_ATTEMPT },
 ];
 
 export function detectAttacks(req: Request, res: Response, next: NextFunction) {

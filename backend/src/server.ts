@@ -60,6 +60,57 @@ app.use(wafMiddleware);
 app.use(logAuthAttempts);
 app.use(logRateLimitViolations);
 
+// CSRF Protection middleware - validates Origin header for state-changing requests
+// This is the recommended approach for API-based applications instead of traditional CSRF tokens
+app.use((req, res, next) => {
+  // Only check state-changing methods
+  if (!['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    return next();
+  }
+
+  // Skip CSRF check for health endpoints and other safe paths
+  const safePaths = ['/health', '/api/health', '/metrics'];
+  if (safePaths.some(path => req.path.startsWith(path))) {
+    return next();
+  }
+
+  const origin = req.get('Origin');
+  const referer = req.get('Referer');
+  const allowedOrigins = [
+    env.CORS_ORIGIN,
+    'http://localhost:5000',
+    'http://localhost:3000',
+    `http://localhost:${env.PORT}`,
+  ].filter(Boolean);
+
+  // For API requests, check Origin or Referer header
+  if (origin) {
+    if (!allowedOrigins.some(allowed => origin === allowed || origin.startsWith(allowed as string))) {
+      logger.warn('CSRF: Origin mismatch', { origin, path: req.path, method: req.method });
+      return res.status(403).json({
+        success: false,
+        error: 'طلب غير مصرح به',
+        code: 'CSRF_ORIGIN_MISMATCH'
+      });
+    }
+  } else if (referer) {
+    const refererUrl = new URL(referer);
+    const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
+    if (!allowedOrigins.some(allowed => refererOrigin === allowed || refererOrigin.startsWith(allowed as string))) {
+      logger.warn('CSRF: Referer mismatch', { referer, path: req.path, method: req.method });
+      return res.status(403).json({
+        success: false,
+        error: 'طلب غير مصرح به',
+        code: 'CSRF_REFERER_MISMATCH'
+      });
+    }
+  }
+  // Note: If neither Origin nor Referer is present, we allow the request
+  // as some legitimate clients may not send these headers
+
+  next();
+});
+
 // Setup middleware
 setupMiddleware(app);
 app.use(cookieParser());
