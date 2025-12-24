@@ -9,6 +9,7 @@ import {
   logSecurityEvent,
   SecurityEventType,
 } from "./security-logger.middleware";
+import { sanitizeRequestLogs } from "./log-sanitization.middleware";
 
 /**
  * Rate Limiting Strategy Notes:
@@ -111,6 +112,9 @@ export const setupMiddleware = (app: express.Application): void => {
   // Body parsing
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+  // PII Sanitization - Apply BEFORE logging to ensure no PII is logged
+  app.use(sanitizeRequestLogs as any);
 
   // Rate limiting - General API rate limit
   const generalLimiter = rateLimit({
