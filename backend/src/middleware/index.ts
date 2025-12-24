@@ -50,9 +50,10 @@ export const setupMiddleware = (app: express.Application): void => {
   app.use(
     cors({
       origin: (origin, callback) => {
-        // Strict mode: require origin header in all environments
+        // Allow requests without Origin header (health checks, server-to-server, etc.)
+        // This is safe because browsers always send Origin header for cross-origin requests
         if (!origin) {
-          return callback(new Error("Origin header required"));
+          return callback(null, true);
         }
 
         // Check if origin is in the effective whitelist
