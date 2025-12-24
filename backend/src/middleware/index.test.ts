@@ -78,7 +78,7 @@ describe('Middleware Setup', () => {
     it('should block requests from disallowed origins', async () => {
       const response = await request(app)
         .get('/test')
-        .set('Origin', 'http://malicious-site.com');
+        .set('Origin', 'https://malicious-site.com');
 
       // Request from disallowed origin should fail
       expect(response.status).not.toBe(200);
