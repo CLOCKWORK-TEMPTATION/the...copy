@@ -29,26 +29,39 @@ export const setupMiddleware = (app: express.Application): void => {
     origin.trim()
   );
 
+  // Development whitelist for local testing (strict mode - no wildcard acceptance)
+  const devWhitelist = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+  ];
+
+  // Combine production and dev whitelists in development mode
+  const effectiveWhitelist =
+    env.NODE_ENV === "development"
+      ? [...allowedOrigins, ...devWhitelist]
+      : allowedOrigins;
+
   app.use(
     cors({
       origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, etc.) only in development
+        // Strict mode: require origin header in all environments
         if (!origin) {
-          if (env.NODE_ENV === "development") {
-            return callback(null, true);
-          }
-          return callback(new Error("Origin required in production"));
+          return callback(new Error("Origin header required"));
         }
 
-        // Check if origin is in the allowed list
-        if (allowedOrigins.includes(origin)) {
+        // Check if origin is in the effective whitelist
+        if (effectiveWhitelist.includes(origin)) {
           return callback(null, true);
         }
 
         // Log CORS violation
         logSecurityEvent(SecurityEventType.CORS_VIOLATION, {} as any, {
           blockedOrigin: origin,
-          allowedOrigins,
+          allowedOrigins: effectiveWhitelist,
         });
 
         return callback(new Error("CORS policy violation"));
