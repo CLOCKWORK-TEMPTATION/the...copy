@@ -227,7 +227,8 @@ export function logAuthAttempts(req: Request, res: Response, next: NextFunction)
           req,
           {
             userId: data.data?.id,
-            email: data.data?.email,
+            // DO NOT log email - it's PII
+            // email is now sanitized by the logger middleware
           }
         );
       } else if (res.statusCode === 401 || res.statusCode === 403) {
@@ -235,7 +236,9 @@ export function logAuthAttempts(req: Request, res: Response, next: NextFunction)
           SecurityEventType.AUTH_FAILED,
           req,
           {
-            email: req.body?.email,
+            // DO NOT log email - it's PII
+            // Use userId if available, otherwise track by IP only
+            userId: (req as any).user?.id || null,
             reason: data.error,
           }
         );

@@ -1,9 +1,12 @@
 import winston from 'winston';
 import { env, isDevelopment } from '@/config/env';
+import { sanitizeLogFormat } from '@/middleware/log-sanitization.middleware';
 
 const logFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.errors({ stack: true }),
+  // Add PII sanitization BEFORE json formatting
+  winston.format(sanitizeLogFormat.transform)(),
   winston.format.json(),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     return JSON.stringify({
