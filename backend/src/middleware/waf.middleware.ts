@@ -565,17 +565,23 @@ function checkRule(req: Request, rule: WAFRule): { matched: boolean; value: stri
 
   for (const location of rule.locations) {
     const value = extractValue(req, location);
-    if (value && rule.pattern.test(value)) {
-      // Reset regex lastIndex for next use
-      rule.pattern.lastIndex = 0;
-      const matches = value.match(rule.pattern);
-      return {
-        matched: true,
-        value: matches ? matches[0] : value.substring(0, 100),
-      };
+    if (value) {
+      try {
+        rule.pattern.lastIndex = 0;
+        if (rule.pattern.test(value)) {
+          rule.pattern.lastIndex = 0;
+          const matches = value.match(rule.pattern);
+          return {
+            matched: true,
+            value: matches ? matches[0] : value.substring(0, 100),
+          };
+        }
+        rule.pattern.lastIndex = 0;
+      } catch {
+        // Skip invalid regex patterns to prevent ReDoS
+        continue;
+      }
     }
-    // Reset regex lastIndex
-    rule.pattern.lastIndex = 0;
   }
 
   return { matched: false, value: "" };
