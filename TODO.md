@@ -24,12 +24,12 @@
   - [ ]
   - [ ] الملف: `backend/src/middleware/index.ts`
 
-- [ ] **4. تحديد RTO/RPO لكل Service**
-  - [ ] User Auth: RTO <15min, RPO <5min
-  - [ ] Projects: RTO <30min, RPO <15min
-  - [ ] Cache: RTO <1h, RPO <24h
-  - [ ] المسؤول: SRE/Tech Lead
-  - [ ]
+- [x] **4. تحديد RTO/RPO لكل Service**
+  - [x] User Auth: RTO <15min, RPO <5min
+  - [x] Projects: RTO <30min, RPO <15min
+  - [x] Cache: RTO <1h, RPO <24h
+  - [x] المسؤول: SRE/Tech Lead
+  - [x] الملف: `docs/operations/RTO_RPO.md`
 
 ---
 
