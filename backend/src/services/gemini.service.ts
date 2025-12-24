@@ -61,7 +61,7 @@ export class GeminiService {
     
     // Validate input
     const inputValidation = llmGuardrails.checkInput(input, {
-      userId,
+      ...(userId && { userId }),
       requestType
     });
 
@@ -76,7 +76,7 @@ export class GeminiService {
 
     // Validate output
     const outputValidation = llmGuardrails.checkOutput(output, {
-      userId,
+      ...(userId && { userId }),
       requestType
     });
 

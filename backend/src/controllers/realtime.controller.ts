@@ -11,24 +11,14 @@ import { websocketService } from '@/services/websocket.service';
 import { logger } from '@/utils/logger';
 import { RealtimeEventType } from '@/types/realtime.types';
 
-/**
- * Extended Request with user info
- */
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    email?: string;
-  };
-}
-
 export class RealtimeController {
   /**
    * Initialize SSE connection
    * GET /api/realtime/events
    */
-  async connectSSE(req: AuthRequest, res: Response): Promise<void> {
+  async connectSSE(req: Request, res: Response): Promise<void> {
     const clientId = uuidv4();
-    const userId = req.user?.userId;
+    const userId = (req.user as any)?.userId;
     const lastEventId = req.headers['last-event-id'] as string | undefined;
 
     // Initialize SSE connection
@@ -98,7 +88,7 @@ export class RealtimeController {
    * POST /api/realtime/test
    * (Admin only - should be protected)
    */
-  async sendTestEvent(req: AuthRequest, res: Response): Promise<void> {
+  async sendTestEvent(req: Request, res: Response): Promise<void> {
     try {
       const { eventType, payload, target } = req.body;
 
@@ -145,10 +135,10 @@ export class RealtimeController {
    * Stream analysis logs via SSE
    * GET /api/realtime/analysis/:analysisId/stream
    */
-  async streamAnalysisLogs(req: AuthRequest, res: Response): Promise<void> {
+  async streamAnalysisLogs(req: Request, res: Response): Promise<void> {
     const { analysisId } = req.params;
     const clientId = uuidv4();
-    const userId = req.user?.userId;
+    const userId = (req.user as any)?.userId;
 
     // Initialize SSE connection
     sseService.initializeConnection(clientId, res, userId);
@@ -159,7 +149,7 @@ export class RealtimeController {
 
     // Sanitize log inputs
     const safeClientId = clientId.replace(/[\r\n]/g, '');
-    const safeAnalysisId = analysisId.replace(/[\r\n]/g, '');
+    const safeAnalysisId = (analysisId || '').replace(/[\r\n]/g, '');
 
     logger.info(`[SSE] Client ${safeClientId} streaming analysis logs for: ${safeAnalysisId}`);
 
@@ -180,10 +170,10 @@ export class RealtimeController {
    * Stream job progress via SSE
    * GET /api/realtime/jobs/:jobId/stream
    */
-  async streamJobProgress(req: AuthRequest, res: Response): Promise<void> {
+  async streamJobProgress(req: Request, res: Response): Promise<void> {
     const { jobId } = req.params;
     const clientId = uuidv4();
-    const userId = req.user?.userId;
+    const userId = (req.user as any)?.userId;
 
     // Initialize SSE connection
     sseService.initializeConnection(clientId, res, userId);
@@ -194,7 +184,7 @@ export class RealtimeController {
 
     // Sanitize log inputs
     const safeClientId = clientId.replace(/[\r\n]/g, '');
-    const safeJobId = jobId.replace(/[\r\n]/g, '');
+    const safeJobId = (jobId || '').replace(/[\r\n]/g, '');
 
     logger.info(`[SSE] Client ${safeClientId} streaming job progress for: ${safeJobId}`);
 
