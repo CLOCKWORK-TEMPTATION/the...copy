@@ -77,6 +77,63 @@ class LoggerService {
     return level <= this.config.level;
   }
 
+  /**
+   * Sanitize sensitive data from context before logging
+   * Prevents information leakage in logs
+   */
+  private sanitizeContext(context?: any): any {
+    if (!context) return null;
+
+    // Handle Error objects - only log type and message, not stack traces
+    if (context instanceof Error) {
+      return {
+        type: context.name || "Error",
+        message: context.message || "Unknown error",
+      };
+    }
+
+    // Handle arrays
+    if (Array.isArray(context)) {
+      return context.map((item) => this.sanitizeContext(item));
+    }
+
+    // Handle plain objects
+    if (typeof context === "object" && context !== null) {
+      const sanitized: any = {};
+      
+      for (const [key, value] of Object.entries(context)) {
+        // Skip sensitive keys
+        const sensitiveKeys = [
+          "password", "token", "apiKey", "secret", "authorization",
+          "cookie", "session", "credential", "key", "auth",
+          "stack", "stackTrace", "fileName", "filePath", "url", "path"
+        ];
+        
+        if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk.toLowerCase()))) {
+          sanitized[key] = "[REDACTED]";
+          continue;
+        }
+
+        // Recursively sanitize nested objects
+        if (value instanceof Error) {
+          sanitized[key] = this.sanitizeContext(value);
+        } else if (typeof value === "object" && value !== null) {
+          sanitized[key] = this.sanitizeContext(value);
+        } else if (typeof value === "string" && value.length > 200) {
+          // Truncate very long strings
+          sanitized[key] = value.substring(0, 200) + "...[TRUNCATED]";
+        } else {
+          sanitized[key] = value;
+        }
+      }
+      
+      return sanitized;
+    }
+
+    // For primitives, return as-is
+    return context;
+  }
+
   private formatMessage(
     level: LogLevel,
     message: string,
@@ -84,7 +141,8 @@ class LoggerService {
   ): string {
     const timestamp = new Date().toISOString();
     const levelName = LogLevel[level];
-    const contextStr = context ? ` | ${JSON.stringify(context)}` : "";
+    const sanitized = this.sanitizeContext(context);
+    const contextStr = sanitized ? ` | ${JSON.stringify(sanitized)}` : "";
     return `[${timestamp}] ${levelName}: ${message}${contextStr}`;
   }
 
@@ -103,13 +161,11 @@ class LoggerService {
     try {
       // Import Sentry dynamically to avoid issues if not available
       import("@sentry/nextjs")
-        .then(({ captureMessage, captureException }) => {
+        .then(({ captureMessage }) => {
           if (entry.level === LogLevel.ERROR) {
-            if (entry.context instanceof Error) {
-              captureException(entry.context);
-            } else {
-              captureMessage(entry.message, "error");
-            }
+            // Send only sanitized message, not raw error objects
+            // This prevents leaking sensitive information in stack traces
+            captureMessage(entry.message, "error");
           }
         })
         .catch(() => {
@@ -149,11 +205,14 @@ class LoggerService {
   ): void {
     if (!this.shouldLog(level)) return;
 
+    // Sanitize context to prevent information leakage
+    const sanitizedContext = this.sanitizeContext(context);
+
     const entry: LogEntry = {
       level,
       message,
       timestamp: new Date().toISOString(),
-      context,
+      context: sanitizedContext,
       source: source ?? "",
     };
 
@@ -180,7 +239,7 @@ class LoggerService {
       }
     }
 
-    // Send to external services
+    // Send to external services (with sanitized context)
     this.sendToSentry(entry);
     this.sendToAnalytics(entry);
   }
