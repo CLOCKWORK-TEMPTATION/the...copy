@@ -160,24 +160,27 @@ export class LLMGuardrailsService {
     }
 
     // Check for prompt injection patterns
+    // Limit content length to prevent ReDoS attacks
+    const contentToCheck = content.substring(0, MAX_PATTERN_CHECK_LENGTH);
+
     for (const pattern of BANNED_PATTERNS) {
-      if (typeof pattern === 'string') {
-        const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        try {
-          const regex = new RegExp(escapedPattern, 'i');
-          const matches = content.match(regex);
-          if (matches) {
-            violations.push({
-              type: 'prompt_injection',
-              severity: 'critical',
-              description: `Prompt injection detected: ${escapedPattern}`,
-              pattern: escapedPattern,
-              matches,
-            });
-          }
-        } catch {
-          // Skip invalid patterns
+      try {
+        // Reset lastIndex for global patterns
+        if (pattern instanceof RegExp) {
+          pattern.lastIndex = 0;
         }
+        const matches = contentToCheck.match(pattern);
+        if (matches) {
+          violations.push({
+            type: 'prompt_injection',
+            severity: 'critical',
+            description: `Prompt injection detected: ${pattern.source}`,
+            pattern: pattern.source,
+            matches,
+          });
+        }
+      } catch {
+        // Skip invalid patterns
       }
     }
 

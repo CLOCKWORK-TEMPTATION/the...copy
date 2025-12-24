@@ -864,9 +864,47 @@ export function getBlockedIPs(): string[] {
 }
 
 /**
+ * Validate regex pattern for safety (prevent ReDoS)
+ */
+function isRegexSafe(pattern: RegExp): boolean {
+  const patternStr = pattern.source;
+  // Check for dangerous nested quantifiers that could cause ReDoS
+  // Patterns like (a+)+, (a*)+, (a+)*, etc.
+  const dangerousPatterns = [
+    /\([^)]*[+*][^)]*\)[+*]/,  // Nested quantifiers like (a+)+
+    /\(\?:[^)]*[+*][^)]*\)[+*]/,  // Non-capturing groups with nested quantifiers
+    /\[[^\]]*\][+*]\s*\[[^\]]*\][+*]/,  // Adjacent character classes with quantifiers
+  ];
+
+  for (const dangerous of dangerousPatterns) {
+    if (dangerous.test(patternStr)) {
+      return false;
+    }
+  }
+
+  // Additional safety: limit pattern complexity
+  if (patternStr.length > 500) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Add custom WAF rule
+ * SECURITY: Validates regex pattern to prevent ReDoS attacks
  */
 export function addCustomRule(rule: WAFRule): void {
+  // Validate the regex pattern for safety
+  if (!isRegexSafe(rule.pattern)) {
+    logger.warn("Rejected unsafe WAF rule pattern", {
+      ruleId: rule.id,
+      ruleName: rule.name,
+      reason: "Pattern may cause ReDoS"
+    });
+    throw new Error("Unsafe regex pattern detected - rule rejected");
+  }
+
   wafConfig.customRules.push(rule);
   logger.info("Custom WAF rule added", { ruleId: rule.id, ruleName: rule.name });
 }
