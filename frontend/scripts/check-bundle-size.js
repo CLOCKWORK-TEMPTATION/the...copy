@@ -79,15 +79,29 @@ function findFiles(dir, pattern) {
         } else {
           // Simple pattern matching
           if (pattern.includes("**")) {
-            const regex = new RegExp(
-              pattern
-                .replace(/[.+^${}()|[\]\\]/g, "\\$&") // Escape regex special chars
-                .replace(/\*\*/g, ".*") // Convert ** glob to regex
-                .replace(/(?<!\.)\*/g, "[^/]*") // Convert * glob to regex (avoiding matching already replaced .*)
-                .replace(/\?/g, ".") // Convert ? glob to regex
-            );
-            if (regex.test(fullPath)) {
-              results.push(fullPath);
+            // SECURITY: Complete escaping of all regex special characters
+            // Use placeholder for ** before escaping, then replace after
+            const DOUBLE_STAR_PLACEHOLDER = "\x00DOUBLESTAR\x00";
+            const SINGLE_STAR_PLACEHOLDER = "\x00SINGLESTAR\x00";
+            const QUESTION_PLACEHOLDER = "\x00QUESTION\x00";
+
+            try {
+              const escapedPattern = pattern
+                .replace(/\*\*/g, DOUBLE_STAR_PLACEHOLDER) // Preserve ** before escaping
+                .replace(/\*/g, SINGLE_STAR_PLACEHOLDER) // Preserve * before escaping
+                .replace(/\?/g, QUESTION_PLACEHOLDER) // Preserve ? before escaping
+                .replace(/[.+^${}()|[\]\\-]/g, "\\$&") // Escape all regex special chars
+                .replace(new RegExp(DOUBLE_STAR_PLACEHOLDER.replace(/\x00/g, "\\x00"), "g"), ".*") // Convert ** to .*
+                .replace(new RegExp(SINGLE_STAR_PLACEHOLDER.replace(/\x00/g, "\\x00"), "g"), "[^/]*") // Convert * to [^/]*
+                .replace(new RegExp(QUESTION_PLACEHOLDER.replace(/\x00/g, "\\x00"), "g"), "."); // Convert ? to .
+
+              const regex = new RegExp(escapedPattern);
+              if (regex.test(fullPath)) {
+                results.push(fullPath);
+              }
+            } catch (e) {
+              // Skip invalid patterns
+              console.warn(`Invalid glob pattern: ${pattern}`);
             }
           } else if (fullPath.endsWith(pattern)) {
             results.push(fullPath);

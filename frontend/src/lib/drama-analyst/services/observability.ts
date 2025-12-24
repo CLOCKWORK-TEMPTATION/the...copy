@@ -258,13 +258,38 @@ const initWebVitalsMonitoring = () => {
 };
 
 // Utility functions
+// SECURITY: Use cryptographically secure random values for ID generation
 const getRandomId = (): string => {
-  if (typeof window !== "undefined" && window.crypto) {
-    const array = new Uint32Array(1);
+  const timestamp = Date.now();
+
+  // Try browser crypto API first
+  if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
+    const array = new Uint32Array(2);
     window.crypto.getRandomValues(array);
-    return `user_${Date.now()}_${array[0].toString(36)}`;
+    return `user_${timestamp}_${array[0].toString(36)}${array[1].toString(36)}`;
   }
-  return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Try Node.js crypto module (for SSR)
+  if (typeof globalThis !== "undefined") {
+    try {
+      // Dynamic import to avoid bundling issues
+      const cryptoModule = require("crypto");
+      if (cryptoModule?.randomBytes) {
+        const bytes = cryptoModule.randomBytes(8);
+        return `user_${timestamp}_${bytes.toString("hex")}`;
+      }
+    } catch {
+      // crypto module not available
+    }
+  }
+
+  // Fallback using more entropy sources (still not cryptographically secure,
+  // but better than pure Math.random for non-security-critical IDs like analytics)
+  // This is acceptable for observability/analytics user IDs which are not security-sensitive
+  const performanceNow = typeof performance !== "undefined" ? performance.now() : 0;
+  const randomPart = Math.floor(Math.random() * 0xffffffff).toString(36);
+  const timePart = (timestamp ^ Math.floor(performanceNow * 1000)).toString(36);
+  return `user_${timestamp}_${randomPart}${timePart}`;
 };
 
 const getUserId = (): string => {

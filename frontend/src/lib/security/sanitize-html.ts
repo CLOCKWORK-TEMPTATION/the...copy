@@ -104,10 +104,26 @@ export function escapeHtml(text: string): string {
 /**
  * Strips all HTML tags from a string
  * Safe alternative when you need plain text only
+ * SECURITY: Uses iterative approach to handle nested/malformed tags
  */
 export function stripHtmlTags(html: string): string {
-  // Use a more robust regex that handles attributes containing >
-  return html.replace(/<[^>]+>/g, "");
+  // First pass: remove complete tags
+  let result = html.replace(/<[^>]*>/g, "");
+
+  // Iterative removal to handle incomplete/nested tags like <scr<script>ipt>
+  // Continue until no more tags can be removed
+  let previousResult = "";
+  while (result !== previousResult) {
+    previousResult = result;
+    result = result.replace(/<[^>]*>/g, "");
+  }
+
+  // Final pass: remove any remaining angle brackets that could be part of malformed tags
+  // This handles cases like "<script" without closing ">"
+  result = result.replace(/<[^>]*$/g, ""); // Remove incomplete opening tags at end
+  result = result.replace(/^[^<]*>/g, (match) => match === ">" ? "" : match.slice(0, -1)); // Remove orphan closing brackets
+
+  return result;
 }
 
 /**

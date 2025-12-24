@@ -352,10 +352,11 @@ export function containsActionVerb(text: string): boolean {
 
 /**
  * Action start patterns for detecting action lines
+ * SECURITY: Second pattern simplified to avoid nested quantifiers (ReDoS vulnerability)
  */
 export const ACTION_START_PATTERNS = [
   /^\s*[-–—]?\s*(?:نرى|ننظر|نسمع|نلاحظ|يبدو|يظهر|يبدأ|ينتهي|يستمر|يتوقف|يتحرك|يحدث|يكون|يوجد|توجد|تظهر)/,
-  /^\s*[-–—]?\s*[ي|ت][\u0600-\u06FF]+\s+(?:[^\s\u0600-\u06FF]+\s*)*[^\s\u0600-\u06FF]/, // Verbs starting with ي or ت
+  /^\s{0,10}[-–—]?\s{0,10}[يت][\u0600-\u06FF]+\s+\S/, // Simplified: Verbs starting with ي or ت followed by space and non-whitespace
 ];
 
 /**

@@ -555,8 +555,12 @@ function extractValue(
   }
 }
 
+// Maximum length of content to check against patterns to prevent ReDoS
+const MAX_WAF_CHECK_LENGTH = 10000;
+
 /**
  * Check request against a rule
+ * SECURITY: Limits input length to prevent ReDoS attacks
  */
 function checkRule(req: Request, rule: WAFRule): { matched: boolean; value: string } {
   if (!rule.enabled) {
@@ -564,7 +568,11 @@ function checkRule(req: Request, rule: WAFRule): { matched: boolean; value: stri
   }
 
   for (const location of rule.locations) {
-    const value = extractValue(req, location);
+    let value = extractValue(req, location);
+    // Limit the length of content to check to prevent ReDoS
+    if (value && value.length > MAX_WAF_CHECK_LENGTH) {
+      value = value.substring(0, MAX_WAF_CHECK_LENGTH);
+    }
     if (value) {
       try {
         rule.pattern.lastIndex = 0;
