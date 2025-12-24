@@ -1,0 +1,63 @@
+name: "CodeQL Advanced Security"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '30 1 * * 0' # فحص أسبوعي فجر الأحد
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    # استخدام Ubuntu لأنه الأسرع والأوفر في الـ Minutes
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # تم تحديد اللغة javascript-typescript لأنها أساس المشروع (Next.js + Node)
+        language: [ 'javascript-typescript' ]
+        # لو ضفت Python Scripts مستقبلاً تقدر تزود 'python' هنا بسهولة
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # تهيئة CodeQL مع الإعدادات المحسنة
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        # التعديل الحاسم: تفعيل قواعد الجودة والأمان المتقدمة بدلاً من الافتراضية
+        queries: security-and-quality
+        
+        # التعديل الهندسي للأداء: استبعاد المسارات اللي بتضيع وقت ومش محتاجة فحص
+        config: |
+          paths-ignore:
+            - '**/node_modules'
+            - '**/dist'
+            - '**/build'
+            - '**/.next'
+            - '**/coverage'
+            - '**/__tests__'
+            - '**/test'
+            - '**/*.test.ts'
+            - '**/*.spec.ts'
+            - '**/test-results.json'
+            - '**/public'
+
+    # خطوة البناء التلقائي (ضرورية لو فيه Build Steps معقدة، وغالباً CodeQL بيتعامل معاها لوحده في JS)
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v4
+
+    # تنفيذ التحليل ورفع التقرير
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{matrix.language}}"
