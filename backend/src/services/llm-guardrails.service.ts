@@ -43,23 +43,27 @@ export interface GuardrailMetrics {
 // ============================================
 
 // Prompt Injection Detection Patterns
+// SECURITY: Using simple word-boundary patterns instead of .{0,100} to prevent ReDoS
 const BANNED_PATTERNS = [
-  /ignore.{0,100}previous.{0,100}instructions/i,
+  /ignore\b.*?\bprevious\b.*?\binstructions/i,
   /you are now/i,
-  /forget.{0,100}above/i,
-  /disregard.{0,100}instructions/i,
-  /system.{0,100}prompt/i,
-  /roleplay.{0,100}as/i,
-  /act.{0,100}as.{0,100}if/i,
-  /bypass.{0,100}security/i,
-  /override.{0,100}restrictions/i,
-  /debug.{0,100}mode/i,
-  /admin.{0,100}access/i,
-  /root.{0,100}privileges/i,
-  /exploit.{0,100}vulnerability/i,
-  /hack.{0,100}system/i,
-  /malicious.{0,100}code/i,
+  /forget\b.*?\babove/i,
+  /disregard\b.*?\binstructions/i,
+  /system\b.*?\bprompt/i,
+  /roleplay\b.*?\bas\b/i,
+  /act\b.*?\bas\b.*?\bif/i,
+  /bypass\b.*?\bsecurity/i,
+  /override\b.*?\brestrictions/i,
+  /debug\b.*?\bmode/i,
+  /admin\b.*?\baccess/i,
+  /root\b.*?\bprivileges/i,
+  /exploit\b.*?\bvulnerability/i,
+  /hack\b.*?\bsystem/i,
+  /malicious\b.*?\bcode/i,
 ];
+
+// Maximum length of content to check against patterns to prevent ReDoS
+const MAX_PATTERN_CHECK_LENGTH = 10000;
 
 const SUSPICIOUS_PATTERNS = [
   /system|admin|root|bypass|override|debug|exploit|hack|malicious|vulnerability|injection/gi,
@@ -157,15 +161,23 @@ export class LLMGuardrailsService {
 
     // Check for prompt injection patterns
     for (const pattern of BANNED_PATTERNS) {
-      const matches = content.match(pattern);
-      if (matches) {
-        violations.push({
-          type: 'prompt_injection',
-          severity: 'critical',
-          description: `Prompt injection detected: ${pattern.source}`,
-          pattern: pattern.source,
-          matches,
-        });
+      if (typeof pattern === 'string') {
+        const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        try {
+          const regex = new RegExp(escapedPattern, 'i');
+          const matches = content.match(regex);
+          if (matches) {
+            violations.push({
+              type: 'prompt_injection',
+              severity: 'critical',
+              description: `Prompt injection detected: ${escapedPattern}`,
+              pattern: escapedPattern,
+              matches,
+            });
+          }
+        } catch {
+          // Skip invalid patterns
+        }
       }
     }
 
