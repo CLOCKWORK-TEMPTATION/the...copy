@@ -10,12 +10,16 @@
   - [x] المسؤول: DevOps Lead
   - [x] **Documentation**: `docs/operations/DATABASE_BACKUP_SETUP.md`
 
-- [ ] **2. اختبار Database Restore**
-  - [ ] استعادة Backup الأخير إلى Test Environment
-  - [ ] التحقق من سلامة البيانات
-  - [ ] توثيق الخطوات في Runbook
-  - [ ] المسؤول: DevOps + DBA
-  -
+- [x] **2. اختبار Database Restore**
+  - [x] استعادة Backup الأخير إلى Test Environment
+  - [x] التحقق من سلامة البيانات
+  - [x] توثيق الخطوات في Runbook
+  - [x] المسؤول: DevOps + DBA
+  - **التنفيذ**: تم إنشاء Scripts آلية في `scripts/database/`:
+    - `test-restore.sh` - اختبار الاستعادة
+    - `verify-data-integrity.sh` - التحقق من سلامة البيانات
+    - `cleanup-test-dbs.sh` - تنظيف قواعد البيانات التجريبية
+  - **التوثيق**: تم تحديث `docs/operations/RUNBOOKS.md` القسم 4.6
 
 - [x] **3. تعقيم Logs من PII**
   - [x] إضافة Log Sanitization Middleware
