@@ -23,6 +23,7 @@
     "approve-builds": "node scripts/approve-build-warnings.js",
     "audit:code": "npx tsx scripts/code-auditor.ts",
     "dev": "pnpm start:dev",
+    "type-check": "tsc --noEmit",
     "preview": "pnpm --filter frontend start"
   },
   "dependencies": {
