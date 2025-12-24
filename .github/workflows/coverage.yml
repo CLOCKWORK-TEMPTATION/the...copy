@@ -240,6 +240,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [coverage-frontend, coverage-backend]
     if: always()
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
