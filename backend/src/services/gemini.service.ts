@@ -10,6 +10,7 @@ import {
   getAdaptiveTTL,
 } from './gemini-cache.strategy';
 import { geminiCostTracker } from './gemini-cost-tracker.service';
+import { llmGuardrails } from './llm-guardrails.service';
 
 export class GeminiService {
   private genAI: GoogleGenerativeAI;
@@ -47,19 +48,75 @@ export class GeminiService {
     }
   }
 
+  /**
+   * Apply guardrails to input and output with comprehensive validation
+   */
+  private applyGuardrails(
+    input: string,
+    output: string,
+    requestType: string,
+    userId?: string
+  ): { sanitizedInput: string; sanitizedOutput: string; warnings: string[] } {
+    const warnings: string[] = [];
+    
+    // Validate input
+    const inputValidation = llmGuardrails.checkInput(input, {
+      userId,
+      requestType
+    });
+
+    if (!inputValidation.isAllowed) {
+      logger.warn('Input blocked by guardrails', {
+        requestType,
+        violations: inputValidation.violations,
+        riskLevel: inputValidation.riskLevel
+      });
+      throw new Error('تم رفض المدخلات بواسطة نظام الحماية');
+    }
+
+    // Validate output
+    const outputValidation = llmGuardrails.checkOutput(output, {
+      userId,
+      requestType
+    });
+
+    if (!outputValidation.isAllowed) {
+      logger.warn('Output blocked by guardrails', {
+        requestType,
+        violations: outputValidation.violations,
+        riskLevel: outputValidation.riskLevel
+      });
+      throw new Error('تم رفض المخرجات بواسطة نظام الحماية');
+    }
+
+    // Collect warnings
+    if (inputValidation.warnings && inputValidation.warnings.length > 0) {
+      warnings.push(...inputValidation.warnings.map(w => `Input: ${w}`));
+    }
+    if (outputValidation.warnings && outputValidation.warnings.length > 0) {
+      warnings.push(...outputValidation.warnings.map(w => `Output: ${w}`));
+    }
+
+    return {
+      sanitizedInput: inputValidation.sanitizedContent || input,
+      sanitizedOutput: outputValidation.sanitizedContent || output,
+      warnings
+    };
+  }
+
   async analyzeText(text: string, analysisType: string): Promise<string> {
     const startTime = Date.now();
 
-    // Generate optimized cache key
-    const cacheKey = generateGeminiCacheKey('analysis', { text, analysisType });
-
-    // Get cache stats for adaptive TTL
-    const stats = cacheService.getStats();
-    const ttl = getAdaptiveTTL(analysisType, stats.hitRate);
-
-    logger.debug(`Using adaptive TTL: ${ttl}s (hit rate: ${stats.hitRate}%)`);
-
     try {
+      // Generate optimized cache key
+      const cacheKey = generateGeminiCacheKey('analysis', { text, analysisType });
+
+      // Get cache stats for adaptive TTL
+      const stats = cacheService.getStats();
+      const ttl = getAdaptiveTTL(analysisType, stats.hitRate);
+
+      logger.debug(`Using adaptive TTL: ${ttl}s (hit rate: ${stats.hitRate}%)`);
+
       let apiResult: any = null;
 
       // Use cached call with stale-while-revalidate for better UX
@@ -68,6 +125,9 @@ export class GeminiService {
         ttl,
         async () => {
           const prompt = this.buildPrompt(text, analysisType);
+
+          // Apply guardrails to the complete request
+          this.applyGuardrails(prompt, '', `analyze-${analysisType}`, 'system');
 
           // Add timeout to prevent hanging requests
           apiResult = await Promise.race([
@@ -85,6 +145,18 @@ export class GeminiService {
         }
       );
 
+      // Apply guardrails to output
+      const { sanitizedOutput, warnings } = this.applyGuardrails(
+        text,
+        result,
+        `analyze-${analysisType}`,
+        'system'
+      );
+
+      if (warnings.length > 0) {
+        logger.warn('Guardrails warnings', { warnings, analysisType });
+      }
+
       // Track token usage and cost
       if (apiResult) {
         await this.trackTokenUsage(apiResult, analysisType);
@@ -95,7 +167,7 @@ export class GeminiService {
       trackGeminiRequest(analysisType, duration, true);
       trackGeminiCache(result !== null);
 
-      return result;
+      return sanitizedOutput;
     } catch (error) {
       // Track failed request
       const duration = Date.now() - startTime;
@@ -110,13 +182,14 @@ export class GeminiService {
   async reviewScreenplay(text: string): Promise<string> {
     const startTime = Date.now();
 
-    // Generate optimized cache key
-    const cacheKey = generateGeminiCacheKey('screenplay', { text });
+    try {
+      // Generate optimized cache key
+      const cacheKey = generateGeminiCacheKey('screenplay', { text });
 
-    // Get TTL for screenplay review
-    const ttl = getGeminiCacheTTL('screenplay');
+      // Get TTL for screenplay review
+      const ttl = getGeminiCacheTTL('screenplay');
 
-    const prompt = `أنت خبير في كتابة السيناريوهات العربية. قم بمراجعة النص التالي وقدم ملاحظات على:
+      const prompt = `أنت خبير في كتابة السيناريوهات العربية. قم بمراجعة النص التالي وقدم ملاحظات على:
 1. استمرارية الحبكة
 2. تطور الشخصيات
 3. قوة الحوار
@@ -127,13 +200,15 @@ export class GeminiService {
 النص:
 ${text}`;
 
-    try {
       let apiResult: any = null;
 
       const result = await cachedGeminiCall(
         cacheKey,
         ttl,
         async () => {
+          // Apply guardrails to the complete request
+          this.applyGuardrails(prompt, '', 'screenplay-review', 'system');
+
           // Add timeout
           apiResult = await Promise.race([
             this.model.generateContent(prompt),
@@ -150,6 +225,18 @@ ${text}`;
         }
       );
 
+      // Apply guardrails to output
+      const { sanitizedOutput, warnings } = this.applyGuardrails(
+        text,
+        result,
+        'screenplay-review',
+        'system'
+      );
+
+      if (warnings.length > 0) {
+        logger.warn('Guardrails warnings', { warnings, type: 'screenplay-review' });
+      }
+
       // Track token usage and cost
       if (apiResult) {
         await this.trackTokenUsage(apiResult, 'screenplay');
@@ -158,7 +245,7 @@ ${text}`;
       const duration = Date.now() - startTime;
       trackGeminiRequest('screenplay', duration, true);
 
-      return result;
+      return sanitizedOutput;
     } catch (error) {
       const duration = Date.now() - startTime;
       trackGeminiRequest('screenplay', duration, false);
@@ -171,29 +258,32 @@ ${text}`;
   async chatWithAI(message: string, context?: any): Promise<string> {
     const startTime = Date.now();
 
-    // Generate cache key for chat
-    const cacheKey = generateGeminiCacheKey('chat', { message, context });
+    try {
+      // Generate cache key for chat
+      const cacheKey = generateGeminiCacheKey('chat', { message, context });
 
-    // Get TTL for chat
-    const ttl = getGeminiCacheTTL('chat');
+      // Get TTL for chat
+      const ttl = getGeminiCacheTTL('chat');
 
-    const prompt = context
-      ? `أنت مساعد ذكاء اصطناعي متخصص في تحليل الأعمال الدرامية العربية. استخدم السياق التالي للإجابة على السؤال:
+      const prompt = context
+        ? `أنت مساعد ذكاء اصطناعي متخصص في تحليل الأعمال الدرامية العربية. استخدم السياق التالي للإجابة على السؤال:
 
 السياق: ${JSON.stringify(context)}
 
 السؤال: ${message}`
-      : `أنت مساعد ذكاء اصطناعي متخصص في تحليل الأعمال الدرامية العربية.
+        : `أنت مساعد ذكاء اصطناعي متخصص في تحليل الأعمال الدرامية العربية.
 
 السؤال: ${message}`;
 
-    try {
       let apiResult: any = null;
 
       const result = await cachedGeminiCall(
         cacheKey,
         ttl,
         async () => {
+          // Apply guardrails to the complete request
+          this.applyGuardrails(prompt, '', 'ai-chat', 'system');
+
           // Add timeout
           apiResult = await Promise.race([
             this.model.generateContent(prompt),
@@ -210,6 +300,18 @@ ${text}`;
         }
       );
 
+      // Apply guardrails to output
+      const { sanitizedOutput, warnings } = this.applyGuardrails(
+        message,
+        result,
+        'ai-chat',
+        'system'
+      );
+
+      if (warnings.length > 0) {
+        logger.warn('Guardrails warnings', { warnings, type: 'ai-chat' });
+      }
+
       // Track token usage and cost
       if (apiResult) {
         await this.trackTokenUsage(apiResult, 'chat');
@@ -218,7 +320,7 @@ ${text}`;
       const duration = Date.now() - startTime;
       trackGeminiRequest('chat', duration, true);
 
-      return result;
+      return sanitizedOutput;
     } catch (error) {
       const duration = Date.now() - startTime;
       trackGeminiRequest('chat', duration, false);
@@ -231,13 +333,14 @@ ${text}`;
   async getShotSuggestion(sceneDescription: string, shotType: string): Promise<string> {
     const startTime = Date.now();
 
-    // Generate cache key for shot suggestion
-    const cacheKey = generateGeminiCacheKey('shot-suggestion', { sceneDescription, shotType });
+    try {
+      // Generate cache key for shot suggestion
+      const cacheKey = generateGeminiCacheKey('shot-suggestion', { sceneDescription, shotType });
 
-    // Get TTL for shot suggestion
-    const ttl = getGeminiCacheTTL('shot-suggestion');
+      // Get TTL for shot suggestion
+      const ttl = getGeminiCacheTTL('shot-suggestion');
 
-    const prompt = `أنت خبير في إخراج الأفلام العربية. قدم اقتراحًا مفصلًا لنوع اللقطة "${shotType}" للمشهد التالي:
+      const prompt = `أنت خبير في إخراج الأفلام العربية. قدم اقتراحًا مفصلًا لنوع اللقطة "${shotType}" للمشهد التالي:
 
 وصف المشهد: ${sceneDescription}
 
@@ -248,13 +351,15 @@ ${text}`;
 4. الإضاءة المقترحة
 5. المدة التقديرية`;
 
-    try {
       let apiResult: any = null;
 
       const result = await cachedGeminiCall(
         cacheKey,
         ttl,
         async () => {
+          // Apply guardrails to the complete request
+          this.applyGuardrails(prompt, '', 'shot-suggestion', 'system');
+
           // Add timeout
           apiResult = await Promise.race([
             this.model.generateContent(prompt),
@@ -271,6 +376,18 @@ ${text}`;
         }
       );
 
+      // Apply guardrails to output
+      const { sanitizedOutput, warnings } = this.applyGuardrails(
+        sceneDescription,
+        result,
+        'shot-suggestion',
+        'system'
+      );
+
+      if (warnings.length > 0) {
+        logger.warn('Guardrails warnings', { warnings, type: 'shot-suggestion' });
+      }
+
       // Track token usage and cost
       if (apiResult) {
         await this.trackTokenUsage(apiResult, 'shot-suggestion');
@@ -279,7 +396,7 @@ ${text}`;
       const duration = Date.now() - startTime;
       trackGeminiRequest('shot-suggestion', duration, true);
 
-      return result;
+      return sanitizedOutput;
     } catch (error) {
       const duration = Date.now() - startTime;
       trackGeminiRequest('shot-suggestion', duration, false);
@@ -305,38 +422,38 @@ ${text}`;
 
 النص: ${text}`,
   
-  structure: `حلل البنية الدرامية للنص التالي:
+      structure: `حلل البنية الدرامية للنص التالي:
 1. البداية والعقدة والحل
 2. نقاط التحول
 3. الإيقاع الدرامي
 
 النص: ${text}`,
 
-  relationships: `حلل شبكة العلاقات والصراعات في النص التالي:
+      relationships: `حلل شبكة العلاقات والصراعات في النص التالي:
 1. الصراعات الرئيسية والفرعية
 2. التحالفات بين الشخصيات
 3. ميزان القوى وتغيراته
 
 النص: ${text}`,
 
-  effectiveness: `قم بقياس فعالية النص الدرامي من خلال:
+      effectiveness: `قم بقياس فعالية النص الدرامي من خلال:
 1. قوة الحوار وتأثيره
 2. بناء التشويق والتوتر
 3. أصالة الفكرة وجاذبيتها للجمهور المستهدف
 
 النص: ${text}`,
 
-  symbolism: `حلل الرموز والديناميكيات الخفية في النص:
+      symbolism: `حلل الرموز والديناميكيات الخفية في النص:
 1. الرموز البصرية والمجازية
 2. الدوافع النفسية للشخصيات
 3. الرسائل العميقة وغير المباشرة
 
 النص: ${text}`,
 
-  summary: `بناءً على التحليلات المقدمة، قم بإنشاء تقرير نهائي متكامل وموجز:
+      summary: `بناءً على التحليلات المقدمة، قم بإنشاء تقرير نهائي متكامل وموجز:
 ${text}`,
-};
+    };
 
-return prompts[analysisType as keyof typeof prompts] || prompts.characters;
-}
+    return prompts[analysisType as keyof typeof prompts] || prompts.characters;
+  }
 }

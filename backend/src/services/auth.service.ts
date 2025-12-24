@@ -1,17 +1,19 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { db } from '@/db';
-import { users, type User, type NewUser } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { users, refreshTokens, type User, type NewUser } from '@/db/schema';
+import { eq, and, gt } from 'drizzle-orm';
 import { env } from '@/config/env';
 
-// Use validated JWT_SECRET from env configuration
 const JWT_SECRET = env.JWT_SECRET;
-const JWT_EXPIRES_IN = '7d';
+const ACCESS_TOKEN_EXPIRES_IN = '15m';
+const REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days
 const SALT_ROUNDS = 10;
 
 export interface AuthTokens {
   accessToken: string;
+  refreshToken: string;
   user: Omit<User, 'passwordHash'>;
 }
 
@@ -39,14 +41,12 @@ export class AuthService {
       throw new Error('فشل إنشاء المستخدم');
     }
 
-    // Generate JWT token
-    const accessToken = this.generateToken(newUser.id);
-
-    // Return user without password hash
     const { passwordHash: _, ...userWithoutPassword } = newUser;
+    const { accessToken, refreshToken } = await this.generateTokenPair(newUser.id);
     
     return {
       accessToken,
+      refreshToken,
       user: userWithoutPassword,
     };
   }
@@ -66,14 +66,12 @@ export class AuthService {
       throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
 
-    // Generate JWT token
-    const accessToken = this.generateToken(user.id);
-
-    // Return user without password hash
     const { passwordHash: _, ...userWithoutPassword } = user;
+    const { accessToken, refreshToken } = await this.generateTokenPair(user.id);
 
     return {
       accessToken,
+      refreshToken,
       user: userWithoutPassword,
     };
   }
@@ -98,13 +96,40 @@ export class AuthService {
     }
   }
 
-  async generateSecureSessionToken(userId: string): Promise<string> {
-    // Generate a secure session token
-    return this.generateToken(userId);
+  async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const [tokenRecord] = await db
+      .select()
+      .from(refreshTokens)
+      .where(and(
+        eq(refreshTokens.token, refreshToken),
+        gt(refreshTokens.expiresAt, new Date())
+      ))
+      .limit(1);
+
+    if (!tokenRecord) {
+      throw new Error('رمز التحديث غير صالح أو منتهي الصلاحية');
+    }
+
+    await db.delete(refreshTokens).where(eq(refreshTokens.id, tokenRecord.id));
+    return this.generateTokenPair(tokenRecord.userId);
   }
 
-  private generateToken(userId: string): string {
-    return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  async revokeRefreshToken(token: string): Promise<void> {
+    await db.delete(refreshTokens).where(eq(refreshTokens.token, token));
+  }
+
+  private async generateTokenPair(userId: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const accessToken = jwt.sign({ userId }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES_IN });
+    const refreshToken = crypto.randomBytes(64).toString('hex');
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_IN);
+
+    await db.insert(refreshTokens).values({
+      userId,
+      token: refreshToken,
+      expiresAt,
+    });
+
+    return { accessToken, refreshToken };
   }
 }
 

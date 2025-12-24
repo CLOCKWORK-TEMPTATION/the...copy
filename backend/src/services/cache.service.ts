@@ -98,15 +98,31 @@ export class CacheService {
   }
 
   /**
-   * Initialize Redis connection with retry strategy
-   * Supports both REDIS_URL and individual REDIS_HOST/PORT/PASSWORD
+   * Initialize Redis connection with Sentinel support and retry strategy
+   * Supports REDIS_URL, Sentinel, and individual REDIS_HOST/PORT/PASSWORD
    */
   private initializeRedis(): void {
     try {
-      // Prefer REDIS_URL if provided, otherwise construct from individual variables
       let redisConfig: any;
 
-      if (process.env.REDIS_URL) {
+      // Sentinel configuration
+      if (process.env.REDIS_SENTINEL_ENABLED === 'true') {
+        const sentinels = (process.env.REDIS_SENTINELS || '127.0.0.1:26379,127.0.0.1:26380,127.0.0.1:26381')
+          .split(',')
+          .map(s => {
+            const [host, port] = s.trim().split(':');
+            return { host, port: parseInt(port) };
+          });
+
+        redisConfig = {
+          sentinels,
+          name: process.env.REDIS_MASTER_NAME || 'mymaster',
+          password: process.env.REDIS_PASSWORD,
+          sentinelPassword: process.env.REDIS_SENTINEL_PASSWORD,
+        };
+
+        logger.info(`Connecting to Redis via Sentinel: ${sentinels.length} sentinels`);
+      } else if (process.env.REDIS_URL) {
         redisConfig = {
           url: process.env.REDIS_URL,
         };
@@ -131,7 +147,6 @@ export class CacheService {
         if (options.attempt > 10) {
           return undefined;
         }
-        // reconnect after
         const delay = Math.min(options.attempt * 100, 3000);
         logger.debug(`Redis retry attempt ${options.attempt}, delay: ${delay}ms`);
         return delay;
@@ -144,7 +159,6 @@ export class CacheService {
         this.updateRedisHealth('error');
         this.metrics.errors++;
 
-        // Report to Sentry if configured
         if (Sentry) {
           Sentry.captureException(error, {
             tags: { component: 'cache-service', layer: 'redis' },
