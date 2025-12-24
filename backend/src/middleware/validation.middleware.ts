@@ -155,10 +155,10 @@ export const commonSchemas = {
 import { logSecurityEvent, SecurityEventType } from './security-logger.middleware';
 
 const suspiciousPatterns = [
-  { regex: /(\%27)|(\')|(\-\-)|(\%23)|(#)/i, type: SecurityEventType.SQL_INJECTION_ATTEMPT },
-  { regex: /(<script[^>]*>.*?<\/script>)|(<iframe)|(<object)/gi, type: SecurityEventType.XSS_ATTEMPT },
-  { regex: /(javascript:|data:text\/html|onerror=|onload=|onclick=)/gi, type: SecurityEventType.XSS_ATTEMPT },
-  { regex: /(\.\.)|(\/etc\/passwd)|(\.\.\/)|(\.\.\%2F)/gi, type: SecurityEventType.PATH_TRAVERSAL_ATTEMPT },
+  { regex: /(%27|'|--|%23|#)/i, type: SecurityEventType.SQL_INJECTION_ATTEMPT },
+  { regex: /<script[^>]*>|<iframe|<object/gi, type: SecurityEventType.XSS_ATTEMPT },
+  { regex: /javascript:|data:text\/html|onerror=|onload=|onclick=/gi, type: SecurityEventType.XSS_ATTEMPT },
+  { regex: /\.\.\/|\/etc\/passwd|%2F/gi, type: SecurityEventType.PATH_TRAVERSAL_ATTEMPT },
 ];
 
 export function detectAttacks(req: Request, res: Response, next: NextFunction) {
