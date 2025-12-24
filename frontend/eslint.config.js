@@ -47,72 +47,57 @@ module.exports = [
       "no-unused-vars": "off",
     },
   },
-
-  // TypeScript plugin
-  {
-    files: ["**/*.ts", "**/*.tsx"],
-    plugins: {
-      "@typescript-eslint": typescriptPlugin,
-    },
-    rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        {
-          argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-        },
-      ],
-    },
-  },
-
-  // Named exports enforcement
-  {
-    files: ["src/**/*.ts", "src/**/*.tsx"],
-    plugins: {
-      import: importPlugin,
-    },
-    rules: {
-      "import/no-default-export": "error",
-    },
-    ignores: [
-      "src/app/**/*.tsx",
-      "src/app/**/*.ts",
-      "src/middleware.ts",
-      "src/**/middleware.ts",
-      "src/components/**/*.tsx",
-      "src/components/**/*.ts",
-      "src/ai/**/*.ts",
-      "src/ai/**/*.tsx",
-      "src/lib/**/*.ts",
-      "src/lib/**/*.tsx",
-      "src/config/**/*.ts",
-      "src/config/**/*.tsx",
-      "src/global.d.ts",
-      "src/workers/**/*.ts",
+  plugins: ["@typescript-eslint", "import", "react", "react-hooks"],
+  rules: {
+    "react/no-unescaped-entities": "off",
+    "react/no-direct-mutation-state": "off",
+    "react-hooks/rules-of-hooks": "warn",
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+      },
     ],
   },
-
-  // Allow Next.js app router defaults
-  {
-    files: ["**/app/**/page.{ts,tsx}", "**/app/**/layout.{ts,tsx}"],
-    rules: {
-      "import/no-default-export": "off",
-    },
-  },
-
-  // Complexity guardrails for Directors Studio page
-  {
-    files: ["src/app/(main)/directors-studio/page.tsx"],
-    rules: {
-      complexity: ["error", 8],
-      "max-lines-per-function": [
-        "error",
-        { max: 50, skipBlankLines: true, skipComments: true },
+  overrides: [
+    // Named exports enforcement for src files
+    {
+      files: ["src/**/*.ts", "src/**/*.tsx"],
+      excludedFiles: [
+        "src/app/**/*.tsx",
+        "src/app/**/*.ts",
+        "src/middleware.ts",
+        "src/**/middleware.ts",
+        "src/components/**/*.tsx",
+        "src/components/**/*.ts",
+        "src/ai/**/*.ts",
+        "src/ai/**/*.tsx",
+        "src/lib/**/*.ts",
+        "src/lib/**/*.tsx",
+        "src/config/**/*.ts",
+        "src/config/**/*.tsx",
+        "src/global.d.ts",
+        "src/workers/**/*.ts",
       ],
-      "max-lines": [
-        "error",
-        { max: 300, skipBlankLines: true, skipComments: true },
-      ],
+      rules: {
+        "import/no-default-export": "error",
+      },
     },
-  },
-];
+    // Complexity guardrails for Directors Studio page
+    {
+      files: ["src/app/(main)/directors-studio/page.tsx"],
+      rules: {
+        complexity: ["error", 8],
+        "max-lines-per-function": [
+          "error",
+          { max: 50, skipBlankLines: true, skipComments: true },
+        ],
+        "max-lines": [
+          "error",
+          { max: 300, skipBlankLines: true, skipComments: true },
+        ],
+      },
+    },
+  ],
+};

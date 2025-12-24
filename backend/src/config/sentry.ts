@@ -67,8 +67,8 @@ export function initializeSentry() {
     // Integrations
     integrations: [
       // Performance profiling for CPU/memory analysis
-      nodeProfilingIntegration(),
-    ],
+      ...(process.env.NODE_ENV === 'production' ? [nodeProfilingIntegration()] : []),
+    ] as any,
 
     // Tags for filtering and searching
     initialScope: {

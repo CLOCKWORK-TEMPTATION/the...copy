@@ -1,13 +1,9 @@
-module.exports = {
-  ignorePatterns: [
-    'node_modules/',
-    '.next/',
-    'dist/',
-    'build/',
-    'out/',
-    'coverage/',
-    '*.min.js',
-    '*.bundle.js',
-    '@sentry/',
-  ],
-};
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+*.min.js
+*.bundle.js
+@sentry/
