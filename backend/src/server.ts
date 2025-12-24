@@ -263,10 +263,10 @@ app.post('/api/waf/block-ip', authMiddleware, (req, res) => {
       return res.status(400).json({ success: false, error: 'IP address required' });
     }
     blockIP(ip, reason);
-    res.json({ success: true, message: `IP ${ip} blocked successfully` });
+    return res.json({ success: true, message: `IP ${ip} blocked successfully` });
   } catch (error) {
     logger.error('Failed to block IP:', error);
-    res.status(500).json({ success: false, error: 'Failed to block IP' });
+    return res.status(500).json({ success: false, error: 'Failed to block IP' });
   }
 });
 
@@ -277,10 +277,10 @@ app.post('/api/waf/unblock-ip', authMiddleware, (req, res) => {
       return res.status(400).json({ success: false, error: 'IP address required' });
     }
     unblockIP(ip);
-    res.json({ success: true, message: `IP ${ip} unblocked successfully` });
+    return res.json({ success: true, message: `IP ${ip} unblocked successfully` });
   } catch (error) {
     logger.error('Failed to unblock IP:', error);
-    res.status(500).json({ success: false, error: 'Failed to unblock IP' });
+    return res.status(500).json({ success: false, error: 'Failed to unblock IP' });
   }
 });
 
