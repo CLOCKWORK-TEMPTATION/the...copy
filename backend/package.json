@@ -23,7 +23,9 @@
     "perf:baseline": "tsx db-performance-analysis/run-performance-analysis.ts baseline",
     "perf:apply-indexes": "bash db-performance-analysis/apply-indexes.sh",
     "perf:post-optimization": "tsx db-performance-analysis/run-performance-analysis.ts post-optimization",
-    "perf:compare": "tsx db-performance-analysis/compare-results.ts"
+    "perf:compare": "tsx db-performance-analysis/compare-results.ts",
+    "logs:sanitize": "tsx scripts/sanitize-historical-logs.ts",
+    "logs:sanitize:dry-run": "DRY_RUN=true tsx scripts/sanitize-historical-logs.ts"
   },
   "keywords": [
     "drama",

@@ -16,13 +16,13 @@
   - [ ] المسؤول: DevOps + DBA
   -
 
-- [ ] **3. تعقيم Logs من PII**
-  - [ ] إضافة Log Sanitization Middleware
-  - [ ] فحص Logs الحالية لوجود PII
-  - [ ] حذف PII من Logs التاريخية
-  - [ ] المسؤول: Backend Team
-  - [ ]
-  - [ ] الملف: `backend/src/middleware/index.ts`
+- [x] **3. تعقيم Logs من PII**
+  - [x] إضافة Log Sanitization Middleware
+  - [x] فحص Logs الحالية لوجود PII
+  - [x] حذف PII من Logs التاريخية
+  - [x] المسؤول: Backend Team
+  - [x] ✅ **مكتمل** - تم إضافة Log Sanitization Middleware في `backend/src/middleware/log-sanitization.middleware.ts`
+  - [x] الملف: `backend/src/middleware/index.ts`
 
 - [ ] **4. تحديد RTO/RPO لكل Service**
   - [ ] User Auth: RTO <15min, RPO <5min
