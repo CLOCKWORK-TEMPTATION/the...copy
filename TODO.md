@@ -33,13 +33,13 @@
 
 ---
 
-- [ ] **5. إنشاء Emergency Runbook**
-  - [ ] Database failure scenario
-  - [ ] Redis failure scenario
-  - [ ] API failure scenario
-  - [ ] جهات الاتصال للطوارئ
-  - [ ] المسؤول: SRE Team
-  - [ ]
+- [x] **5. إنشاء Emergency Runbook** ✅
+  - [x] Database failure scenario
+  - [x] Redis failure scenario
+  - [x] API failure scenario
+  - [x] جهات الاتصال للطوارئ
+  - [x] المسؤول: SRE Team
+  - [x] الملف: `docs/operations/EMERGENCY_RUNBOOK.md`
 
 - [ ] **6. إضافة Gemini Cost Alerts**
   - [ ] تتبع Token Usage
