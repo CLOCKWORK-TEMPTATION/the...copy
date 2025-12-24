@@ -12,6 +12,7 @@ import { ExpressAdapter } from '@bull-board/express';
 import { queueManager, QueueName } from '@/queues/queue.config';
 import { authMiddleware } from '@/middleware/auth.middleware';
 import { logger } from '@/utils/logger';
+import rateLimit from 'express-rate-limit';
 
 // Create Express adapter for Bull Board
 const serverAdapter = new ExpressAdapter();
@@ -45,6 +46,17 @@ export function setupBullBoard() {
  */
 export function getAuthenticatedBullBoardRouter(): Router {
   const router = Router();
+
+  // Apply rate limiting for dashboard access
+  const dashboardLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests to dashboard, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  router.use(dashboardLimiter);
 
   // Apply authentication middleware to all Bull Board routes
   router.use(authMiddleware);

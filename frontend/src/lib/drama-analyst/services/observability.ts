@@ -1,8 +1,8 @@
 import * as Sentry from "@sentry/nextjs";
 import { log } from "./loggerService";
 // No-op replacements for missing GA functions
-const sendGAEvent = (..._args: any[]) => {};
-const setGAUserProperties = (..._args: any[]) => {};
+const sendGAEvent = (..._args: any[]) => { };
+const setGAUserProperties = (..._args: any[]) => { };
 
 // Sentry configuration for production monitoring
 export const initObservability = () => {
@@ -258,11 +258,20 @@ const initWebVitalsMonitoring = () => {
 };
 
 // Utility functions
+const getRandomId = (): string => {
+  if (typeof window !== "undefined" && window.crypto) {
+    const array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    return `user_${Date.now()}_${array[0].toString(36)}`;
+  }
+  return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
 const getUserId = (): string => {
   // Generate or retrieve user ID
   let userId = localStorage.getItem("drama_analyst_user_id");
   if (!userId) {
-    userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    userId = getRandomId();
     localStorage.setItem("drama_analyst_user_id", userId);
   }
   return userId;
@@ -272,7 +281,7 @@ const getSessionId = (): string => {
   // Generate or retrieve session ID
   let sessionId = sessionStorage.getItem("drama_analyst_session_id");
   if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    sessionId = getRandomId().replace("user_", "session_");
     sessionStorage.setItem("drama_analyst_session_id", sessionId);
   }
   return sessionId;

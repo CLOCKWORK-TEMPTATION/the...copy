@@ -81,9 +81,10 @@ function findFiles(dir, pattern) {
           if (pattern.includes("**")) {
             const regex = new RegExp(
               pattern
-                .replace(/\*\*/g, ".*")
-                .replace(/\*/g, "[^/]*")
-                .replace(/\./g, "\\.")
+                .replace(/[.+^${}()|[\]\\]/g, "\\$&") // Escape regex special chars
+                .replace(/\*\*/g, ".*") // Convert ** glob to regex
+                .replace(/(?<!\.)\*/g, "[^/]*") // Convert * glob to regex (avoiding matching already replaced .*)
+                .replace(/\?/g, ".") // Convert ? glob to regex
             );
             if (regex.test(fullPath)) {
               results.push(fullPath);
