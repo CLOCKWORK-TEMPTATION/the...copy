@@ -61,6 +61,12 @@ app.use(wafMiddleware);
 app.use(logAuthAttempts);
 app.use(logRateLimitViolations);
 
+// Initialize cookie parser (required for CSRF)
+app.use(cookieParser());
+
+// CSRF Protection (Standard Double Submit Cookie)
+app.use(csrfProtection);
+
 // CSRF Protection middleware - validates Origin header for state-changing requests
 // This is the recommended approach for API-based applications instead of traditional CSRF tokens
 // SECURITY FIX: Now requires Origin or Referer header for browser-based requests
@@ -148,10 +154,7 @@ app.use((req, res, next) => {
 
 // Setup middleware
 setupMiddleware(app);
-app.use(cookieParser());
 
-// CSRF Protection (must be after cookie-parser)
-app.use(csrfProtection);
 
 // Initialize WebSocket service
 try {
