@@ -1,5 +1,9 @@
 name: Blue-Green Deployment
 
+# This workflow handles production deployments using blue-green strategy
+# - On pull_request: Validates workflow syntax (no deployment)
+# - On push to main: Deploys to production after CI passes
+# - On workflow_dispatch: Manual deployment/rollback
 on:
   push:
     branches: [ main ]
