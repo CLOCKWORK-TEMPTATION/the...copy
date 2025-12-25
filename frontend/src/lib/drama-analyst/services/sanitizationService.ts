@@ -43,10 +43,12 @@ export const sanitizeHTML = (input: string): string => {
     result = result.replace(/<[^>]*$/g, "");
     // Remove orphan closing brackets at the start
     result = result.replace(/^[^<]*>/g, "");
-    // Escape any remaining < or > characters to prevent tag reconstruction
-    result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     iterations++;
   }
+  
+  // After loop completes, escape any remaining < or > characters in a single operation
+  // This prevents incomplete multi-character sanitization vulnerabilities
+  result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   return result;
 };

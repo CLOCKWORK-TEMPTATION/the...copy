@@ -619,11 +619,22 @@ function checkRule(req: Request, rule: WAFRule): { matched: boolean; value: stri
         // Use safe regex test with input length limit to prevent ReDoS
         if (safeRegexTestSync(rule.pattern, value)) {
           rule.pattern.lastIndex = 0;
-          // Limit matched value extraction to prevent memory issues
-          const matches = value.substring(0, 10000).match(rule.pattern);
+          // SECURITY FIX: Don't use .match() as it could trigger ReDoS with malicious patterns
+          // Instead, use exec() with length limits for safer extraction
+          let matchedValue = value.substring(0, 100);
+          try {
+            rule.pattern.lastIndex = 0;
+            const match = rule.pattern.exec(value.substring(0, 1000));
+            if (match && match[0]) {
+              matchedValue = match[0].substring(0, 100);
+            }
+            rule.pattern.lastIndex = 0;
+          } catch {
+            // If extraction fails, use truncated value
+          }
           return {
             matched: true,
-            value: matches ? matches[0].substring(0, 100) : value.substring(0, 100),
+            value: matchedValue,
           };
         }
         rule.pattern.lastIndex = 0;
