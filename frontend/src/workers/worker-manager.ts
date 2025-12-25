@@ -34,7 +34,7 @@ export class ParticleWorkerManager {
         { type: "module" }
       );
     } catch (error) {
-      console.error("Failed to initialize workers:", error);
+      console.error("Failed to initialize workers");
       throw error;
     }
   }

@@ -823,7 +823,7 @@ async function main() {
   console.log('  Elite Code Auditor & Reverse Engineering Specialist');
   console.log('  Critical Constraint: CODE IS THE ONLY TRUTH');
   console.log('═'.repeat(80));
-  console.log(`\nProject Root: ${projectRoot}\n`);
+  console.log('\nStarting analysis...\n');
 
   const auditor = new CodeAuditor(projectRoot);
   const report = await auditor.analyze();
@@ -836,18 +836,18 @@ async function main() {
   // Save report to file
   const reportPath = path.join(projectRoot, 'TECHNICAL_REALITY_REPORT.md');
   fs.writeFileSync(reportPath, formattedReport, 'utf-8');
-  console.log(`📝 Report saved to: ${reportPath}\n`);
+  console.log('📝 Report saved to TECHNICAL_REALITY_REPORT.md\n');
 
   // Also save as JSON for programmatic access
   const jsonPath = path.join(projectRoot, 'technical-reality-report.json');
   fs.writeFileSync(jsonPath, JSON.stringify(report, null, 2), 'utf-8');
-  console.log(`📊 JSON report saved to: ${jsonPath}\n`);
+  console.log('📊 JSON report saved to technical-reality-report.json\n');
 }
 
 // Run if executed directly
 if (require.main === module) {
   main().catch(error => {
-    console.error('❌ Analysis failed:', error);
+    console.error('❌ Analysis failed');
     process.exit(1);
   });
 }

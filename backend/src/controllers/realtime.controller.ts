@@ -28,7 +28,7 @@ export class RealtimeController {
     const safeClientId = clientId.replace(/[\r\n]/g, '');
     const safeUserId = userId ? userId.replace(/[\r\n]/g, '') : 'anonymous';
 
-    logger.info(`[SSE] New connection established: ${safeClientId}, user: ${safeUserId}`);
+    logger.info("[SSE] New connection established");
   }
 
   /**
@@ -49,7 +49,7 @@ export class RealtimeController {
         },
       });
     } catch (error) {
-      logger.error('[Realtime] Failed to get stats:', error);
+      logger.error('[Realtime] Failed to get stats');
       res.status(500).json({
         success: false,
         error: 'فشل في الحصول على إحصائيات الاتصالات الحية',
@@ -123,7 +123,7 @@ export class RealtimeController {
         ? error.message.replace(/[\r\n]/g, ' ')
         : String(error).replace(/[\r\n]/g, ' ');
 
-      logger.error(`[Realtime] Failed to send test event: ${safeError}`);
+      logger.error('[Realtime] Failed to send test event');
       res.status(500).json({
         success: false,
         error: 'فشل في إرسال الحدث التجريبي',
@@ -151,7 +151,7 @@ export class RealtimeController {
     const safeClientId = clientId.replace(/[\r\n]/g, '');
     const safeAnalysisId = (analysisId || '').replace(/[\r\n]/g, '');
 
-    logger.info(`[SSE] Client ${safeClientId} streaming analysis logs for: ${safeAnalysisId}`);
+    logger.info("[SSE] Client streaming analysis logs");
 
     // Send initial event
     sseService.sendToClient(clientId, {
@@ -186,7 +186,7 @@ export class RealtimeController {
     const safeClientId = clientId.replace(/[\r\n]/g, '');
     const safeJobId = (jobId || '').replace(/[\r\n]/g, '');
 
-    logger.info(`[SSE] Client ${safeClientId} streaming job progress for: ${safeJobId}`);
+    logger.info("[SSE] Client streaming job progress");
 
     // Send initial event
     sseService.sendToClient(clientId, {

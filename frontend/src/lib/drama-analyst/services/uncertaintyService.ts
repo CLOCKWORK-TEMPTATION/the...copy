@@ -37,7 +37,12 @@ export class UncertaintyService {
     // Identify uncertain aspects
     const uncertainAspects = this.identifyUncertainAspects(outputs);
 
-    console.log(`[Uncertainty] Confidence: ${(confidence * 100).toFixed(1)}%`);
+    // Sanitized confidence logging for security
+    if (confidence > 0.5) {
+      console.log(`[Uncertainty] Analysis completed successfully`);
+    } else {
+      console.log(`[Uncertainty] Analysis completed with low confidence`);
+    }
 
     return {
       confidence,
@@ -172,7 +177,7 @@ ${JSON.stringify(context, null, 2).substring(0, 1000)}
       const confidence = parseFloat(result.trim());
       return isNaN(confidence) ? 0.5 : Math.min(Math.max(confidence, 0), 1);
     } catch (error) {
-      console.error("[Uncertainty] Error assessing confidence:", error);
+      console.error("[Uncertainty] Error assessing confidence - see logs for details");
       return 0.5; // Default to medium confidence on error
     }
   }

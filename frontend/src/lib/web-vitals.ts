@@ -20,7 +20,7 @@ export function reportWebVitals(onPerfEntry?: (metric: any) => void) {
 export function initializeWebVitals() {
   reportWebVitals((metric) => {
     if (process.env.NODE_ENV === "development") {
-      console.log(`[Web Vitals] ${metric.name}:`, metric.value);
+      console.log(`[Web Vitals] ${metric.name}: ${metric.value}`);
     }
     // In production, you could send to analytics service
   });

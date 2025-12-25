@@ -183,7 +183,7 @@ export class SevenStationsOrchestrator {
       execution.overallSuccess = false;
       execution.endTime = new Date();
       execution.totalDuration = Date.now() - execution.startTime.getTime();
-      console.error("Seven Stations pipeline failed:", error);
+      console.error("Seven Stations pipeline failed");
     }
 
     return execution;

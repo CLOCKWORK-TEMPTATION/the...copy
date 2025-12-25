@@ -476,13 +476,9 @@ function logWAFEvent(event: WAFEvent): void {
     ruleId: event.ruleId,
     ruleName: event.ruleName,
     severity: event.severity,
-    ip: event.ip,
     method: event.method,
-    path: event.path,
     action: event.action,
     ...(wafConfig.logLevel === "verbose" && {
-      matchedValue: event.matchedValue.substring(0, 200),
-      userAgent: event.userAgent,
       details: event.details,
     }),
   };
@@ -853,7 +849,7 @@ export function getWAFConfig(): WAFConfig {
  */
 export function blockIP(ip: string, reason?: string): void {
   blockedIPs.add(ip);
-  logger.warn("IP blocked by WAF", { ip, reason });
+  logger.warn("IP blocked by WAF", { reason });
 }
 
 /**
@@ -861,7 +857,7 @@ export function blockIP(ip: string, reason?: string): void {
  */
 export function unblockIP(ip: string): void {
   blockedIPs.delete(ip);
-  logger.info("IP unblocked from WAF", { ip });
+  logger.info("IP unblocked from WAF");
 }
 
 /**
@@ -872,16 +868,29 @@ export function getBlockedIPs(): string[] {
 }
 
 /**
+ * Escape special regex characters to prevent regex injection
+ * SECURITY: Use this when creating patterns from user input
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Validate regex pattern for safety (prevent ReDoS)
+ * SECURITY: Comprehensive checks to prevent regex injection attacks
  */
 function isRegexSafe(pattern: RegExp): boolean {
   const patternStr = pattern.source;
+
   // Check for dangerous nested quantifiers that could cause ReDoS
   // Patterns like (a+)+, (a*)+, (a+)*, etc.
   const dangerousPatterns = [
     /\([^)]*[+*][^)]*\)[+*]/,  // Nested quantifiers like (a+)+
     /\(\?:[^)]*[+*][^)]*\)[+*]/,  // Non-capturing groups with nested quantifiers
     /\[[^\]]*\][+*]\s*\[[^\]]*\][+*]/,  // Adjacent character classes with quantifiers
+    /(\.\*){2,}/,  // Multiple .* sequences
+    /(\.\+){2,}/,  // Multiple .+ sequences
+    /\([^)]*\|[^)]*\)[+*]{1,}/,  // Alternation groups with quantifiers
   ];
 
   for (const dangerous of dangerousPatterns) {
@@ -895,12 +904,40 @@ function isRegexSafe(pattern: RegExp): boolean {
     return false;
   }
 
+  // Check for excessive backtracking indicators
+  const quantifierCount = (patternStr.match(/[+*?]/g) || []).length;
+  if (quantifierCount > 10) {
+    return false;
+  }
+
+  // Test the regex with a timeout to catch potential ReDoS
+  try {
+    const testStr = 'a'.repeat(100);
+    const startTime = Date.now();
+    pattern.test(testStr);
+    if (Date.now() - startTime > 100) { // More than 100ms is suspicious
+      return false;
+    }
+  } catch {
+    return false;
+  }
+
   return true;
 }
 
 /**
+ * Create a safe regex pattern from user input
+ * SECURITY: Escapes all special characters to prevent regex injection
+ */
+export function createSafePattern(userInput: string): RegExp {
+  const escaped = escapeRegex(userInput);
+  return new RegExp(escaped, 'gi');
+}
+
+/**
  * Add custom WAF rule
- * SECURITY: Validates regex pattern to prevent ReDoS attacks
+ * SECURITY: Validates regex pattern to prevent ReDoS attacks and regex injection
+ * WARNING: Only accept patterns from trusted admin sources, never from user input
  */
 export function addCustomRule(rule: WAFRule): void {
   // Validate the regex pattern for safety
@@ -908,9 +945,19 @@ export function addCustomRule(rule: WAFRule): void {
     logger.warn("Rejected unsafe WAF rule pattern", {
       ruleId: rule.id,
       ruleName: rule.name,
-      reason: "Pattern may cause ReDoS"
+      reason: "Pattern may cause ReDoS or contains dangerous constructs"
     });
     throw new Error("Unsafe regex pattern detected - rule rejected");
+  }
+
+  // Validate rule structure
+  if (!rule.id || !rule.name || !rule.pattern) {
+    throw new Error("Invalid rule: missing required fields");
+  }
+
+  // Check for duplicate rule IDs
+  if (wafConfig.customRules.some(r => r.id === rule.id)) {
+    throw new Error(`Rule with ID ${rule.id} already exists`);
   }
 
   wafConfig.customRules.push(rule);
@@ -981,7 +1028,7 @@ export function getWAFStats(): {
  */
 export function clearRateLimit(ip: string): void {
   rateLimitStore.delete(ip);
-  logger.info("Rate limit cleared for IP", { ip });
+  logger.info("Rate limit cleared for IP");
 }
 
 /**

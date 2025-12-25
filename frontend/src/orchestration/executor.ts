@@ -86,7 +86,7 @@ export class PipelineOrchestrator {
     } catch (error) {
       execution.status = "failed";
       execution.endTime = new Date();
-      console.error("Pipeline execution failed:", error);
+      console.error("Pipeline execution failed");
     }
 
     return execution;

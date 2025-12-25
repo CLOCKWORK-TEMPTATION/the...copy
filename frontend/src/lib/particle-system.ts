@@ -76,7 +76,7 @@ export class OptimizedParticleSystem {
       this.createParticles();
       this.startAnimation();
     } catch (error) {
-      console.error("Failed to initialize particle system:", error);
+      console.error("Failed to initialize particle system");
       options.onPerformanceWarning?.("WebGL not available, particles disabled");
       this.isDestroyed = true;
     }

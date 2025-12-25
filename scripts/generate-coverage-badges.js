@@ -68,7 +68,7 @@ function generateBadge(label, message, color) {
 function processCoverage(name, coveragePath) {
   try {
     if (!fs.existsSync(coveragePath)) {
-      console.warn(`⚠️  Coverage file not found for ${name}: ${coveragePath}`);
+      console.warn(`⚠️  Coverage file not found for ${name}`);
       return;
     }
 
@@ -92,7 +92,7 @@ function processCoverage(name, coveragePath) {
 
       const badgePath = path.join(BADGES_DIR, `${name}-${metric}.svg`);
       fs.writeFileSync(badgePath, badgeContent);
-      console.log(`✅ Generated badge: ${badgePath}`);
+      console.log(`✅ Generated badge for ${metric}`);
     });
 
     // Generate combined badge
@@ -106,7 +106,7 @@ function processCoverage(name, coveragePath) {
 
     const badgePath = path.join(BADGES_DIR, `${name}-coverage.svg`);
     fs.writeFileSync(badgePath, badgeContent);
-    console.log(`✅ Generated badge: ${badgePath}`);
+    console.log(`✅ Generated coverage badge`);
 
     return {
       name,
@@ -114,7 +114,7 @@ function processCoverage(name, coveragePath) {
       average: avgCoverage,
     };
   } catch (error) {
-    console.error(`❌ Error processing ${name} coverage:`, error.message);
+    console.error(`❌ Error processing ${name} coverage`);
     return null;
   }
 }
@@ -164,6 +164,6 @@ const validCoverage = coverageData.filter((d) => d !== null);
 if (validCoverage.length > 0) {
   console.log('\n📊 Coverage Summary:');
   validCoverage.forEach((data) => {
-    console.log(`  ${data.name}: ${data.average.toFixed(2)}%`);
+    console.log(`  Coverage: ${data.average.toFixed(2)}%`);
   });
 }
