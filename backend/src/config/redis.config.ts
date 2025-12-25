@@ -15,12 +15,16 @@ const BULLMQ_MIN_REDIS_VERSION = '5.0.0';
 export function getRedisConfig() {
   // Sentinel configuration
   if (process.env.REDIS_SENTINEL_ENABLED === 'true') {
+    logger.info('🔧 Redis Sentinel Mode: ACTIVATED');
+
     const sentinels = (process.env.REDIS_SENTINELS || '127.0.0.1:26379,127.0.0.1:26380,127.0.0.1:26381')
       .split(',')
       .map(s => {
         const [host, port] = s.trim().split(':');
         return { host, port: parseInt(port || '26379') };
       });
+
+    logger.info(`🔌 Connecting to ${sentinels.length} Sentinels: ${sentinels.map(s => `${s.host}:${s.port}`).join(', ')}`);
 
     return {
       sentinels,
@@ -95,7 +99,7 @@ export async function checkRedisVersion(): Promise<{
     // Connect to Redis with timeout
     await Promise.race([
       client.connect(),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Redis connection timeout')), 10000)
       )
     ]);
