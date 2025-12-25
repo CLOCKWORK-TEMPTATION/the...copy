@@ -2,13 +2,13 @@
  * Web Vitals reporting
  */
 
-import { onCLS, onFCP, onFID, onLCP, onTTFB } from "web-vitals";
+import { onCLS, onFCP, onINP, onLCP, onTTFB } from "web-vitals";
 
 export function reportWebVitals(onPerfEntry?: (metric: any) => void) {
   if (onPerfEntry && onPerfEntry instanceof Function) {
     onCLS(onPerfEntry);
     onFCP(onPerfEntry);
-    onFID(onPerfEntry);
+    onINP(onPerfEntry); // INP replaced FID in web-vitals v3+
     onLCP(onPerfEntry);
     onTTFB(onPerfEntry);
   }
