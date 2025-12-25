@@ -51,6 +51,10 @@ app.use(trackPerformance);
 // Prometheus metrics tracking
 app.use(metricsMiddleware);
 
+// SLO Metrics tracking (Availability, Latency, Error Budget)
+import { sloMetricsMiddleware } from '@/middleware/slo-metrics.middleware';
+app.use(sloMetricsMiddleware);
+
 // WAF (Web Application Firewall) - must be early in the chain
 app.use(wafMiddleware);
 
@@ -131,7 +135,7 @@ app.use((req, res, next) => {
       });
     }
   }
-  
+
   // Validate Referer
   if (!origin && referer) {
     try {
