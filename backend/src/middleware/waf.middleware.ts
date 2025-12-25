@@ -558,7 +558,7 @@ const MAX_WAF_CHECK_LENGTH = 10000;
  * Safe regex test with timeout to prevent ReDoS attacks
  * SECURITY: Protects against Regular Expression Denial of Service
  */
-function safeRegexTest(pattern: RegExp, text: string, timeoutMs: number = 100): boolean {
+function safeRegexTest(pattern: RegExp, text: string, timeoutMs: number = 100): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     const timer = setTimeout(() => {
       resolve(false); // Timeout - assume no match to prevent ReDoS
@@ -877,10 +877,48 @@ export function wafMiddleware(
  * Update WAF configuration
  */
 export function updateWAFConfig(config: Partial<WAFConfig>): void {
-  wafConfig = { ...wafConfig, ...config };
+  const newConfig = { ...config };
+
+  // Validate and hydrate custom rules if present
+  if (newConfig.customRules) {
+    newConfig.customRules = newConfig.customRules.map((rule: any) => {
+      // If pattern is a string (from JSON), convert to RegExp
+      let pattern: RegExp;
+      if (typeof rule.pattern === 'string') {
+        try {
+          // Extract pattern and flags if it looks like /pattern/flags
+          const match = rule.pattern.match(/^\/(.*?)\/([gimuy]*)$/);
+          if (match) {
+            pattern = new RegExp(match[1], match[2]);
+          } else {
+            pattern = new RegExp(rule.pattern, 'gi');
+          }
+        } catch (e) {
+          throw new Error(`Invalid regex pattern for rule ${rule.id}`);
+        }
+      } else if (rule.pattern instanceof RegExp) {
+        pattern = rule.pattern;
+      } else {
+        throw new Error(`Invalid pattern type for rule ${rule.id}`);
+      }
+
+      // Security check for ReDoS/Injection
+      if (!isRegexSafe(pattern)) {
+        throw new Error(`Unsafe regex pattern detected for rule ${rule.id}`);
+      }
+
+      return {
+        ...rule,
+        pattern
+      };
+    });
+  }
+
+  wafConfig = { ...wafConfig, ...newConfig };
   logger.info("WAF configuration updated", {
     enabled: wafConfig.enabled,
     mode: wafConfig.mode,
+    customRulesCount: wafConfig.customRules.length
   });
 }
 
