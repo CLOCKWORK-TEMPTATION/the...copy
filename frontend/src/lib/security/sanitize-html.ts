@@ -105,7 +105,8 @@ export function escapeHtml(text: string): string {
  * Strips all HTML tags from a string
  * Safe alternative when you need plain text only
  * SECURITY: Uses iterative approach to handle nested/malformed tags
- * Fixed: Properly handles multi-character sanitization to prevent bypass attacks
+ * SECURITY: Escapes remaining angle brackets in a single pass to avoid
+ *           incomplete multi-character sanitization issues.
  */
 export function stripHtmlTags(html: string): string {
   if (!html || typeof html !== "string") {
@@ -115,8 +116,8 @@ export function stripHtmlTags(html: string): string {
   let result = html;
   let previousResult = "";
 
-  // Phase 1: Iteratively remove ALL angle bracket content until no changes occur
-  // This handles nested attacks like <scr<script>ipt> by continuing until stable
+  // Iteratively remove complete tags until no changes occur.
+  // This handles nested attacks like <scr<script>ipt> by continuing until stable.
   const maxIterations = 100; // Prevent infinite loops
   let iterations = 0;
 
@@ -124,33 +125,12 @@ export function stripHtmlTags(html: string): string {
     previousResult = result;
     // Remove complete tags - keep iterating until stable
     result = result.replace(/<[^>]*>/g, "");
-    // Remove incomplete opening tags (e.g., "<script" without ">")
-    result = result.replace(/<[^>]*$/g, "");
-    // Remove orphan closing brackets at the start
-    result = result.replace(/^[^<]*>/g, "");
     iterations++;
   }
-  
-  // After loop completes, escape any remaining < or > characters in a single operation
-  // This prevents incomplete multi-character sanitization vulnerabilities
-  result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // Phase 2: After all tag removal is complete, escape any remaining angle brackets
-  // This is done AFTER the loop to prevent interfering with tag detection
-  // SECURITY: Iteratively replace to handle any edge cases with entity encoding
-  let safeResult = result;
-  let prevSafe = "";
-  let safeIterations = 0;
-  const maxSafeIterations = 10;
-
-  while (safeResult !== prevSafe && safeIterations < maxSafeIterations) {
-    prevSafe = safeResult;
-    // Escape angle brackets that could form tags
-    safeResult = safeResult.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    safeIterations++;
-  }
-
-  return safeResult;
+  // After tag removal is complete, escape any remaining < or > characters
+  // in a single operation so that no literal angle brackets remain.
+  return result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /**
