@@ -128,10 +128,12 @@ export function stripHtmlTags(html: string): string {
     result = result.replace(/<[^>]*$/g, "");
     // Remove orphan closing brackets at the start
     result = result.replace(/^[^<]*>/g, "");
-    // Remove any remaining < or > characters that could form tags after concatenation
-    result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     iterations++;
   }
+  
+  // After loop completes, escape any remaining < or > characters in a single operation
+  // This prevents incomplete multi-character sanitization vulnerabilities
+  result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   return result;
 }
