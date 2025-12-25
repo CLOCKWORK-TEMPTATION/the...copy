@@ -623,7 +623,6 @@ function checkRule(req: Request, rule: WAFRule): { matched: boolean; value: stri
           // Instead, use exec() with length limits for safer extraction
           let matchedValue = value.substring(0, 100);
           try {
-            rule.pattern.lastIndex = 0;
             const match = rule.pattern.exec(value.substring(0, 1000));
             if (match && match[0]) {
               matchedValue = match[0].substring(0, 100);
@@ -631,6 +630,7 @@ function checkRule(req: Request, rule: WAFRule): { matched: boolean; value: stri
             rule.pattern.lastIndex = 0;
           } catch {
             // If extraction fails, use truncated value
+            rule.pattern.lastIndex = 0;
           }
           return {
             matched: true,
