@@ -27,44 +27,10 @@ export const sanitizeHTML = (input: string): string => {
     return DOMPurify.sanitize(input);
   }
 
-  // Server-side fallback: iteratively strip all tags to handle nested/malformed tags
-  // This prevents bypasses like <scr<script>ipt>
-  let result = input;
-  let previousResult = "";
-  const maxIterations = 100; // Prevent infinite loops
-
-  // Phase 1: Continue stripping tags until no more changes occur
-  let iterations = 0;
-  while (result !== previousResult && iterations < maxIterations) {
-    previousResult = result;
-    // Remove complete tags
-    result = result.replace(/<[^>]*>/g, "");
-    // Remove any incomplete tags at the end (e.g., "<script")
-    result = result.replace(/<[^>]*$/g, "");
-    // Remove orphan closing brackets at the start
-    result = result.replace(/^[^<]*>/g, "");
-    iterations++;
-  }
-  
-  // After loop completes, escape any remaining < or > characters in a single operation
-  // This prevents incomplete multi-character sanitization vulnerabilities
-  result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-  // Phase 2: After all tag removal, escape remaining angle brackets
-  // Done separately to not interfere with tag detection in the loop above
-  // SECURITY: Iteratively replace to handle any edge cases
-  let safeResult = result;
-  let prevSafe = "";
-  let safeIterations = 0;
-  const maxSafeIterations = 10;
-
-  while (safeResult !== prevSafe && safeIterations < maxSafeIterations) {
-    prevSafe = safeResult;
-    safeResult = safeResult.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    safeIterations++;
-  }
-
-  return safeResult;
+  // Server-side fallback: safely escape angle brackets so no HTML is interpreted
+  // Avoid regex-based tag stripping to prevent incomplete multi-character sanitization issues
+  const result = input.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return result;
 };
 
 /**
