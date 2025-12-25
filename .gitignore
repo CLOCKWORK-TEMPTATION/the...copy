@@ -46,6 +46,8 @@ yarn.lock
 .yarn/
 .pnp.*
 !pnpm-lock.yaml
+frontend/pnpm-lock.yaml
+backend/pnpm-lock.yaml
 .pnpm-store/
 
 # ==============================================================================
