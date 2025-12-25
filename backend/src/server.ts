@@ -63,10 +63,13 @@ app.use(logRateLimitViolations);
 
 // Initialize cookie parser (required for CSRF token cookie handling)
 // SECURITY: cookieParser is required before csrfProtection middleware below
-// CodeQL note: CSRF protection is implemented via csrfProtection middleware (line 68)
 app.use(cookieParser());
 
-// CSRF Protection (Standard Double Submit Cookie)
+// CSRF Protection - Implements Double Submit Cookie pattern
+// SECURITY: This middleware provides CSRF protection by:
+// 1. Setting CSRF tokens in cookies for GET requests
+// 2. Validating CSRF tokens in headers for state-changing requests
+// 3. Additional Origin/Referer header validation for browser-based requests
 app.use(csrfProtection);
 
 // CSRF Protection middleware - validates Origin header for state-changing requests
