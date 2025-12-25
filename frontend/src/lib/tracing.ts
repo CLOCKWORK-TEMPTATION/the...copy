@@ -83,11 +83,13 @@ export function initBrowserTracing(): void {
     });
 
     // Create batch span processor for efficient export
+    // @ts-ignore - Version mismatch between duplicate @opentelemetry/sdk-trace-base dependencies
     const spanProcessor = new BatchSpanProcessor(exporter);
 
     // Create tracer provider with batch span processor
     const provider = new WebTracerProvider({
       resource,
+      // @ts-ignore - Version mismatch between duplicate @opentelemetry/sdk-trace-base dependencies
       spanProcessors: [spanProcessor],
     });
 
