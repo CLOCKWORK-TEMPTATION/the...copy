@@ -12,8 +12,7 @@ import { ExpressAdapter } from '@bull-board/express';
 import { queueManager, QueueName } from '@/queues/queue.config';
 import { authMiddleware } from '@/middleware/auth.middleware';
 import { logger } from '@/utils/logger';
-// @ts-ignore
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
 
 // Create Express adapter for Bull Board
 const serverAdapter = new ExpressAdapter();
@@ -57,7 +56,7 @@ export function getAuthenticatedBullBoardRouter(): Router {
     legacyHeaders: false,
   });
 
-  router.use(dashboardLimiter);
+  router.use(dashboardLimiter as any);
 
   // Apply authentication middleware to all Bull Board routes
   router.use(authMiddleware);
