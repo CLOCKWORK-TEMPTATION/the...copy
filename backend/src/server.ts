@@ -11,7 +11,7 @@ import cookieParser from 'cookie-parser';
 import { env } from '@/config/env';
 import { initializeSentry } from '@/config/sentry';
 import { setupMiddleware, errorHandler } from '@/middleware';
-import { sentryRequestHandler, sentryTracingHandler, sentryErrorHandler, trackError, trackPerformance } from '@/middleware/sentry.middleware';
+import { sentryErrorHandler, trackError, trackPerformance } from '@/middleware/sentry.middleware';
 import { logAuthAttempts, logRateLimitViolations } from '@/middleware/security-logger.middleware';
 import { wafMiddleware, getWAFStats, getWAFEvents, blockIP, unblockIP, getBlockedIPs, updateWAFConfig, getWAFConfig } from '@/middleware/waf.middleware';
 import { metricsMiddleware, metricsEndpoint } from '@/middleware/metrics.middleware';
@@ -24,7 +24,6 @@ import { scenesController } from '@/controllers/scenes.controller';
 import { charactersController } from '@/controllers/characters.controller';
 import { shotsController } from '@/controllers/shots.controller';
 import { aiController } from '@/controllers/ai.controller';
-import { realtimeController } from '@/controllers/realtime.controller';
 import { authMiddleware } from '@/middleware/auth.middleware';
 import { logger } from '@/utils/logger';
 import { closeDatabase } from '@/db';
@@ -45,9 +44,7 @@ const httpServer: Server = createServer(app);
 const analysisController = new AnalysisController();
 const healthController = new HealthController();
 
-// Sentry request handling (must be first middleware)
-app.use(sentryRequestHandler);
-app.use(sentryTracingHandler);
+// Sentry error tracking and performance monitoring
 app.use(trackError);
 app.use(trackPerformance);
 
@@ -99,22 +96,19 @@ app.use((req, res, next) => {
     `http://localhost:${env.PORT}`,
   ].filter(Boolean);
 
-  // SECURITY FIX: Always require Origin or Referer for state-changing requests
-  // This prevents CSRF attacks even if CSRF tokens are somehow bypassed
+  // SECURITY: Require Origin or Referer for state-changing requests
   if (!origin && !referer) {
-    // For non-browser API clients, we'll rely on JWT authentication
-    // But we should still log this for monitoring
     const isBrowserRequest =
       contentType.includes('application/x-www-form-urlencoded') ||
       contentType.includes('multipart/form-data') ||
       (contentType.includes('application/json') && userAgent.toLowerCase().includes('mozilla'));
 
     if (isBrowserRequest) {
-      logger.warn('CSRF: Missing Origin/Referer for browser request', {
-        path: req.path,
-        method: req.method,
-        contentType,
-        userAgent: userAgent.substring(0, 100)
+      const sanitizedPath = req.path.replace(/[^\w\-\/]/g, '');
+      const sanitizedMethod = req.method.replace(/[^A-Z]/g, '');
+      logger.warn('CSRF: Missing Origin/Referer', {
+        path: sanitizedPath,
+        method: sanitizedMethod,
       });
       return res.status(403).json({
         success: false,
@@ -122,15 +116,14 @@ app.use((req, res, next) => {
         code: 'CSRF_MISSING_ORIGIN'
       });
     }
-    // For non-browser requests without Origin/Referer, continue
-    // They must still pass JWT authentication on protected routes
     return next();
   }
 
-  // Validate Origin if present
+  // Validate Origin
   if (origin) {
     if (!allowedOrigins.some(allowed => origin === allowed || origin.startsWith(allowed as string))) {
-      logger.warn('CSRF: Origin mismatch', { origin, path: req.path, method: req.method });
+      const sanitizedOrigin = origin.replace(/[^\w\-\:\.]/g, '');
+      logger.warn('CSRF: Origin mismatch', { origin: sanitizedOrigin });
       return res.status(403).json({
         success: false,
         error: 'طلب غير مصرح به',
@@ -139,21 +132,22 @@ app.use((req, res, next) => {
     }
   }
   
-  // Validate Referer if present (and Origin is not)
+  // Validate Referer
   if (!origin && referer) {
     try {
       const refererUrl = new URL(referer);
       const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
       if (!allowedOrigins.some(allowed => refererOrigin === allowed || refererOrigin.startsWith(allowed as string))) {
-        logger.warn('CSRF: Referer mismatch', { referer, path: req.path, method: req.method });
+        const sanitizedReferer = refererOrigin.replace(/[^\w\-\:\.]/g, '');
+        logger.warn('CSRF: Referer mismatch', { referer: sanitizedReferer });
         return res.status(403).json({
           success: false,
           error: 'طلب غير مصرح به',
           code: 'CSRF_REFERER_MISMATCH'
         });
       }
-    } catch {
-      logger.warn('CSRF: Invalid Referer URL', { referer, path: req.path });
+    } catch (err) {
+      logger.warn('CSRF: Invalid Referer URL');
       return res.status(403).json({
         success: false,
         error: 'طلب غير مصرح به',
@@ -214,7 +208,7 @@ app.get('/health/detailed', healthController.getDetailedHealth.bind(healthContro
 app.get('/metrics', metricsEndpoint);
 
 // Gemini cost monitoring endpoint (protected - admin only)
-app.get('/api/gemini/cost-summary', authMiddleware, async (req, res) => {
+app.get('/api/gemini/cost-summary', authMiddleware, async (_req, res) => {
   try {
     const { geminiCostTracker } = await import('@/services/gemini-cost-tracker.service');
     const summary = await geminiCostTracker.getCostSummary();
@@ -281,8 +275,8 @@ app.post('/api/ai/shot-suggestion', authMiddleware, csrfProtection, aiController
 app.get('/api/queue/jobs/:jobId', authMiddleware, queueController.getJobStatus.bind(queueController));
 app.get('/api/queue/stats', authMiddleware, queueController.getQueueStats.bind(queueController));
 app.get('/api/queue/:queueName/stats', authMiddleware, queueController.getSpecificQueueStats.bind(queueController));
-app.post('/api/queue/jobs/:jobId/retry', authMiddleware, queueController.retryJob.bind(queueController));
-app.post('/api/queue/:queueName/clean', authMiddleware, queueController.cleanQueue.bind(queueController));
+app.post('/api/queue/jobs/:jobId/retry', authMiddleware, csrfProtection, queueController.retryJob.bind(queueController));
+app.post('/api/queue/:queueName/clean', authMiddleware, csrfProtection, queueController.cleanQueue.bind(queueController));
 
 // Metrics Dashboard endpoints (protected)
 app.get('/api/metrics/snapshot', authMiddleware, metricsController.getSnapshot.bind(metricsController));
@@ -307,11 +301,11 @@ app.get('/api/metrics/cache/report', authMiddleware, metricsController.getCacheR
 // APM (Application Performance Monitoring) endpoints (protected)
 app.get('/api/metrics/apm/dashboard', authMiddleware, metricsController.getApmDashboard.bind(metricsController));
 app.get('/api/metrics/apm/config', authMiddleware, metricsController.getApmConfig.bind(metricsController));
-app.post('/api/metrics/apm/reset', authMiddleware, metricsController.resetApmMetrics.bind(metricsController));
+app.post('/api/metrics/apm/reset', authMiddleware, csrfProtection, metricsController.resetApmMetrics.bind(metricsController));
 app.get('/api/metrics/apm/alerts', authMiddleware, metricsController.getApmAlerts.bind(metricsController));
 
 // WAF Management endpoints (protected - admin only)
-app.get('/api/waf/stats', authMiddleware, (req, res) => {
+app.get('/api/waf/stats', authMiddleware, (_req, res) => {
   try {
     const stats = getWAFStats();
     res.json({ success: true, data: stats });
@@ -332,7 +326,7 @@ app.get('/api/waf/events', authMiddleware, (req, res) => {
   }
 });
 
-app.get('/api/waf/config', authMiddleware, (req, res) => {
+app.get('/api/waf/config', authMiddleware, (_req, res) => {
   try {
     const config = getWAFConfig();
     res.json({ success: true, data: config });
@@ -342,7 +336,7 @@ app.get('/api/waf/config', authMiddleware, (req, res) => {
   }
 });
 
-app.put('/api/waf/config', authMiddleware, (req, res) => {
+app.put('/api/waf/config', authMiddleware, csrfProtection, (req, res) => {
   try {
     updateWAFConfig(req.body);
     res.json({ success: true, message: 'WAF configuration updated' });
@@ -352,7 +346,7 @@ app.put('/api/waf/config', authMiddleware, (req, res) => {
   }
 });
 
-app.get('/api/waf/blocked-ips', authMiddleware, (req, res) => {
+app.get('/api/waf/blocked-ips', authMiddleware, (_req, res) => {
   try {
     const ips = getBlockedIPs();
     res.json({ success: true, data: ips });
@@ -362,7 +356,7 @@ app.get('/api/waf/blocked-ips', authMiddleware, (req, res) => {
   }
 });
 
-app.post('/api/waf/block-ip', authMiddleware, (req, res) => {
+app.post('/api/waf/block-ip', authMiddleware, csrfProtection, (req, res) => {
   try {
     const { ip, reason } = req.body;
     if (!ip) {
@@ -376,7 +370,7 @@ app.post('/api/waf/block-ip', authMiddleware, (req, res) => {
   }
 });
 
-app.post('/api/waf/unblock-ip', authMiddleware, (req, res) => {
+app.post('/api/waf/unblock-ip', authMiddleware, csrfProtection, (req, res) => {
   try {
     const { ip } = req.body;
     if (!ip) {
@@ -420,13 +414,14 @@ function startListening(port: number): void {
     });
   });
 
-  httpServer.on('error', (error: any) => {
-    if (error && error.code === 'EADDRINUSE') {
+  httpServer.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code === 'EADDRINUSE') {
       const nextPort = port + 1;
       logger.warn(`Port ${port} is in use. Trying ${nextPort}...`);
       startListening(nextPort);
       return;
     }
+    logger.error('Server error:', error);
     throw error;
   });
 }
