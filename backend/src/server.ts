@@ -67,8 +67,8 @@ app.use(cookieParser());
 
 // CSRF Protection - Implements Double Submit Cookie pattern
 // SECURITY: This middleware provides CSRF protection by:
-// 1. Setting CSRF tokens in cookies for GET requests
-// 2. Validating CSRF tokens in headers for state-changing requests
+// 1. Setting CSRF tokens in cookies for GET requests (via setCsrfToken)
+// 2. Validating CSRF tokens in headers for state-changing requests (via csrfProtection)
 // 3. Additional Origin/Referer header validation for browser-based requests
 app.use(csrfProtection);
 
@@ -240,42 +240,42 @@ app.post('/api/auth/refresh', authController.refresh.bind(authController), setCs
 app.get('/api/auth/me', authMiddleware, authController.getCurrentUser.bind(authController));
 
 // Seven Stations Pipeline endpoints (protected)
-app.post('/api/analysis/seven-stations', authMiddleware, analysisController.runSevenStationsPipeline.bind(analysisController));
+app.post('/api/analysis/seven-stations', authMiddleware, csrfProtection, analysisController.runSevenStationsPipeline.bind(analysisController));
 app.get('/api/analysis/stations-info', authMiddleware, analysisController.getStationDetails.bind(analysisController));
 
 // Directors Studio - Projects endpoints (protected)
 app.get('/api/projects', authMiddleware, projectsController.getProjects.bind(projectsController));
 app.get('/api/projects/:id', authMiddleware, projectsController.getProject.bind(projectsController));
-app.post('/api/projects', authMiddleware, projectsController.createProject.bind(projectsController));
-app.put('/api/projects/:id', authMiddleware, projectsController.updateProject.bind(projectsController));
-app.delete('/api/projects/:id', authMiddleware, projectsController.deleteProject.bind(projectsController));
-app.post('/api/projects/:id/analyze', authMiddleware, projectsController.analyzeScript.bind(projectsController));
+app.post('/api/projects', authMiddleware, csrfProtection, projectsController.createProject.bind(projectsController));
+app.put('/api/projects/:id', authMiddleware, csrfProtection, projectsController.updateProject.bind(projectsController));
+app.delete('/api/projects/:id', authMiddleware, csrfProtection, projectsController.deleteProject.bind(projectsController));
+app.post('/api/projects/:id/analyze', authMiddleware, csrfProtection, projectsController.analyzeScript.bind(projectsController));
 
 // Directors Studio - Scenes endpoints (protected)
 app.get('/api/projects/:projectId/scenes', authMiddleware, scenesController.getScenes.bind(scenesController));
 app.get('/api/scenes/:id', authMiddleware, scenesController.getScene.bind(scenesController));
-app.post('/api/scenes', authMiddleware, scenesController.createScene.bind(scenesController));
-app.put('/api/scenes/:id', authMiddleware, scenesController.updateScene.bind(scenesController));
-app.delete('/api/scenes/:id', authMiddleware, scenesController.deleteScene.bind(scenesController));
+app.post('/api/scenes', authMiddleware, csrfProtection, scenesController.createScene.bind(scenesController));
+app.put('/api/scenes/:id', authMiddleware, csrfProtection, scenesController.updateScene.bind(scenesController));
+app.delete('/api/scenes/:id', authMiddleware, csrfProtection, scenesController.deleteScene.bind(scenesController));
 
 // Directors Studio - Characters endpoints (protected)
 app.get('/api/projects/:projectId/characters', authMiddleware, charactersController.getCharacters.bind(charactersController));
 app.get('/api/characters/:id', authMiddleware, charactersController.getCharacter.bind(charactersController));
-app.post('/api/characters', authMiddleware, charactersController.createCharacter.bind(charactersController));
-app.put('/api/characters/:id', authMiddleware, charactersController.updateCharacter.bind(charactersController));
-app.delete('/api/characters/:id', authMiddleware, charactersController.deleteCharacter.bind(charactersController));
+app.post('/api/characters', authMiddleware, csrfProtection, charactersController.createCharacter.bind(charactersController));
+app.put('/api/characters/:id', authMiddleware, csrfProtection, charactersController.updateCharacter.bind(charactersController));
+app.delete('/api/characters/:id', authMiddleware, csrfProtection, charactersController.deleteCharacter.bind(charactersController));
 
 // Directors Studio - Shots endpoints (protected)
 app.get('/api/scenes/:sceneId/shots', authMiddleware, shotsController.getShots.bind(shotsController));
 app.get('/api/shots/:id', authMiddleware, shotsController.getShot.bind(shotsController));
-app.post('/api/shots', authMiddleware, shotsController.createShot.bind(shotsController));
-app.put('/api/shots/:id', authMiddleware, shotsController.updateShot.bind(shotsController));
-app.delete('/api/shots/:id', authMiddleware, shotsController.deleteShot.bind(shotsController));
-app.post('/api/shots/suggestion', authMiddleware, shotsController.generateShotSuggestion.bind(shotsController));
+app.post('/api/shots', authMiddleware, csrfProtection, shotsController.createShot.bind(shotsController));
+app.put('/api/shots/:id', authMiddleware, csrfProtection, shotsController.updateShot.bind(shotsController));
+app.delete('/api/shots/:id', authMiddleware, csrfProtection, shotsController.deleteShot.bind(shotsController));
+app.post('/api/shots/suggestion', authMiddleware, csrfProtection, shotsController.generateShotSuggestion.bind(shotsController));
 
 // AI endpoints (protected)
-app.post('/api/ai/chat', authMiddleware, aiController.chat.bind(aiController));
-app.post('/api/ai/shot-suggestion', authMiddleware, aiController.getShotSuggestion.bind(aiController));
+app.post('/api/ai/chat', authMiddleware, csrfProtection, aiController.chat.bind(aiController));
+app.post('/api/ai/shot-suggestion', authMiddleware, csrfProtection, aiController.getShotSuggestion.bind(aiController));
 
 // Queue Management endpoints (protected)
 app.get('/api/queue/jobs/:jobId', authMiddleware, queueController.getJobStatus.bind(queueController));
