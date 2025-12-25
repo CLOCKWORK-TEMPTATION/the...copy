@@ -40,7 +40,7 @@ get_active_environment() {
     fi
     
     # Use portable grep with basic regex
-    local active_port=$(grep -o 'localhost:[0-9]\+' "$NGINX_CONFIG" | head -1 | cut -d: -f2)
+    local active_port=$(grep -o 'localhost:[0-9][0-9]*' "$NGINX_CONFIG" | head -1 | cut -d: -f2)
     
     if [ "$active_port" = "$BLUE_PORT" ]; then
         echo "blue"
@@ -125,7 +125,7 @@ start_app() {
     pm2 delete "${APP_NAME}-${env}" 2>/dev/null || true
     
     # Start the application with PM2
-    pm2 start ${START_COMMAND} --name "${APP_NAME}-${env}" -- --port $port
+    pm2 start "${START_COMMAND}" --name "${APP_NAME}-${env}" -- --port $port
     pm2 save
     
     # Wait for app to be ready
@@ -152,6 +152,12 @@ update_nginx() {
     local port=$1
     
     log_info "Updating nginx configuration to point to port $port..."
+    
+    # Ensure nginx sites-available directory exists
+    if [ ! -d "$(dirname "$NGINX_CONFIG")" ]; then
+        log_error "Nginx configuration directory does not exist: $(dirname "$NGINX_CONFIG")"
+        return 1
+    fi
     
     # Create nginx config if it doesn't exist
     if [ ! -f "$NGINX_CONFIG" ]; then
@@ -183,8 +189,8 @@ server {
 }
 EOF
     else
-        # Update existing config
-        sudo sed -i "s/server localhost:[0-9]\+;/server localhost:$port;/" "$NGINX_CONFIG"
+        # Update existing config - use portable sed syntax
+        sudo sed -i "s/server localhost:[0-9][0-9]*/server localhost:$port/" "$NGINX_CONFIG"
     fi
     
     # Test nginx configuration
