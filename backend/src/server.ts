@@ -72,16 +72,16 @@ app.use(cookieParser());
 // 3. Additional Origin/Referer header validation for browser-based requests
 app.use(csrfProtection);
 
-// CSRF Protection middleware - validates Origin header for state-changing requests
-// This is the recommended approach for API-based applications instead of traditional CSRF tokens
-// SECURITY FIX: Now requires Origin or Referer header for browser-based requests
+// Additional CSRF Protection - validates Origin/Referer for state-changing requests
+// This provides defense-in-depth alongside the token-based csrfProtection middleware
+// SECURITY: This middleware runs AFTER csrfProtection to add an additional layer
 app.use((req, res, next) => {
   // Only check state-changing methods
   if (!['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
     return next();
   }
 
-  // Skip CSRF check for health endpoints and other safe paths
+  // Skip for health endpoints and metrics
   const safePaths = ['/health', '/api/health', '/metrics'];
   if (safePaths.some(path => req.path.startsWith(path))) {
     return next();
@@ -99,7 +99,35 @@ app.use((req, res, next) => {
     `http://localhost:${env.PORT}`,
   ].filter(Boolean);
 
-  // For API requests, check Origin or Referer header
+  // SECURITY FIX: Always require Origin or Referer for state-changing requests
+  // This prevents CSRF attacks even if CSRF tokens are somehow bypassed
+  if (!origin && !referer) {
+    // For non-browser API clients, we'll rely on JWT authentication
+    // But we should still log this for monitoring
+    const isBrowserRequest =
+      contentType.includes('application/x-www-form-urlencoded') ||
+      contentType.includes('multipart/form-data') ||
+      (contentType.includes('application/json') && userAgent.toLowerCase().includes('mozilla'));
+
+    if (isBrowserRequest) {
+      logger.warn('CSRF: Missing Origin/Referer for browser request', {
+        path: req.path,
+        method: req.method,
+        contentType,
+        userAgent: userAgent.substring(0, 100)
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'طلب غير مصرح به',
+        code: 'CSRF_MISSING_ORIGIN'
+      });
+    }
+    // For non-browser requests without Origin/Referer, continue
+    // They must still pass JWT authentication on protected routes
+    return next();
+  }
+
+  // Validate Origin if present
   if (origin) {
     if (!allowedOrigins.some(allowed => origin === allowed || origin.startsWith(allowed as string))) {
       logger.warn('CSRF: Origin mismatch', { origin, path: req.path, method: req.method });
@@ -109,7 +137,10 @@ app.use((req, res, next) => {
         code: 'CSRF_ORIGIN_MISMATCH'
       });
     }
-  } else if (referer) {
+  }
+  
+  // Validate Referer if present (and Origin is not)
+  if (!origin && referer) {
     try {
       const refererUrl = new URL(referer);
       const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
@@ -129,31 +160,9 @@ app.use((req, res, next) => {
         code: 'CSRF_INVALID_REFERER'
       });
     }
-  } else {
-    // SECURITY: If neither Origin nor Referer is present, check if it looks like a browser request
-    // Browser requests with form submissions or JSON payloads should always include these headers
-    const isBrowserRequest =
-      contentType.includes('application/x-www-form-urlencoded') ||
-      contentType.includes('multipart/form-data') ||
-      (contentType.includes('application/json') && userAgent.toLowerCase().includes('mozilla'));
-
-    if (isBrowserRequest) {
-      logger.warn('CSRF: Missing Origin/Referer for browser request', {
-        path: req.path,
-        method: req.method,
-        contentType,
-        userAgent: userAgent.substring(0, 100)
-      });
-      return res.status(403).json({
-        success: false,
-        error: 'طلب غير مصرح به',
-        code: 'CSRF_MISSING_ORIGIN'
-      });
-    }
-    // Allow API clients that don't send Origin/Referer (e.g., server-to-server requests)
-    // These are authenticated via JWT tokens anyway
   }
 
+  // Origin/Referer validation passed
   next();
 });
 

@@ -130,6 +130,10 @@ export function stripHtmlTags(html: string): string {
     result = result.replace(/^[^<]*>/g, "");
     iterations++;
   }
+  
+  // After loop completes, escape any remaining < or > characters in a single operation
+  // This prevents incomplete multi-character sanitization vulnerabilities
+  result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   // Phase 2: After all tag removal is complete, escape any remaining angle brackets
   // This is done AFTER the loop to prevent interfering with tag detection
