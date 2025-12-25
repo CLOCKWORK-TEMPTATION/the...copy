@@ -156,8 +156,10 @@ import { logSecurityEvent, SecurityEventType } from './security-logger.middlewar
 
 const suspiciousPatterns = [
   { regex: /(\%27)|(\')|(\-\-)|(\%23)|(#)/i, type: SecurityEventType.SQL_INJECTION_ATTEMPT },
-  { regex: /(<script[^>]*>[\s\S]*?<\/script>)|(<iframe)|(<object)|(<embed)/gi, type: SecurityEventType.XSS_ATTEMPT },
-  { regex: /(javascript:|data:text\/html|onerror=|onload=|onclick=|onmouseover=)/gi, type: SecurityEventType.XSS_ATTEMPT },
+  // SECURITY: Enhanced XSS detection - handles tag splitting, encoding, and event handlers
+  // Checks for script tags (including split/encoded), dangerous tags, and event handlers
+  { regex: /<\s*script|<\s*iframe|<\s*object|<\s*embed|<\s*img[\s\S]*?onerror|<\s*svg[\s\S]*?onload/gi, type: SecurityEventType.XSS_ATTEMPT },
+  { regex: /(javascript\s*:|data\s*:\s*text\/html|vbscript\s*:|on\w+\s*=)/gi, type: SecurityEventType.XSS_ATTEMPT },
   { regex: /(\.\.)|(\/etc\/passwd)|(\.\.\/)|(\.\.\%2F)/gi, type: SecurityEventType.PATH_TRAVERSAL_ATTEMPT },
 ];
 
