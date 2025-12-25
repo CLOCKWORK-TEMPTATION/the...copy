@@ -59,7 +59,8 @@ describe('stripHtmlTags - Security Tests', () => {
       const result = stripHtmlTags(malicious);
       
       expect(result).toBe('alert("xss")Hello');
-      expect(result).not.toMatch(/<script>/);
+      expect(result).not.toContain('<script>');
+      expect(result).not.toContain('</script>');
     });
 
     it('should remove iframe tags', () => {
@@ -67,7 +68,8 @@ describe('stripHtmlTags - Security Tests', () => {
       const result = stripHtmlTags(malicious);
       
       expect(result).toBe('Content');
-      expect(result).not.toMatch(/<iframe>/);
+      expect(result).not.toContain('<iframe>');
+      expect(result).not.toContain('</iframe>');
     });
 
     it('should remove event handlers', () => {
@@ -75,7 +77,7 @@ describe('stripHtmlTags - Security Tests', () => {
       const result = stripHtmlTags(malicious);
       
       expect(result).toBe('Click me');
-      expect(result).not.toMatch(/onclick/);
+      expect(result).not.toContain('onclick');
     });
 
     it('should handle incomplete tags', () => {
