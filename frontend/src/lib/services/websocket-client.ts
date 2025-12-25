@@ -95,17 +95,17 @@ class WebSocketClient {
     });
 
     this.socket.on(RealtimeEventType.DISCONNECTED, (reason: string) => {
-      console.log('[WebSocket] Disconnected:', reason);
+      console.log('[WebSocket] Disconnected');
       this.notifyListeners(RealtimeEventType.DISCONNECTED, { reason });
     });
 
     this.socket.on(RealtimeEventType.ERROR, (error: any) => {
-      console.error('[WebSocket] Error:', error);
+      console.error('[WebSocket] Error');
       this.notifyListeners(RealtimeEventType.ERROR, error);
     });
 
     this.socket.on(RealtimeEventType.UNAUTHORIZED, (data: any) => {
-      console.warn('[WebSocket] Unauthorized:', data);
+      console.warn('[WebSocket] Unauthorized');
       this.notifyListeners(RealtimeEventType.UNAUTHORIZED, data);
     });
 
@@ -207,7 +207,7 @@ class WebSocketClient {
         try {
           callback(data);
         } catch (error) {
-          console.error(`[WebSocket] Error in listener for ${eventType}:`, error);
+          console.error(`[WebSocket] Error in listener for ${eventType}`);
         }
       });
     }

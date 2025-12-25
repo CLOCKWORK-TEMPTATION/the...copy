@@ -35,7 +35,9 @@ const colors = {
 };
 
 function log(message, color = 'reset') {
-  console.log(`${colors[color]}${message}${colors.reset}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`${colors[color]}${message}${colors.reset}`);
+  }
 }
 
 function analyzeWarnings(buildOutput) {

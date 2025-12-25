@@ -56,7 +56,7 @@ try {
     db = {} as Firestore;
   }
 } catch (error) {
-  console.warn("Error initializing Firebase:", error);
+  console.warn("Error initializing Firebase");
   app = {} as FirebaseApp;
   auth = {} as Auth;
   db = {} as Firestore;

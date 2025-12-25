@@ -3,7 +3,7 @@
 
 import { log } from "./loggerService";
 // No-op replacement for missing GA function
-const sendGAEvent = (..._args: any[]) => {};
+const sendGAEvent = (..._args: any[]) => { };
 import { addBreadcrumb, reportError } from "./observability";
 
 interface UptimeConfig {
@@ -95,7 +95,12 @@ class UptimeMonitoringService {
 
     log.info(
       "📊 Initializing Uptime monitoring...",
-      this.config,
+      {
+        enableGA4: this.config.enableGA4,
+        enableSentry: this.config.enableSentry,
+        healthCheckInterval: this.config.healthCheckInterval,
+        performanceCheckInterval: this.config.performanceCheckInterval
+      },
       "UptimeMonitoringService"
     );
 
@@ -172,11 +177,11 @@ class UptimeMonitoringService {
           "🏥 Health Check",
           {
             status: this.healthMetrics.status,
-            uptime: `${Math.round(uptime)}s`,
-            memory: `${Math.round(memoryUsage)}MB`,
-            performance: `${performanceScore}/100`,
-            errors: this.errorCount,
-            requests: this.requestCount,
+            uptime_seconds: Math.round(uptime),
+            memory_mb: Math.round(memoryUsage),
+            performance_score: performanceScore,
+            error_count: this.errorCount,
+            request_count: this.requestCount,
           },
           "UptimeMonitoringService"
         );
@@ -197,7 +202,7 @@ class UptimeMonitoringService {
         this.reportHealthIssue();
       }
     } catch (error) {
-      log.error("❌ Health check failed", error, "UptimeMonitoringService");
+      log.error("❌ Health check failed", null, "UptimeMonitoringService");
     }
   }
 
@@ -222,8 +227,8 @@ class UptimeMonitoringService {
           "⚡ Performance Check",
           {
             memory_leaks: memoryLeaks,
-            slow_operations: slowOperations.length,
-            operations: slowOperations,
+            slow_operations_count: slowOperations.length,
+            // Remove detailed operation information for security
           },
           "UptimeMonitoringService"
         );
@@ -243,7 +248,7 @@ class UptimeMonitoringService {
     } catch (error) {
       log.error(
         "❌ Performance check failed",
-        error,
+        null,
         "UptimeMonitoringService"
       );
     }
@@ -421,7 +426,7 @@ class UptimeMonitoringService {
     } catch (error) {
       log.error(
         "❌ Failed to track uptime event",
-        error,
+        null,
         "UptimeMonitoringService"
       );
     }
@@ -432,8 +437,10 @@ class UptimeMonitoringService {
       reportError(
         new Error(`Health issue detected: ${this.healthMetrics.status}`),
         {
-          health_metrics: this.healthMetrics,
-          uptime: Math.round((Date.now() - this.startTime) / 1000),
+          health_status: this.healthMetrics.status,
+          performance_score: this.healthMetrics.performanceScore,
+          uptime_seconds: Math.round((Date.now() - this.startTime) / 1000),
+          // Removed detailed metrics for security
         }
       );
     }
@@ -442,8 +449,10 @@ class UptimeMonitoringService {
   private reportPerformanceIssue(): void {
     if (this.config.enableSentry) {
       reportError(new Error("Performance issue detected"), {
-        performance_metrics: this.performanceMetrics,
-        uptime: Math.round((Date.now() - this.startTime) / 1000),
+        memory_leaks: this.performanceMetrics.memoryLeaks,
+        slow_operations_count: this.performanceMetrics.slowOperations.length,
+        uptime_seconds: Math.round((Date.now() - this.startTime) / 1000),
+        // Removed detailed performance metrics for security
       });
     }
   }
@@ -520,4 +529,4 @@ export const destroyUptimeMonitoring = () => {
 };
 
 // Export types
-export type { UptimeConfig, HealthMetrics, PerformanceMetrics };
+export type { UptimeConfig, HealthMetrics, PerformanceMetrics };

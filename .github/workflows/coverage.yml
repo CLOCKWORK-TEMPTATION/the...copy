@@ -6,6 +6,11 @@ on:
   push:
     branches: [main, develop]
 
+# SECURITY: Restrict permissions to minimum required at workflow level
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   coverage-frontend:
     name: 📊 Frontend Coverage Check
@@ -240,6 +245,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [coverage-frontend, coverage-backend]
     if: always()
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
 

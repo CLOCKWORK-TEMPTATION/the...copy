@@ -15,6 +15,7 @@ import DOMPurify from "dompurify";
 /**
  * Sanitize HTML content to prevent XSS attacks
  * SECURITY: Uses iterative approach to handle incomplete/nested tags
+ * Fixed: Properly handles multi-character sanitization to prevent bypass attacks
  */
 export const sanitizeHTML = (input: string): string => {
   if (!input || typeof input !== "string") {
@@ -30,15 +31,22 @@ export const sanitizeHTML = (input: string): string => {
   // This prevents bypasses like <scr<script>ipt>
   let result = input;
   let previousResult = "";
+  const maxIterations = 100; // Prevent infinite loops
 
   // Continue stripping until no more changes occur
-  while (result !== previousResult) {
+  let iterations = 0;
+  while (result !== previousResult && iterations < maxIterations) {
     previousResult = result;
+    // Remove complete tags
     result = result.replace(/<[^>]*>/g, "");
+    // Remove any incomplete tags at the end (e.g., "<script")
+    result = result.replace(/<[^>]*$/g, "");
+    // Remove orphan closing brackets at the start
+    result = result.replace(/^[^<]*>/g, "");
+    // Escape any remaining < or > characters to prevent tag reconstruction
+    result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    iterations++;
   }
-
-  // Remove any incomplete tags at the end (e.g., "<script")
-  result = result.replace(/<[^>]*$/g, "");
 
   return result;
 };

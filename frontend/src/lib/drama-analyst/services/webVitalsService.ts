@@ -48,7 +48,7 @@ class WebVitalsService {
 
     log.info(
       "📊 Initializing Web Vitals monitoring...",
-      this.config,
+      null,
       "WebVitalsService"
     );
 
@@ -451,7 +451,7 @@ class WebVitalsService {
     if (this.config.enableConsoleLog) {
       log.info(
         `📊 ${name}: ${metric.value.toFixed(2)}${this.getMetricUnit(name)}`,
-        metric.customData,
+        null,
         "WebVitalsService"
       );
     }
@@ -521,7 +521,7 @@ class WebVitalsService {
         );
       }
     } catch (error) {
-      log.error("❌ Failed to send to GA4", error, "WebVitalsService");
+      log.error("❌ Failed to send to GA4", null, "WebVitalsService");
 
       // Fallback to direct gtag if available
       if (typeof window !== "undefined" && (window as any).gtag) {
@@ -535,7 +535,7 @@ class WebVitalsService {
         } catch (fallbackError) {
           log.error(
             "❌ Fallback GA4 also failed",
-            fallbackError,
+            null,
             "WebVitalsService"
           );
         }
@@ -578,7 +578,7 @@ class WebVitalsService {
         );
       }
     } catch (error) {
-      log.error("❌ Failed to send to Sentry", error, "WebVitalsService");
+      log.error("❌ Failed to send to Sentry", null, "WebVitalsService");
     }
   }
 
@@ -603,7 +603,7 @@ class WebVitalsService {
     }).catch((error) => {
       log.error(
         `Failed to send metric to custom endpoint`,
-        error,
+        null,
         "WebVitalsService"
       );
     });
@@ -635,7 +635,7 @@ class WebVitalsService {
       }
 
       if (this.config.enableConsoleLog) {
-        log.warn(message, metric.customData, "WebVitalsService");
+        log.warn(message, null, "WebVitalsService");
       }
     }
   }
@@ -777,7 +777,7 @@ export const initWebVitals = (config?: Partial<WebVitalsConfig>) => {
   } catch (error) {
     log.error(
       "❌ Failed to track Web Vitals initialization",
-      error,
+      null,
       "WebVitalsService"
     );
   }

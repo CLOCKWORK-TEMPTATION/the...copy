@@ -28,7 +28,7 @@ export function unflatten(flat: Record<string, string>): Record<string, any> {
 
     // SECURITY FIX: Validate parts to prevent prototype pollution
     if (parts.some((part) => DANGEROUS_KEYS.includes(part))) {
-      console.warn(`[Security] Skipping potentially dangerous key: ${key}`);
+      // Skip potentially dangerous key silently
       continue;
     }
 

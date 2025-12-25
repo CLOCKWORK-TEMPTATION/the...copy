@@ -22,6 +22,11 @@ on:
         default: false
         type: boolean
 
+# SECURITY: Restrict permissions to minimum required
+permissions:
+  contents: read
+  actions: read
+
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '8'

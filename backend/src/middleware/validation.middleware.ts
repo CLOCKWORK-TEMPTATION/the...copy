@@ -156,11 +156,23 @@ import { logSecurityEvent, SecurityEventType } from './security-logger.middlewar
 
 // SECURITY: Detection patterns for potential attacks
 // Using simpler patterns to avoid ReDoS and improve detection accuracy
+// Fixed: Better HTML filtering regexp patterns that are safe and comprehensive
 const suspiciousPatterns = [
   { regex: /(%27|'|--|%23|#)/i, type: SecurityEventType.SQL_INJECTION_ATTEMPT },
-  // XSS detection: check for script tags (opening tag is sufficient for detection)
-  { regex: /<script\b|<iframe\b|<object\b|<embed\b|<svg\b[^>]*\bon/gi, type: SecurityEventType.XSS_ATTEMPT },
-  { regex: /javascript:|data:text\/html|on(?:error|load|click|mouse\w+|focus|blur|key\w+)\s*=/gi, type: SecurityEventType.XSS_ATTEMPT },
+  // XSS detection: comprehensive script/tag detection using safe patterns
+  // Detect opening script/iframe/object/embed tags
+  { regex: /<\s*script/gi, type: SecurityEventType.XSS_ATTEMPT },
+  { regex: /<\s*iframe/gi, type: SecurityEventType.XSS_ATTEMPT },
+  { regex: /<\s*object/gi, type: SecurityEventType.XSS_ATTEMPT },
+  { regex: /<\s*embed/gi, type: SecurityEventType.XSS_ATTEMPT },
+  // Detect event handlers (safe pattern without nested quantifiers)
+  { regex: /\bon(error|load|click|mouseover|mouseout|focus|blur|keyup|keydown|keypress|submit|change|input)\s*=/gi, type: SecurityEventType.XSS_ATTEMPT },
+  // Detect javascript: and data: URIs
+  { regex: /javascript\s*:/gi, type: SecurityEventType.XSS_ATTEMPT },
+  { regex: /data\s*:\s*text\/html/gi, type: SecurityEventType.XSS_ATTEMPT },
+  // Detect SVG with event handlers
+  { regex: /<\s*svg[^>]*\s+on\w+\s*=/gi, type: SecurityEventType.XSS_ATTEMPT },
+  // Path traversal detection
   { regex: /\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e\/|\/etc\/passwd/gi, type: SecurityEventType.PATH_TRAVERSAL_ATTEMPT },
 ];
 

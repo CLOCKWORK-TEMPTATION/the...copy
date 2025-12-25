@@ -16,15 +16,15 @@ async function optimizeImage(imagePath) {
   const fullPath = path.join(__dirname, '..', imagePath);
 
   if (!fs.existsSync(fullPath)) {
-    console.log(`⚠️  File not found: ${imagePath}`);
+    console.log("⚠️  File not found");
     return;
   }
 
   const ext = path.extname(fullPath).toLowerCase();
   const originalSize = fs.statSync(fullPath).size;
 
-  console.log(`\n🔄 Optimizing: ${imagePath}`);
-  console.log(`   Original size: ${(originalSize / 1024 / 1024).toFixed(2)} MB`);
+  console.log("\n🔄 Optimizing image");
+  console.log(`   Original size: ${(originalSize / 1024).toFixed(2)} KB`);
 
   try {
     const image = sharp(fullPath);
@@ -51,15 +51,15 @@ async function optimizeImage(imagePath) {
         })
         .toFile(tempPath);
     } else {
-      console.log(`   Skipping unsupported format: ${ext}`);
+      console.log("   Skipping unsupported format");
       return;
     }
 
     const optimizedSize = fs.statSync(tempPath).size;
     const savings = ((1 - optimizedSize / originalSize) * 100).toFixed(1);
 
-    console.log(`   Optimized size: ${(optimizedSize / 1024 / 1024).toFixed(2)} MB`);
-    console.log(`   Savings: ${savings}% (${((originalSize - optimizedSize) / 1024 / 1024).toFixed(2)} MB)`);
+    console.log(`   Optimized size: ${(optimizedSize / 1024).toFixed(2)} KB`);
+    console.log(`   Savings: ${savings}%`);
 
     // Replace original with optimized version if it's actually smaller
     if (optimizedSize < originalSize) {
@@ -70,7 +70,7 @@ async function optimizeImage(imagePath) {
       console.log(`   ⚠️  Original is already optimal (keeping original)`);
     }
   } catch (error) {
-    console.error(`   ❌ Error optimizing: ${error.message}`);
+    console.error("   ❌ Error optimizing image");
   }
 }
 

@@ -62,6 +62,7 @@ app.use(logRateLimitViolations);
 
 // CSRF Protection middleware - validates Origin header for state-changing requests
 // This is the recommended approach for API-based applications instead of traditional CSRF tokens
+// SECURITY FIX: Now requires Origin or Referer header for browser-based requests
 app.use((req, res, next) => {
   // Only check state-changing methods
   if (!['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
@@ -76,6 +77,9 @@ app.use((req, res, next) => {
 
   const origin = req.get('Origin');
   const referer = req.get('Referer');
+  const contentType = req.get('Content-Type') || '';
+  const userAgent = req.get('User-Agent') || '';
+
   const allowedOrigins = [
     env.CORS_ORIGIN,
     'http://localhost:5000',
@@ -94,19 +98,49 @@ app.use((req, res, next) => {
       });
     }
   } else if (referer) {
-    const refererUrl = new URL(referer);
-    const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
-    if (!allowedOrigins.some(allowed => refererOrigin === allowed || refererOrigin.startsWith(allowed as string))) {
-      logger.warn('CSRF: Referer mismatch', { referer, path: req.path, method: req.method });
+    try {
+      const refererUrl = new URL(referer);
+      const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
+      if (!allowedOrigins.some(allowed => refererOrigin === allowed || refererOrigin.startsWith(allowed as string))) {
+        logger.warn('CSRF: Referer mismatch', { referer, path: req.path, method: req.method });
+        return res.status(403).json({
+          success: false,
+          error: 'طلب غير مصرح به',
+          code: 'CSRF_REFERER_MISMATCH'
+        });
+      }
+    } catch {
+      logger.warn('CSRF: Invalid Referer URL', { referer, path: req.path });
       return res.status(403).json({
         success: false,
         error: 'طلب غير مصرح به',
-        code: 'CSRF_REFERER_MISMATCH'
+        code: 'CSRF_INVALID_REFERER'
       });
     }
+  } else {
+    // SECURITY: If neither Origin nor Referer is present, check if it looks like a browser request
+    // Browser requests with form submissions or JSON payloads should always include these headers
+    const isBrowserRequest =
+      contentType.includes('application/x-www-form-urlencoded') ||
+      contentType.includes('multipart/form-data') ||
+      (contentType.includes('application/json') && userAgent.toLowerCase().includes('mozilla'));
+
+    if (isBrowserRequest) {
+      logger.warn('CSRF: Missing Origin/Referer for browser request', {
+        path: req.path,
+        method: req.method,
+        contentType,
+        userAgent: userAgent.substring(0, 100)
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'طلب غير مصرح به',
+        code: 'CSRF_MISSING_ORIGIN'
+      });
+    }
+    // Allow API clients that don't send Origin/Referer (e.g., server-to-server requests)
+    // These are authenticated via JWT tokens anyway
   }
-  // Note: If neither Origin nor Referer is present, we allow the request
-  // as some legitimate clients may not send these headers
 
   next();
 });

@@ -34,7 +34,8 @@ export class RAGService {
     const analysisChunks = this.chunkAnalysisReport(analysisReport);
     const allChunks = [...textChunks, ...analysisChunks];
 
-    console.log(`[RAG] Total chunks: ${allChunks.length}`);
+    // Sanitized logging for security
+    console.log(`[RAG] Processing chunks for context retrieval`);
 
     // Calculate relevance scores
     const scoredChunks = await this.scoreChunks(query, allChunks);
@@ -43,8 +44,9 @@ export class RAGService {
     scoredChunks.sort((a, b) => b.relevanceScore - a.relevanceScore);
     const retrievedChunks = scoredChunks.slice(0, topK);
 
+    // Sanitized logging for security
     console.log(
-      `[RAG] Retrieved ${retrievedChunks.length} most relevant chunks`
+      `[RAG] Retrieved relevant context chunks`
     );
 
     return {

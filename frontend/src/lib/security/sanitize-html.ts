@@ -105,23 +105,33 @@ export function escapeHtml(text: string): string {
  * Strips all HTML tags from a string
  * Safe alternative when you need plain text only
  * SECURITY: Uses iterative approach to handle nested/malformed tags
+ * Fixed: Properly handles multi-character sanitization to prevent bypass attacks
  */
 export function stripHtmlTags(html: string): string {
-  // First pass: remove complete tags
-  let result = html.replace(/<[^>]*>/g, "");
-
-  // Iterative removal to handle incomplete/nested tags like <scr<script>ipt>
-  // Continue until no more tags can be removed
-  let previousResult = "";
-  while (result !== previousResult) {
-    previousResult = result;
-    result = result.replace(/<[^>]*>/g, "");
+  if (!html || typeof html !== "string") {
+    return "";
   }
 
-  // Final pass: remove any remaining angle brackets that could be part of malformed tags
-  // This handles cases like "<script" without closing ">"
-  result = result.replace(/<[^>]*$/g, ""); // Remove incomplete opening tags at end
-  result = result.replace(/^[^<]*>/g, (match) => match === ">" ? "" : match.slice(0, -1)); // Remove orphan closing brackets
+  let result = html;
+  let previousResult = "";
+
+  // Iteratively remove ALL angle bracket content until no changes occur
+  // This handles nested attacks like <scr<script>ipt> by continuing until stable
+  const maxIterations = 100; // Prevent infinite loops
+  let iterations = 0;
+
+  while (result !== previousResult && iterations < maxIterations) {
+    previousResult = result;
+    // Remove complete tags
+    result = result.replace(/<[^>]*>/g, "");
+    // Remove incomplete opening tags (e.g., "<script" without ">")
+    result = result.replace(/<[^>]*$/g, "");
+    // Remove orphan closing brackets at the start
+    result = result.replace(/^[^<]*>/g, "");
+    // Remove any remaining < or > characters that could form tags after concatenation
+    result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    iterations++;
+  }
 
   return result;
 }

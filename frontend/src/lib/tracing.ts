@@ -127,7 +127,7 @@ export function initBrowserTracing(): void {
     isInitialized = true;
     console.log('✅ Browser tracing initialized successfully');
   } catch (error) {
-    console.error('❌ Failed to initialize browser tracing:', error);
+    console.error('❌ Failed to initialize browser tracing');
   }
 }
 

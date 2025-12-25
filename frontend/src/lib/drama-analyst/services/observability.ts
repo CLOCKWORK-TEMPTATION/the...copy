@@ -4,6 +4,24 @@ import { log } from "./loggerService";
 const sendGAEvent = (..._args: any[]) => { };
 const setGAUserProperties = (..._args: any[]) => { };
 
+// Helper function to sanitize sensitive data from logs
+const sanitizeForLogging = (data: any): any => {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+
+  const sanitized = { ...data };
+  const sensitiveKeys = ['dsn', 'apiKey', 'api_key', 'token', 'password', 'secret', 'authorization', 'cookie', 'session'];
+
+  Object.keys(sanitized).forEach(key => {
+    if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+      sanitized[key] = '[REDACTED]';
+    }
+  });
+
+  return sanitized;
+};
+
 // Sentry configuration for production monitoring
 export const initObservability = () => {
   const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN ?? "";
@@ -244,14 +262,14 @@ const initWebVitalsMonitoring = () => {
       initWebVitals(webVitalsConfig);
       log.info(
         "📊 Web Vitals monitoring initialized",
-        webVitalsConfig,
+        { configStatus: "configured" },
         "Observability"
       );
     })
     .catch((error) => {
       log.error(
         "❌ Failed to initialize Web Vitals monitoring",
-        error,
+        { message: error?.message || "Unknown error" },
         "Observability"
       );
     });
@@ -287,8 +305,13 @@ const getRandomId = (): string => {
   // but better than pure Math.random for non-security-critical IDs like analytics)
   // This is acceptable for observability/analytics user IDs which are not security-sensitive
   const performanceNow = typeof performance !== "undefined" ? performance.now() : 0;
-  const randomPart = Math.floor(Math.random() * 0xffffffff).toString(36);
-  const timePart = (timestamp ^ Math.floor(performanceNow * 1000)).toString(36);
+  // Use a combination of values to increase entropy
+  const randomArray = new Uint32Array(2);
+  for (let i = 0; i < randomArray.length; i++) {
+    randomArray[i] = Math.floor(Math.random() * 0x100000000) ^ Math.floor(performanceNow * 1000000);
+  }
+  const randomPart = randomArray[0].toString(36);
+  const timePart = randomArray[1].toString(36);
   return `user_${timestamp}_${randomPart}${timePart}`;
 };
 
@@ -314,8 +337,12 @@ const getSessionId = (): string => {
 
 // Export Sentry utilities for manual error reporting
 export const reportError = (error: Error, context?: Record<string, any>) => {
-  log.error("🚨 Manual error report", error, "Observability");
-  Sentry.captureException(error, context ? { extra: context } : undefined);
+  log.error(
+    "🚨 Manual error report",
+    { message: error?.message || "Unknown error" },
+    "Observability"
+  );
+  Sentry.captureException(error, context ? { extra: sanitizeForLogging(context) } : undefined);
 };
 
 export const reportMessage = (
@@ -337,7 +364,7 @@ export const addBreadcrumb = (
     level: "info",
   };
   if (data) {
-    breadcrumb.data = data;
+    breadcrumb.data = sanitizeForLogging(data);
   }
   Sentry.addBreadcrumb(breadcrumb);
 };
@@ -355,7 +382,7 @@ export const setTag = (key: string, value: string) => {
 };
 
 export const setContext = (key: string, context: Record<string, any>) => {
-  Sentry.setContext(key, context);
+  Sentry.setContext(key, sanitizeForLogging(context));
 };
 
 // Analytics monitoring setup
@@ -366,7 +393,7 @@ const initAnalyticsMonitoring = () => {
   if (ga4Id) {
     log.info(
       "📊 Initializing Google Analytics 4...",
-      { ga4Id, environment },
+      { environment, hasGA4Id: !!ga4Id },
       "Observability"
     );
 
@@ -375,12 +402,12 @@ const initAnalyticsMonitoring = () => {
       .then((module) => {
         // GA4 initialization would go here if initGA4 was exported
 
-        // Set user context for GA4
+        // Set user context for GA4 (sanitized)
         setGAUserProperties({
           app_version: process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0",
           environment,
           platform: "web",
-          session_id: getSessionId(),
+          // session_id removed for security
         });
 
         // Track app initialization
@@ -399,7 +426,7 @@ const initAnalyticsMonitoring = () => {
       .catch((error) => {
         log.error(
           "❌ Failed to initialize Google Analytics 4",
-          error,
+          { message: error?.message || "Unknown error" },
           "Observability"
         );
       });
@@ -419,7 +446,7 @@ const initUptimeMonitoring = () => {
 
   log.info(
     "📊 Initializing Uptime monitoring...",
-    { environment },
+    { environment, is_production: isProduction },
     "Observability"
   );
 
@@ -439,14 +466,14 @@ const initUptimeMonitoring = () => {
       initUptime(uptimeConfig);
       log.info(
         "✅ Uptime monitoring initialized successfully",
-        uptimeConfig,
+        { configStatus: "configured" },
         "Observability"
       );
     })
     .catch((error) => {
       log.error(
         "❌ Failed to initialize Uptime monitoring",
-        error,
+        { message: error?.message || "Unknown error" },
         "Observability"
       );
     });
