@@ -10,6 +10,8 @@ BLUE_PORT="${BLUE_PORT:-3001}"
 GREEN_PORT="${GREEN_PORT:-3002}"
 NGINX_CONFIG="${NGINX_CONFIG:-/etc/nginx/sites-available/theeeecopy}"
 APP_NAME="theeeecopy"
+HEALTH_ENDPOINT="${HEALTH_ENDPOINT:-/health}"
+START_COMMAND="${START_COMMAND:-npm start}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -37,7 +39,8 @@ get_active_environment() {
         return
     fi
     
-    local active_port=$(grep -oP 'localhost:\K[0-9]+' "$NGINX_CONFIG" | head -1)
+    # Use portable grep with basic regex
+    local active_port=$(grep -o 'localhost:[0-9]\+' "$NGINX_CONFIG" | head -1 | cut -d: -f2)
     
     if [ "$active_port" = "$BLUE_PORT" ]; then
         echo "blue"
@@ -91,7 +94,7 @@ wait_for_app() {
     log_info "Waiting for application on port $port to be ready..."
     
     while [ $attempt -le $max_attempts ]; do
-        if curl -f -s "http://localhost:$port/health" > /dev/null 2>&1; then
+        if curl -f -s "http://localhost:$port${HEALTH_ENDPOINT}" > /dev/null 2>&1; then
             log_info "Application is ready on port $port"
             return 0
         fi
@@ -122,7 +125,7 @@ start_app() {
     pm2 delete "${APP_NAME}-${env}" 2>/dev/null || true
     
     # Start the application with PM2
-    pm2 start npm --name "${APP_NAME}-${env}" -- start -- --port $port
+    pm2 start ${START_COMMAND} --name "${APP_NAME}-${env}" -- --port $port
     pm2 save
     
     # Wait for app to be ready
@@ -185,7 +188,7 @@ EOF
     fi
     
     # Test nginx configuration
-    if sudo nginx -t 2>&1 | grep -q "successful"; then
+    if sudo nginx -t >/dev/null 2>&1; then
         sudo systemctl reload nginx
         log_info "Nginx configuration updated and reloaded successfully"
         return 0
