@@ -91,12 +91,9 @@ export function initTracing(): NodeSDK | null {
         '@opentelemetry/instrumentation-pg': {
           enabled: true,
         },
-<<<<<<< HEAD
         '@opentelemetry/instrumentation-redis': {
           enabled: true,
         },
-=======
->>>>>>> be26bf903e4ad88aaec3d3d870de0c7e6d24f7a2
         '@opentelemetry/instrumentation-mongodb': {
           enabled: true,
         },

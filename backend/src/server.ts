@@ -15,6 +15,7 @@ import { sentryRequestHandler, sentryTracingHandler, sentryErrorHandler, trackEr
 import { logAuthAttempts, logRateLimitViolations } from '@/middleware/security-logger.middleware';
 import { wafMiddleware, getWAFStats, getWAFEvents, blockIP, unblockIP, getBlockedIPs, updateWAFConfig, getWAFConfig } from '@/middleware/waf.middleware';
 import { metricsMiddleware, metricsEndpoint } from '@/middleware/metrics.middleware';
+import { csrfProtection, setCsrfToken } from '@/middleware/csrf.middleware';
 import { AnalysisController } from '@/controllers/analysis.controller';
 import { HealthController } from '@/controllers/health.controller';
 import { authController } from '@/controllers/auth.controller';
@@ -149,6 +150,9 @@ app.use((req, res, next) => {
 setupMiddleware(app);
 app.use(cookieParser());
 
+// CSRF Protection (must be after cookie-parser)
+app.use(csrfProtection);
+
 // Initialize WebSocket service
 try {
   websocketService.initialize(httpServer);
@@ -211,11 +215,11 @@ app.get('/api/gemini/cost-summary', authMiddleware, async (req, res) => {
   }
 });
 
-// Auth endpoints (public)
-app.post('/api/auth/signup', authController.signup.bind(authController));
-app.post('/api/auth/login', authController.login.bind(authController));
+// Auth endpoints (public) - CSRF token is set after successful authentication
+app.post('/api/auth/signup', authController.signup.bind(authController), setCsrfToken);
+app.post('/api/auth/login', authController.login.bind(authController), setCsrfToken);
 app.post('/api/auth/logout', authController.logout.bind(authController));
-app.post('/api/auth/refresh', authController.refresh.bind(authController));
+app.post('/api/auth/refresh', authController.refresh.bind(authController), setCsrfToken);
 app.get('/api/auth/me', authMiddleware, authController.getCurrentUser.bind(authController));
 
 // Seven Stations Pipeline endpoints (protected)
