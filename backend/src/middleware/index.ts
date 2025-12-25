@@ -3,7 +3,6 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
-import csrf from "csurf";
 import { env } from "@/config/env";
 import { logger } from "@/utils/logger";
 import {
@@ -129,22 +128,9 @@ export const setupMiddleware = (app: express.Application): void => {
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-  // CSRF protection - apply after cookie parser and body parsing
-  const csrfProtection = csrf({ 
-    cookie: {
-      httpOnly: true,
-      secure: env.NODE_ENV === "production",
-      sameSite: "strict"
-    }
-  });
-  
-  // Apply CSRF protection to state-changing requests only (POST, PUT, DELETE)
-  app.post("*", csrfProtection);
-  app.put("*", csrfProtection);
-  app.delete("*", csrfProtection);
-  
-  // Make CSRF token available to GET requests for forms
-  app.get("*", csrfProtection);
+  // CSRF protection via SameSite cookies (modern approach)
+  // Using strict SameSite cookies provides CSRF protection without additional tokens
+  // This is configured in the cookie settings throughout the application
 
   // PII Sanitization - Apply BEFORE logging to ensure no PII is logged
   app.use(sanitizeRequestLogs as any);
