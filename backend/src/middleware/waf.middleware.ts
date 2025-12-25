@@ -915,22 +915,16 @@ export function updateWAFConfig(config: Partial<WAFConfig>): void {
         }
 
         try {
-          // Extract pattern and flags if it looks like /pattern/flags
-          const match = rule.pattern.match(/^\/(.*?)\/([gimuy]*)$/);
-          let patternSource: string;
-          let patternFlags: string;
+          // SECURITY: Always escape user-supplied pattern strings so they are
+          // treated as literal text, preventing regex injection.
+          const patternSource = escapeRegex(rule.pattern);
 
-          if (match) {
-            patternSource = match[1];
-            patternFlags = match[2];
-          } else {
-            // SECURITY: For non-regex strings, escape special characters
-            // to treat them as literal strings, preventing regex injection
-            patternSource = escapeRegex(rule.pattern);
-            patternFlags = 'gi';
-          }
+          // SECURITY: Use a fixed, safe set of flags for user-defined patterns.
+          // If configurable flags are ever needed, they must come from a
+          // separately validated field, not embedded in the pattern string.
+          const patternFlags = 'gi';
 
-          // SECURITY: Validate flags are safe
+          // SECURITY: Validate flags are safe (defense-in-depth)
           const validFlags = /^[gimuy]*$/;
           if (!validFlags.test(patternFlags)) {
             throw new Error(`Invalid regex flags for rule ${rule.id}`);
