@@ -230,25 +230,25 @@ export class GeminiCostTrackerService {
 
     const updated: UsagePeriod = existing
       ? {
-          tokens: {
-            input: existing.tokens.input + inputTokens,
-            output: existing.tokens.output + outputTokens,
-            total: existing.tokens.total + inputTokens + outputTokens,
-          },
-          cost: existing.cost + cost,
-          requestCount: existing.requestCount + 1,
-          lastUpdated: Date.now(),
-        }
+        tokens: {
+          input: existing.tokens.input + inputTokens,
+          output: existing.tokens.output + outputTokens,
+          total: existing.tokens.total + inputTokens + outputTokens,
+        },
+        cost: existing.cost + cost,
+        requestCount: existing.requestCount + 1,
+        lastUpdated: Date.now(),
+      }
       : {
-          tokens: {
-            input: inputTokens,
-            output: outputTokens,
-            total: inputTokens + outputTokens,
-          },
-          cost,
-          requestCount: 1,
-          lastUpdated: Date.now(),
-        };
+        tokens: {
+          input: inputTokens,
+          output: outputTokens,
+          total: inputTokens + outputTokens,
+        },
+        cost,
+        requestCount: 1,
+        lastUpdated: Date.now(),
+      };
 
     // Save with 25 hour TTL (expires next day)
     await this.saveUsage(dailyKey, updated, 25 * 60 * 60);
@@ -275,25 +275,25 @@ export class GeminiCostTrackerService {
 
     const updated: UsagePeriod = existing
       ? {
-          tokens: {
-            input: existing.tokens.input + inputTokens,
-            output: existing.tokens.output + outputTokens,
-            total: existing.tokens.total + inputTokens + outputTokens,
-          },
-          cost: existing.cost + cost,
-          requestCount: existing.requestCount + 1,
-          lastUpdated: Date.now(),
-        }
+        tokens: {
+          input: existing.tokens.input + inputTokens,
+          output: existing.tokens.output + outputTokens,
+          total: existing.tokens.total + inputTokens + outputTokens,
+        },
+        cost: existing.cost + cost,
+        requestCount: existing.requestCount + 1,
+        lastUpdated: Date.now(),
+      }
       : {
-          tokens: {
-            input: inputTokens,
-            output: outputTokens,
-            total: inputTokens + outputTokens,
-          },
-          cost,
-          requestCount: 1,
-          lastUpdated: Date.now(),
-        };
+        tokens: {
+          input: inputTokens,
+          output: outputTokens,
+          total: inputTokens + outputTokens,
+        },
+        cost,
+        requestCount: 1,
+        lastUpdated: Date.now(),
+      };
 
     // Save with 32 day TTL (expires next month)
     await this.saveUsage(monthlyKey, updated, 32 * 24 * 60 * 60);
@@ -340,8 +340,19 @@ export class GeminiCostTrackerService {
       severity: 'CRITICAL',
     });
 
-    // TODO: Send email/Slack notification
-    // await this.sendAlert('daily_limit', { currentCost, limit: THRESHOLDS.DAILY_COST_LIMIT });
+    // Send notification via NotificationService
+    const { notificationService } = await import('./notification.service');
+
+    await notificationService.sendAlert(
+      'CRITICAL',
+      'Gemini Cost - Daily Limit Exceeded',
+      `Use has exceeded the daily limit of $${THRESHOLDS.DAILY_COST_LIMIT}`,
+      {
+        currentCost: `$${currentCost.toFixed(2)}`,
+        limit: `$${THRESHOLDS.DAILY_COST_LIMIT.toFixed(2)}`,
+        date: this.getDailyKey()
+      }
+    );
   }
 
   /**
@@ -378,8 +389,19 @@ export class GeminiCostTrackerService {
       severity: 'WARNING',
     });
 
-    // TODO: Send email/Slack notification
-    // await this.sendAlert('monthly_quota', { currentCost, budget: this.monthlyBudget, quotaPercent });
+    // Send notification via NotificationService
+    const { notificationService } = await import('./notification.service');
+
+    await notificationService.sendAlert(
+      'WARNING',
+      'Gemini Cost - Monthly Quota Warning',
+      `Monthly usage has reached ${quotaPercent.toFixed(1)}% of the budget.`,
+      {
+        currentCost: `$${currentCost.toFixed(2)}`,
+        monthlyBudget: `$${this.monthlyBudget.toFixed(2)}`,
+        quotaPercent: `${quotaPercent.toFixed(1)}%`
+      }
+    );
   }
 
   /**
