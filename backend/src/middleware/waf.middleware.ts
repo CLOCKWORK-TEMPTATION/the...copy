@@ -883,16 +883,37 @@ export function updateWAFConfig(config: Partial<WAFConfig>): void {
   if (newConfig.customRules) {
     newConfig.customRules = newConfig.customRules.map((rule: any) => {
       // If pattern is a string (from JSON), convert to RegExp
+      // SECURITY: Validate and sanitize regex patterns to prevent injection
       let pattern: RegExp;
       if (typeof rule.pattern === 'string') {
+        // SECURITY: Limit pattern length to prevent DoS
+        if (rule.pattern.length > 500) {
+          throw new Error(`Pattern too long for rule ${rule.id}`);
+        }
+
         try {
           // Extract pattern and flags if it looks like /pattern/flags
           const match = rule.pattern.match(/^\/(.*?)\/([gimuy]*)$/);
+          let patternSource: string;
+          let patternFlags: string;
+
           if (match) {
-            pattern = new RegExp(match[1], match[2]);
+            patternSource = match[1];
+            patternFlags = match[2];
           } else {
-            pattern = new RegExp(rule.pattern, 'gi');
+            // SECURITY: For non-regex strings, escape special characters
+            // to treat them as literal strings, preventing regex injection
+            patternSource = escapeRegex(rule.pattern);
+            patternFlags = 'gi';
           }
+
+          // SECURITY: Validate flags are safe
+          const validFlags = /^[gimuy]*$/;
+          if (!validFlags.test(patternFlags)) {
+            throw new Error(`Invalid regex flags for rule ${rule.id}`);
+          }
+
+          pattern = new RegExp(patternSource, patternFlags);
         } catch (e) {
           throw new Error(`Invalid regex pattern for rule ${rule.id}`);
         }
@@ -968,18 +989,23 @@ function isRegexSafe(pattern: RegExp): boolean {
   const patternStr = pattern.source;
 
   // Check for dangerous nested quantifiers that could cause ReDoS
-  // Patterns like (a+)+, (a*)+, (a+)*, etc.
-  const dangerousPatterns = [
-    /\([^)]*[+*][^)]*\)[+*]/,  // Nested quantifiers like (a+)+
-    /\(\?:[^)]*[+*][^)]*\)[+*]/,  // Non-capturing groups with nested quantifiers
-    /\[[^\]]*\][+*]\s*\[[^\]]*\][+*]/,  // Adjacent character classes with quantifiers
-    /(\.\*){2,}/,  // Multiple .* sequences
-    /(\.\+){2,}/,  // Multiple .+ sequences
-    /\([^)]*\|[^)]*\)[+*]{1,}/,  // Alternation groups with quantifiers
+  // Using simple string checks instead of regex to avoid ReDoS in the validator itself
+  const dangerousIndicators = [
+    // Nested quantifiers like (a+)+, (a*)+
+    { check: (s: string) => /\([^)]{0,50}[+*]\)[+*]/.test(s) },
+    // Multiple consecutive .* or .+ (limited backtracking)
+    { check: (s: string) => s.includes('.*.*') || s.includes('.+.+') },
+    // Alternation with quantifiers
+    { check: (s: string) => /\([^)]{0,50}\|[^)]{0,50}\)[+*]/.test(s) },
   ];
 
-  for (const dangerous of dangerousPatterns) {
-    if (dangerous.test(patternStr)) {
+  for (const indicator of dangerousIndicators) {
+    try {
+      if (indicator.check(patternStr)) {
+        return false;
+      }
+    } catch {
+      // If check fails, consider it unsafe
       return false;
     }
   }

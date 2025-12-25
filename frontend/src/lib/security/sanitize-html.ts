@@ -115,25 +115,38 @@ export function stripHtmlTags(html: string): string {
   let result = html;
   let previousResult = "";
 
-  // Iteratively remove ALL angle bracket content until no changes occur
+  // Phase 1: Iteratively remove ALL angle bracket content until no changes occur
   // This handles nested attacks like <scr<script>ipt> by continuing until stable
   const maxIterations = 100; // Prevent infinite loops
   let iterations = 0;
 
   while (result !== previousResult && iterations < maxIterations) {
     previousResult = result;
-    // Remove complete tags
+    // Remove complete tags - keep iterating until stable
     result = result.replace(/<[^>]*>/g, "");
     // Remove incomplete opening tags (e.g., "<script" without ">")
     result = result.replace(/<[^>]*$/g, "");
     // Remove orphan closing brackets at the start
     result = result.replace(/^[^<]*>/g, "");
-    // Remove any remaining < or > characters that could form tags after concatenation
-    result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     iterations++;
   }
 
-  return result;
+  // Phase 2: After all tag removal is complete, escape any remaining angle brackets
+  // This is done AFTER the loop to prevent interfering with tag detection
+  // SECURITY: Iteratively replace to handle any edge cases with entity encoding
+  let safeResult = result;
+  let prevSafe = "";
+  let safeIterations = 0;
+  const maxSafeIterations = 10;
+
+  while (safeResult !== prevSafe && safeIterations < maxSafeIterations) {
+    prevSafe = safeResult;
+    // Escape angle brackets that could form tags
+    safeResult = safeResult.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    safeIterations++;
+  }
+
+  return safeResult;
 }
 
 /**
