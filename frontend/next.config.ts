@@ -9,6 +9,7 @@ console.warn = (...args) => {
 };
 
 const { NextConfig } = require("next");
+const path = require("path");
 
 // Remote image patterns configuration
 const remoteImagePatterns = process.env.NEXT_IMAGE_REMOTE_PATTERNS
@@ -59,6 +60,9 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+
+  // Ensure correct root when multiple lockfiles exist (silences Next.js warning)
+  outputFileTracingRoot: path.join(__dirname, ".."),
 
   // CDN support for static assets
   assetPrefix,
