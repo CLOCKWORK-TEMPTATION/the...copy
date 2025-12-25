@@ -45,6 +45,10 @@ export const sanitizeHTML = (input: string): string => {
     result = result.replace(/^[^<]*>/g, "");
     iterations++;
   }
+  
+  // After loop completes, escape any remaining < or > characters in a single operation
+  // This prevents incomplete multi-character sanitization vulnerabilities
+  result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   // Phase 2: After all tag removal, escape remaining angle brackets
   // Done separately to not interfere with tag detection in the loop above
