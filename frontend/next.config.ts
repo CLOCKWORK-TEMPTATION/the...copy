@@ -60,6 +60,9 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  
+  // Enable production browser sourcemaps
+  productionBrowserSourceMaps: true,
 
   // Ensure correct root when multiple lockfiles exist (silences Next.js warning)
   outputFileTracingRoot: path.join(__dirname, ".."),
@@ -337,6 +340,10 @@ const sentryConfig = shouldUseSentry
     tunnelRoute: "/monitoring",
     sourcemaps: {
       disable: false,
+      ignore: [
+        "**/*manifest*.js",
+        "**/*reference-manifest*.js"
+      ]
     },
   }
   : null;
