@@ -233,8 +233,8 @@ app.get('/api/gemini/cost-summary', authMiddleware, async (_req, res) => {
 // Auth endpoints (public) - CSRF token is set after successful authentication
 app.post('/api/auth/signup', authController.signup.bind(authController), setCsrfToken);
 app.post('/api/auth/login', authController.login.bind(authController), setCsrfToken);
-app.post('/api/auth/logout', authController.logout.bind(authController));
-app.post('/api/auth/refresh', authController.refresh.bind(authController), setCsrfToken);
+app.post('/api/auth/logout', csrfProtection, authController.logout.bind(authController));
+app.post('/api/auth/refresh', csrfProtection, authController.refresh.bind(authController), setCsrfToken);
 app.get('/api/auth/me', authMiddleware, authController.getCurrentUser.bind(authController));
 
 // Seven Stations Pipeline endpoints (protected)
