@@ -55,10 +55,12 @@ export interface WAFRule {
   id: string;
   name: string;
   description: string;
+  // SECURITY: Pattern must be a pre-compiled RegExp object, never a string
+  // This prevents regex injection attacks
   pattern: RegExp;
-  locations: ("body" | "query" | "headers" | "path" | "cookies")[];
-  action: "block" | "monitor" | "challenge";
-  severity: "critical" | "high" | "medium" | "low";
+  locations: Array<"body" | "query" | "path" | "headers">;
+  action: "block" | "allow" | "log";
+  severity: "low" | "medium" | "high" | "critical";
   enabled: boolean;
 }
 
@@ -616,6 +618,16 @@ function checkRule(req: Request, rule: WAFRule): { matched: boolean; value: stri
     }
     if (value) {
       try {
+        // SECURITY: Ensure pattern is a pre-compiled RegExp object, not a string
+        // This prevents regex injection as patterns are hardcoded constants
+        if (!(rule.pattern instanceof RegExp)) {
+          logger.warn('WAF: Invalid pattern type detected', {
+            ruleId: rule.id,
+            patternType: typeof rule.pattern
+          });
+          continue;
+        }
+        
         // Use safe regex test with input length limit to prevent ReDoS
         if (safeRegexTestSync(rule.pattern, value)) {
           rule.pattern.lastIndex = 0;
@@ -1051,6 +1063,16 @@ export function createSafePattern(userInput: string): RegExp {
  * WARNING: Only accept patterns from trusted admin sources, never from user input
  */
 export function addCustomRule(rule: WAFRule): void {
+  // SECURITY: Ensure pattern is a RegExp object, not a string
+  // This prevents regex injection attacks
+  if (!(rule.pattern instanceof RegExp)) {
+    logger.error('WAF: Pattern must be a RegExp object', {
+      ruleId: rule.id,
+      patternType: typeof rule.pattern
+    });
+    throw new Error('Pattern must be a pre-compiled RegExp object');
+  }
+  
   // Validate the regex pattern for safety
   if (!isRegexSafe(rule.pattern)) {
     logger.warn("Rejected unsafe WAF rule pattern", {
