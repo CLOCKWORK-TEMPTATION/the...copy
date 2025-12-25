@@ -27,119 +27,15 @@ permissions:
 
 env:
   NODE_VERSION: '20'
-  PNPM_VERSION: '8'
+  PNPM_VERSION: '10'
   BLUE_PORT: 3001
   GREEN_PORT: 3002
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && !inputs.skip_tests)
-    permissions:
-      contents: read
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      redis:
-        image: redis:7
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: ${{ env.PNPM_VERSION }}
-          
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-          
-      - name: Setup pnpm cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-            
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
-      - name: Run type checking
-        run: pnpm typecheck
-        
-      - name: Run linting
-        run: pnpm lint
-        
-      - name: Run backend tests
-        working-directory: ./backend
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret
-          GEMINI_API_KEY: test-gemini-key
-        run: |
-          pnpm test
-          
-      - name: Run frontend tests
-        working-directory: ./frontend
-        env:
-          NODE_ENV: test
-        run: |
-          pnpm test
-          
-      - name: Build backend
-        working-directory: ./backend
-        run: pnpm build
-        
-      - name: Build frontend
-        working-directory: ./frontend
-        run: pnpm build
-        
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-artifacts
-          path: |
-            backend/dist/
-            frontend/.next/
-            frontend/public/
-          retention-days: 1
-
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: test
+    # Deploy only on push to main (tests are handled by CI pipeline)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
     permissions:
@@ -155,14 +51,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
-          
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: build-artifacts
           
       - name: Setup SSH
         env:
