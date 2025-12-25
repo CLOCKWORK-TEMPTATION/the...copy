@@ -12,8 +12,8 @@ const path = require('path');
 
 const BADGES_DIR = path.join(__dirname, '../.github/badges');
 const COVERAGE_DIRS = {
-  frontend: path.join(__dirname, '../../frontend/coverage/coverage-summary.json'),
-  backend: path.join(__dirname, '../../backend/coverage/coverage-summary.json'),
+  frontend: path.join(__dirname, '../frontend/coverage/coverage-summary.json'),
+  backend: path.join(__dirname, '../backend/coverage/coverage-summary.json'),
 };
 
 // Ensure badges directory exists

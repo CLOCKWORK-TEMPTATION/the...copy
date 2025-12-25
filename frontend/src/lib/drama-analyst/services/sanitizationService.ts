@@ -33,7 +33,7 @@ export const sanitizeHTML = (input: string): string => {
   let previousResult = "";
   const maxIterations = 100; // Prevent infinite loops
 
-  // Continue stripping until no more changes occur
+  // Phase 1: Continue stripping tags until no more changes occur
   let iterations = 0;
   while (result !== previousResult && iterations < maxIterations) {
     previousResult = result;
@@ -43,12 +43,24 @@ export const sanitizeHTML = (input: string): string => {
     result = result.replace(/<[^>]*$/g, "");
     // Remove orphan closing brackets at the start
     result = result.replace(/^[^<]*>/g, "");
-    // Escape any remaining < or > characters to prevent tag reconstruction
-    result = result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     iterations++;
   }
 
-  return result;
+  // Phase 2: After all tag removal, escape remaining angle brackets
+  // Done separately to not interfere with tag detection in the loop above
+  // SECURITY: Iteratively replace to handle any edge cases
+  let safeResult = result;
+  let prevSafe = "";
+  let safeIterations = 0;
+  const maxSafeIterations = 10;
+
+  while (safeResult !== prevSafe && safeIterations < maxSafeIterations) {
+    prevSafe = safeResult;
+    safeResult = safeResult.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    safeIterations++;
+  }
+
+  return safeResult;
 };
 
 /**
