@@ -334,6 +334,8 @@ jobs:
   build-frontend:
     name: 🏗️ Build Frontend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [lint-frontend, typecheck-frontend, test-frontend, changes]
     if: |
       always() &&
@@ -393,6 +395,8 @@ jobs:
   build-backend:
     name: 🏗️ Build Backend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [lint-backend, typecheck-backend, test-backend, changes]
     if: |
       always() &&
@@ -452,6 +456,8 @@ jobs:
   e2e-tests:
     name: 🎭 E2E Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [build-frontend, changes]
     if: |
       github.event_name == 'pull_request' &&
@@ -511,6 +517,8 @@ jobs:
   ci-status:
     name: ✅ CI Status
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [build-frontend, build-backend, e2e-tests]
     if: always()
     steps:
