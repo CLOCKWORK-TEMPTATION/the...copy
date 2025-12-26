@@ -133,11 +133,43 @@ htmlcov/
 .cursor/
 .idx/
 .windsurf/
+.agent/
+.amazonq/
+.kilocode/
+.kiro/
+.qodo/
+.superdesign/
+
+# Build logs & temporary files
+build_log*.txt
+sentry-wizard-*.log
+*.vsix
+temp_files.txt
+temp_json.json
+COMPLETED_FILES.txt
+CONFLICTS_RESOLVED.txt
+current_settings.txt
+technical-reality-report.json
 
 # Sentry
 .env.sentry-build-plugin
+
+# Firebase
+firebase.json
+.firebaserc
+.firebase/
+
+# Vercel
+vercel.json
+
+# Package lock file versions (duplicates)
+package.json.*
+pnpm-lock.yaml.*
 
 # Cursor IDE global storage
 **/AppData/Roaming/Cursor/User/globalStorage/
 **/globalStorage/
 nul
+
+# Security
+.securityignore
