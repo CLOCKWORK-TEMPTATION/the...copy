@@ -1,13 +1,13 @@
 // Cinema & Series Theme Images (High Quality, Dramatic, B&W/Muted style preferred)
 const images: string[] = [
   // 0-6: The V-Shape Images (High impact cinema scenes)
-  "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=1080&auto=format&fit=crop", // Cinema Projector
-  "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1080&auto=format&fit=crop", // Movie Theater Dark
-  "https://images.unsplash.com/photo-1478720568477-152d9b164e63?q=80&w=1080&auto=format&fit=crop", // Film Reels
-  "https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?q=80&w=1080&auto=format&fit=crop", // Movie Set Light
-  "https://images.unsplash.com/photo-1542204165-65bf26472b9b?q=80&w=1080&auto=format&fit=crop", // Old Cinema
-  "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=1080&auto=format&fit=crop", // Clapperboard
-  "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=1080&auto=format&fit=crop", // Director Chair
+  "/صور حرف v/ChatGPT Image Dec 26, 2025, 09_27_00 AM.png", // Cinema Projector
+  "/صور حرف v/ChatGPT Image Dec 26, 2025, 12_20_49 PM.png", // Movie Theater Dark
+  "/صور حرف v/a-vertical-post-impressionist-painting-i_VxSVMjXIREeheWN05hCqMg_m76ox95qSVSqW363qOTKJA.jpeg", // Film Reels
+  "/صور حرف v/generation-52f62429-a6e5-48c9-8ced-711ec1d94c3c (1).png", // Movie Set Light
+  "/صور حرف v/generation-b16b25ce-5b1c-44bf-a263-2f8b07b5cc58.png", // Old Cinema
+  "/صور حرف v/generation-fe766630-eb65-4bba-8d29-7a791986ae52.png", // Clapperboard
+  "/صور حرف v/lucid-origin_AAt_the_heart_of_the_composition_stands_a_shrine_lavishly_adorned_with_Arabic_Is-0.jpg", // Director Chair
 
   // 7-18: The Surrounding Grid Images (Atmospheric, Behind the scenes)
   "https://images.unsplash.com/photo-1533488765986-dfa2a9939acd?q=80&w=1080&auto=format&fit=crop", // Vintage Camera
