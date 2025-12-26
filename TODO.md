@@ -1,183 +1,230 @@
 # الدور
-أنت مهندس واجهات Frontend (Next.js + Tailwind + GSAP) مسؤول عن تنفيذ تعديلات دقيقة على شاشة الـ Hero في مشروع "the-copy".
-الهدف: سد “نقص” واجهة المستخدم دون كسر الهوية البصرية أو تتابع الأنيميشن الحالي، مع الحفاظ على الاستقرار ومنع أي انهيار/تفكك في الـ Hero.
+أنت وكيل ترميز (Senior Frontend Engineer) تعمل داخل مشروع Next.js (App Router) موجود بالفعل. المطلوب تنفيذ تغييرات UI/UX دقيقة “بدون هدم” أي شيء قائم، وبأقل عدد تغييرات ممكن، وبشكل قابل للرجوع (محدد وواضح). لا تغيّر بنية المشروع أو تسميات المسارات إلا إذا طُلب صراحة.
 
-# حقائق يجب الالتزام بها (لا تفاوض)
-- "النسخة" = اسم التطبيق (App Name)
-- "بس اصلي" = السلوجن (Slogan)
-- لا تُدخل تغييرات واسعة في بنية المكونات أو إعادة تصميم شامل.
-- لا تعدّل مسارات routing.
-- التعديلات يجب أن تكون محدودة ومحصورة في الملفات المحددة أدناه فقط.
-- بعد كل تعديل: يجب تشغيل أوامر التحقق (lint/typecheck/test/build) وإصلاح أي خطأ فورًا.
-- ممنوع ترك كود غير مستخدم أو كلاسز بلا داعي.
+# الهدف النهائي (السلوك المطلوب)
+## الصفحة الرئيسية (Home /)
+1) تظل أنيميشن الهيرو كما هي حتى لحظة: **تموضع السبع كروت (V-Shape) + ظهور النصوص كما هي في هذا التتابع**.
+2) بعد هذه اللحظة **لا يوجد**:
+   - نزول/تقليص/Zoom-out لتحويل المشهد إلى Grid 4×4 داخل نفس الصفحة.
+   - ولا “اسحب لأسفل لاستكشاف أدوات النسخة”.
+3) بدل ذلك:
+   - **السبع كروت تُعامل كـ كيان واحد قابل للنقر (Portal)**.
+   - عند الضغط على هذا الكيان يتم الانتقال إلى **Route مستقل: `/ui`** (صفحة لانشر التطبيقات).
+4) زر **“اضغط على الفيديو”** يجب أن يظهر في نفس صفحة السبع كروت (Home) كـ CTA واضح، ويقوم بفتح فيديو تعريفي/توضيحي (Modal أو Overlay) بدون مغادرة الصفحة.
 
-# نطاق الملفات المسموح تعديلها فقط
-1) frontend/src/components/HeroAnimation.tsx
-2) frontend/src/hooks/use-hero-animation.ts
-(اختياري فقط إذا اضطررت لتعديل أسلوب CTA لكن حاول تجنّبه)
-3) frontend/src/styles/globals.css
+## صفحة اللانشر (Route: /ui)
+1) صفحة `/ui` تعرض Grid 4×4 (إجمالي 16 خلية) بنفس فكرة اللقطة:
+   - **الخلية المركزية (2×2)** = كارت كبير بعنوان “النسخة” (اسم التطبيق) + سطر صغير “بس اصلي” (السلوغن).
+   - الضغط على الكارت المركزي يفتح مباشرة Route المحرر: **`/editor`**.
+2) **الـ 12 خلية المحيطة** تفتح التطبيقات الموجودة حاليًا (Routes الموجودة فعليًا في المشروع)، وأي خلية لتطبيق غير جاهز تكون “قريبًا” (Disabled).
+3) العدد الحالي قد يكون أقل من 13 تطبيق مكتمل: المطلوب أن يكون النظام جاهز لاستيعاب زيادة لاحقًا بدون كسر UI.
 
-# المشكلة المراد حلها (بدقة)
-1) لقطة "بس اصلي + البطاقات" تبدو بوستر أكثر من واجهة: لا يوجد CTA واضح ولا مسار فعل فوري.
-2) الرابط المركزي /editor موجود لكن غير قابل للنقر عمليًا لأن عنصر Link لا يفعّل pointer events.
-3) نص "فتح التطبيق" في عناصر الشبكة 4×4 يعتمد على hover فقط => يختفي على الموبايل.
-4) أثناء دخول البطاقات، قد تظهر فوق النصوص (إحساس عدم اتزان) بسبب z-index.
-5) يجب الحفاظ على منطق الهوية: "النسخة" اسم التطبيق و"بس اصلي" سلوجن—بدون خلط أو قلب معاني غير مقصود.
+# قيود صارمة (مهم جدًا)
+- لا تحذف “الإهداء” من المشروع، ولا تزيل عناصره. لا تغيّر نصوصه أو وجوده. (قد يتبدل ظهوره بالتايملاين كما هو، لكن لا حذف).
+- لا تكسر أنيميشن المراحل 1–5 القائمة. المطلوب فقط إيقاف/إزالة مرحلة التحول إلى Grid الداخلي (Phase 7) واستبدالها بالانتقال إلى `/ui` عند النقر.
+- لا تغيّر routing للتطبيقات الأخرى.
+- لا تدخل Dependencies جديدة.
+- التزم بـ TypeScript + Tailwind الموجودين.
+- أي تعديل في GSAP/ScrollTrigger يجب أن يكون محسوبًا لمنع “dead scroll” أو pin طويل بدون أحداث.
 
-# المطلوب النهائي (Acceptance Criteria)
-A) في مرحلة لقطة "بس اصلي" يجب أن يرى المستخدم CTA واضحًا:
-   - زر: "افتح المحرر" (يروح إلى /editor)
-   - تلميح: "اسحب لأسفل لاستكشاف أدوات النسخة"
-   - CTA لا يكسر المشهد ولا يزاحم العنوان/البطاقات.
-B) الرابط المركزي (unified entity) يصبح قابل للنقر فعليًا في جميع المراحل التي يظهر فيها.
-C) على الموبايل: "فتح التطبيق" يظهر دائمًا (على الأقل في md وما دون)، وعلى الديسكتوب يبقى hover كما هو.
-D) النصوص (بس اصلي + الإهداء + النص المرحلي) لا تغرق تحت البطاقات أثناء الحركة (z-index مضبوط).
-E) تمرير: pnpm lint + pnpm typecheck + pnpm test + pnpm build بنجاح.
-F) لا تغييرات خارج الملفات المسموح بها.
+# الملفات المستهدفة التي يجب تعديلها
+1) `frontend/src/components/HeroAnimation.tsx`
+2) `frontend/src/hooks/use-hero-animation.ts`
+3) إنشاء Route جديد: `frontend/src/app/(main)/ui/page.tsx`  (مهم: هذا الملف غير موجود حاليًا)
+4) إنشاء مكوّن Modal للفيديو: `frontend/src/components/IntroVideoModal.tsx` (أو اسم مكافئ) + أي ستايل بسيط لازم.
 
-# خطة التنفيذ خطوة بخطوة (إلزامية)
-## 0) التحضير
-- أنشئ فرع جديد: chore/hero-ux-polish
-- ثبّت الحزم من جذر المشروع:
-  - pnpm i
-- تأكد من نجاح build الحالي قبل التعديل:
-  - pnpm lint
-  - pnpm typecheck
-  - pnpm test
-  - pnpm build
+---
 
-## 1) تعديل HeroAnimation.tsx: تفعيل النقر على الكيان المركزي + CTA ثابتة + موبايل
-افتح: frontend/src/components/HeroAnimation.tsx
+# الحالة الحالية في الكود (للاسترشاد فقط)
+- الكيان القابل للنقر الآن في الهيرو هو:
+  - `<Link href="/editor" id="center-unified-entity" ... className="unified-entity">`
+- يوجد Grid داخلي داخل `HeroAnimation.tsx` اسمه:
+  - `.portfolio-grid-4x4`
+- ومرحلة 7 في `use-hero-animation.ts` تقوم بـ:
+  - إخفاء الهيدر/CTA
+  - تقليص `.frozen-container`
+  - إظهار `.portfolio-grid-4x4`
+  - تبديل النصوص
+  - إظهار `.portfolio-item-container`
 
-### 1.1) تفعيل النقر على /editor داخل unified entity
-ابحث عن:
-<Link
-  href="/editor"
-  className="unified-entity relative w-full h-full flex items-center justify-center block"
-  id="center-unified-entity"
->
+المطلوب: تعطيل/إزالة هذه المرحلة تمامًا واستبدالها بانتقال على النقر إلى `/ui`.
 
-استبدله بالكامل بـ (مع الحفاظ على نفس id):
-<Link
-  href="/editor"
-  id="center-unified-entity"
-  aria-label="فتح محرر النسخة"
-  className="unified-entity relative w-full h-full flex items-center justify-center block pointer-events-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD700]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-2xl"
->
+---
 
-ملاحظة: لا تغيّر أي شيء آخر داخل هذا الـ Link.
+# خطوات التنفيذ التفصيلية (نفّذ بالترتيب)
 
-### 1.2) جعل "فتح التطبيق" يظهر على الموبايل بدل الاعتماد على hover فقط
-ابحث عن div الذي يحتوي النص "فتح التطبيق" داخل عناصر grid (داخل Link الخاص بكل cell) وستجده بهذه الكلاسات:
-className="text-[10px] md:text-xs text-[#FFD700] opacity-0 group-hover:opacity-100 ..."
+## (A) إنشاء Modal فيديو واضح (CTA: اضغط على الفيديو)
+1) أنشئ ملف: `frontend/src/components/IntroVideoModal.tsx` بـ `"use client"`.
+2) مواصفات المودال:
+   - Props:
+     - `open: boolean`
+     - `onClose: () => void`
+     - `videoSrc: string`
+     - `title?: string` (اختياري)
+   - عند `open=true`:
+     - Overlay يغطي الشاشة (dark backdrop).
+     - صندوق (Modal) في المنتصف مع:
+       - عنوان بسيط (مثلا: “فيديو تعريفي”).
+       - عنصر `<video controls autoPlay>` أو `<iframe>` حسب المصدر.
+       - زر إغلاق واضح + إغلاق عند الضغط خارج الصندوق + إغلاق عند ESC.
+   - Accessibility:
+     - `role="dialog" aria-modal="true"`
+     - Focus trap بسيط إن أمكن بدون مكتبات: عند الفتح ركّز زر الإغلاق، وعند الإغلاق أعد التركيز لزر CTA.
 
-غيّرها إلى:
-className="text-[10px] md:text-xs text-[#FFD700] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 uppercase tracking-widest font-medium"
+> استخدم مصدر فيديو placeholder ثابت مؤقتًا (يمكن استخدام نفس pixabay أو أي URL موجود عندك) لكن اجعل `videoSrc` قابلاً للتغيير من HeroAnimation.
 
-الهدف:
-- موبايل: مرئي دائمًا
-- md+ : مخفي حتى hover مثل السابق
+## (B) تعديل HeroAnimation: زر الفيديو + تحويل “الكيان” لينتقل إلى /ui
+افتح: `frontend/src/components/HeroAnimation.tsx` ونفّذ:
 
-### 1.3) إضافة CTA Overlay (زر + تلميح) بدون كسر المشهد
-داخل نفس المكون HeroAnimation، أضف هذا البلوك مرة واحدة فقط:
-- مكان الإضافة: بعد إغلاق </div> الخاص بـ .scene-container مباشرةً، وقبل <div ref={triggerRef} ...>
+1) عدّل Link الكيان المركزي:
+   - غيّر:
+     - `href="/editor"`  →  `href="/ui"`
+   - غيّر `aria-label` ليعكس السلوك:
+     - من “فتح محرر النسخة” → “فتح قائمة أدوات النسخة”
+   - لا تغيّر هيكلة الـ V-shape نفسها.
 
-أضف:
-{/* CTA / UX Hint */}
-<div className="hero-cta fixed bottom-6 left-0 right-0 z-[10020] flex flex-col items-center gap-3 opacity-0 pointer-events-none">
-  <Link
-    href="/editor"
-    className="pointer-events-auto inline-flex items-center justify-center rounded-full px-6 py-3 text-sm md:text-base font-semibold bg-white/10 hover:bg-white/15 active:bg-white/20 border border-white/15 backdrop-blur-md"
-    aria-label="افتح المحرر الآن"
-  >
-    افتح المحرر
-  </Link>
-  <div className="text-xs md:text-sm text-white/60 tracking-wider">
-    اسحب لأسفل لاستكشاف أدوات النسخة
-  </div>
-</div>
+2) عدّل CTA السفلي (`.hero-cta`) ليصبح:
+   - زر أساسي: “اضغط على الفيديو”
+   - سطر إرشادي صغير (بدل “اسحب لأسفل…”):
+     - “اضغط على الكروت لفتح الأدوات”
+   - مثال مطلوب (لا تلتزم بالنص حرفيًا إن كان عندك توحيد صياغة، لكن حافظ على المعنى):
+     - زر CTA: يفتح الـ Modal
+     - النص الإرشادي: يوضح أن النقر على الكروت ينقل للـ Launcher
 
-قيود:
-- لا تغيّر z-index الحالي للمشهد (استخدم z المذكور فقط).
-- لا تستخدم مكونات UI إضافية، أبقها Tailwind فقط.
+3) اربط زر CTA بالمودال:
+   - أضف state:
+     - `const [introOpen, setIntroOpen] = useState(false)`
+   - عند الضغط على CTA:
+     - `setIntroOpen(true)`
+   - أضف `<IntroVideoModal open={introOpen} onClose={()=>setIntroOpen(false)} videoSrc="..."/>` داخل JSX (على مستوى root).
 
-بعد إنهاء هذا الملف:
-- شغّل: pnpm --filter frontend lint
+4) مهم جدًا: إصلاح pointer events إن لزم
+   - في `HeroAnimation.tsx` يوجد wrapper:
+     - `.scene-container ... pointer-events-none`
+   - تأكد فعليًا أن النقر على:
+     - زر CTA
+     - الكيان المركزي (Link)
+   يعمل على المتصفح.
+   - إن كان `pointer-events-none` يمنع النقر:
+     - غيّر `.scene-container` إلى `pointer-events-auto`
+     - وابقِ العناصر غير التفاعلية `pointer-events-none` داخليًا (مثل طبقات النص/اللمعات) حتى لا تتعارض.
 
-## 2) تعديل use-hero-animation.ts: إظهار CTA في التوقيت الصحيح + رفع z-index للنصوص
-افتح: frontend/src/hooks/use-hero-animation.ts
+> لا تغيّر behavior بصريًا، فقط ضمّن أن النقر يعمل.
 
-### 2.1) رفع z-index للنصوص حتى لا تغرق تحت البطاقات
-ابحث عن Phase 2 حيث يوجد:
-tl.fromTo(".text-content-wrapper", ..., { ..., zIndex: 30, ... })
-وغيّر zIndex إلى:
-zIndex: 10050
+## (C) تعطيل مرحلة الـ Grid الداخلي (Phase 7) وإزالة “التمرير الطويل الفارغ”
+افتح: `frontend/src/hooks/use-hero-animation.ts` ونفّذ:
 
-ثم ابحث عن:
-tl.fromTo(".dedication-wrapper", ..., { ..., zIndex: 29, ... })
-وغيّر zIndex إلى:
-zIndex: 10049
+1) احذف/عطّل كامل مقطع Phase 7 ابتداءً من التعليق:
+   - `// ===== المرحلة 7: Grid 4x4 Zoom Out Effect =====`
+   وحتى نهاية الجزء الذي يظهر `.portfolio-item-container`.
 
-ثم ابحث عن tl.set(".phase-5-wrapper", { ... }) وأضف داخله:
-zIndex: 10048
+2) بما أنك أزلت Phase 7:
+   - عدّل `ScrollTrigger.end` من:
+     - `end: "+=8000"`
+     إلى قيمة أصغر تمنع “pin بلا أحداث”.
+   - اجعلها تقريبًا:
+     - `end: "+=5200"` كبداية
+   - ثم اضبطها بدقة حسب طول المراحل الفعلية بعد الحذف (المعيار: بعد انتهاء آخر Tween يجب أن ينتهي الـ Scroll بدون فراغ طويل).
 
-(لا تغيّر أي قيم أخرى في هذه البلوكات)
+3) لا تُظهر CTA مبكرًا أثناء وجود فيديو الماسك
+   - حاليًا CTA يظهر بعد ظهور الهيدر تقريبًا.
+   - المطلوب: CTA يظهر عندما تصبح السبع كروت في وضع “Portal جاهز” (بعد Phase 3/5).
+   - نفّذ ذلك هكذا:
+     - أزِل/انقل Tween إظهار `.hero-cta` من Phase 1
+     - واجعله بعد انتهاء:
+       - `tl.to(".phase-3-img", ...)` (التموضع النهائي)
+       - ثم بعد Phase 5 (لو تريد أن يسبق/يتزامن مع ظهور النص السفلي)
+   - اجعل الترتيب:
+     - الفيديو يختفي + الهيدر يظهر
+     - النصوص تظهر
+     - الكروت تتموضع
+     - ثم CTA يظهر (زر الفيديو + الإرشاد)
 
-### 2.2) إظهار CTA بعد انتهاء مرحلة الفيديو وبداية ظهور العنوان
-بعد بلوك إظهار الهيدر مباشرة (tl.to(".fixed-header", ...)) أو مباشرة بعد أول tl.fromTo الخاص بالعنوان،
-أضف خطوة جديدة لإظهار CTA:
+4) لا تلمس Phase 5 الخاصة بتبديل الإهداء/النص السفلي
+   - اتركها كما هي (لا حذف ولا إلغاء)، فقط أوقف ما بعد ذلك (Phase 7).
 
-tl.to(
-  ".hero-cta",
-  {
-    opacity: 1,
-    duration: 0.8,
-    ease: "power2.out",
-    pointerEvents: "auto",
-  },
-  "-=0.6",
-)
+## (D) إنشاء صفحة `/ui` (Launcher Grid) — Route جديد
+أنشئ ملف: `frontend/src/app/(main)/ui/page.tsx`
 
-المهم:
-- يجب أن تظهر CTA عندما يبدأ "بس اصلي" في الظهور (وليس أثناء الفيديو الأبيض).
+1) يجب أن يكون الملف `"use client"` لأننا سنستخدم responsive values/صور/تفاعلات.
+2) ابنِ Grid 4×4 مطابق بصريًا لما كان داخل الهيرو (أو قريب جدًا):
+   - Outer container: خلفية سوداء + padding + grid.
+   - `grid grid-cols-4 grid-rows-4 gap-2 md:gap-4`
+3) **الخلية المركزية (2×2)**:
+   - `col-span-2 row-span-2`
+   - تكون `<Link href="/editor">`
+   - تحتوي:
+     - عنوان كبير: “النسخة”
+     - سطر صغير: “بس اصلي”
+     - تلميح صغير: “افتح المحرر” (اختياري)
+   - خلفية: شكل قريب من لقطة الهيرو (يفضل تضمين 7 صور V-shape مصغرة داخل الكارت).
+     - أعد استخدام `images` من `@/lib/images` (الـ 0–6 هي صور الـ V-shape).
+     - استخدم نفس فكرة الـ `cardPositions` من `heroConfig.getResponsiveValues(window.innerWidth)` لعمل V-shape داخل الكارت (بنفس المنطق الموجود في الهيرو) لكن داخل مساحة الكارت المركزي.
+     - إن كانت الحسابات لا تلائم داخل الكارت، طبّق `scale` داخلي (مثلا 0.6) مع `transformOrigin: center`.
 
-### 2.3) إخفاء CTA قبل/أثناء الانتقال إلى Grid 4×4 (Phase 7)
-قبل خطوة إظهار grid أو بالتزامن مع بداية تقليص .frozen-container (أول سطر في المرحلة 7 تقريبًا)،
-أضف:
+4) الـ 12 كارت المحيطة:
+   - استخدم نفس mapping الخاص بالـ indices (0–15 باستثناء 5,6,9,10) كما في `HeroAnimation.tsx` لتوحيد السلوك.
+   - routes الموجودة في المشروع (موجودة بالفعل كـ page.tsx):
+     - `/brain-storm-ai`
+     - `/brainstorm`
+     - `/breakdown`
+     - `/cinematography-studio`
+     - `/development`
+     - `/directors-studio`
+     - `/editor` (لكن لا تضعها هنا لأن المركزي يفتحها)
+     - `/metrics-dashboard`
+     - `/new`
+     - `/analysis`
+     - `/arabic-creative-writing-studio`
+     - `/arabic-prompt-engineering-studio`
+     - `/actorai-arabic`
+   - إذا لديك عنصر في mapping يشير لroute غير موجود:
+     - اعرضه Disabled:
+       - بدون `<Link>`
+       - Overlay نص: “قريبًا”
+       - `aria-disabled="true"`
+       - Cursor: not-allowed
+5) الصور:
+   - أعد استخدام `ImageWithFallback` من `@/components/figma/ImageWithFallback`
+   - وأعد استخدام `images` من `@/lib/images` لأخذ صور لكل كارت.
 
-tl.to(
-  ".hero-cta",
-  {
-    opacity: 0,
-    duration: 0.4,
-    ease: "power2.inOut",
-    pointerEvents: "none",
-  },
-  "<",
-)
+6) RTL:
+   - ضع `dir="rtl"` على الصفحة.
 
-حتى لا تظل CTA فوق شبكة التطبيقات.
+> ملاحظة: وجود `frontend/src/app/(main)/ui/index.ts` لا يمنع إنشاء route. فقط أضف `page.tsx` ولا تلمس `index.ts`.
 
-بعد إنهاء هذا الملف:
-- شغّل:
-  - pnpm --filter frontend lint
-  - pnpm --filter frontend typecheck
+## (E) ربط Home → /ui
+- بعد تغيير Link الكيان المركزي في الهيرو إلى `/ui` تكون عملية الربط تمت.
+- لا تستخدم scroll-based transition لهذا الربط: النقر فقط هو الذي يذهب لـ `/ui`.
 
-## 3) تحقق نهائي إلزامي
-من جذر المشروع شغّل بالترتيب:
-- pnpm lint
-- pnpm typecheck
-- pnpm test
-- pnpm build
+---
 
-ثم تحقق يدويًا (تشغيل dev) من السيناريوهات التالية:
-1) عند لقطة "بس اصلي" يظهر زر "افتح المحرر" + تلميح السحب.
-2) الضغط على الزر يفتح /editor.
-3) الضغط على الكيان المركزي (الـ V-cards في المنتصف) يفتح /editor أيضًا.
-4) في Grid 4×4 على الموبايل: "فتح التطبيق" مرئي أسفل اسم كل تطبيق بدون hover.
-5) أثناء دخول البطاقات: النصوص لا تُغطّى تحت البطاقات (z-index).
+# معايير قبول صارمة (Acceptance Criteria)
+1) Home:
+   - الأنيميشن يعمل حتى تموضع الكروت كما كان.
+   - لا يحدث تقليص/تحول Grid داخل نفس الصفحة.
+   - زر “اضغط على الفيديو” يظهر في شاشة السبع كروت (Portal-ready) ويعمل ويفتح مودال فيديو.
+   - النقر على السبع كروت (الكيان الموحد) ينقلك إلى `/ui`.
+2) /ui:
+   - Grid 4×4 ظاهر، والكارت المركزي (2×2) يفتح `/editor`.
+   - الـ 12 كارت المحيطة تفتح الـ routes الموجودة.
+   - أي كارت لميزة غير جاهزة يظهر “قريبًا” ومُعطّل بدون navigation.
+3) لا توجد أخطاء TypeScript أو build.
+4) لا تغييرات غير لازمة في التصميم العام، ولا إدخال مكتبات.
+5) لا حذف للإهداء أو عناصره من الهيرو.
 
-# تسليم التغييرات
-- لا تغيّر أي ملفات غير المذكورة في نطاق الملفات.
-- اذكر في الملخص النهائي الملفات التي تغيّرت فقط مع سطرين يشرحان ماذا تغير.
-- إذا فشل أي اختبار/بناء: أصلحه قبل التسليم ولا تترك TODOs أو تعليقات مؤقتة.
+---
+
+# اختبار وتنفيذ (إلزامي قبل التسليم)
+نفّذ محليًا:
+- `pnpm -C frontend lint` (أو أمر lint المعتمد)
+- `pnpm -C frontend build`
+- افتح:
+  - `/` وتأكد من النقر والـ modal
+  - `/ui` وتأكد من الـ grid والروابط
+  - `/editor` يعمل من `/ui`
+
+ثم سلّم:
+- قائمة الملفات التي تغيّرت + ملخص سطرين لكل ملف.
+- لقطتين (أو وصف دقيق) تؤكد سلوك Home و /ui.
+```

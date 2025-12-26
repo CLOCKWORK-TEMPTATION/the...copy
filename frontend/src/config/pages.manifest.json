@@ -64,6 +64,11 @@
       "slug": "new",
       "path": "/new",
       "title": "جديد"
+    },
+    {
+      "slug": "ui",
+      "path": "/ui",
+      "title": "ui"
     }
   ],
   "metadata": {
