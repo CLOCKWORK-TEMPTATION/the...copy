@@ -1,6 +1,7 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, type CSSProperties } from "react"
+
 import Link from "next/link"
 import { VideoTextMask } from "./VideoTextMask"
 import { useHeroAnimation } from "@/hooks/use-hero-animation"
@@ -28,6 +29,13 @@ const APP_MAPPING: Record<number, { route: string; label: string }> = {
   // التطبيقات الإضافية
   14: { route: "/brainstorm", label: "منصة Jules" },
   15: { route: "/development", label: "التطوير" },
+}
+
+const HERO_CARD_IMAGE_STYLES: Record<string, CSSProperties> = {
+  "/assets/v-shape/V-Shape-3.jpeg": {
+    objectFit: "contain",
+    backgroundColor: "rgba(5, 5, 5, 0.9)",
+  },
 }
 
 export const HeroAnimation = () => {
@@ -90,11 +98,18 @@ export const HeroAnimation = () => {
                       className="group block w-full h-full relative cursor-pointer pointer-events-auto"
                       aria-label={appData?.label || `Design ${i + 1}`}
                     >
-                      <ImageWithFallback
-                        src={getImage(i)}
-                        alt={appData?.label || `Portfolio Design ${i + 1}`}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
+                      {(() => {
+                        const imageSrc = getImage(i)
+                        const imageStyle = HERO_CARD_IMAGE_STYLES[imageSrc]
+                        return (
+                          <ImageWithFallback
+                            src={imageSrc}
+                            alt={appData?.label || `Portfolio Design ${i + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            style={imageStyle}
+                          />
+                        )
+                      })()}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-300" />
 
                       {/* Active Border Effect on Hover */}
@@ -105,7 +120,7 @@ export const HeroAnimation = () => {
                           {appData?.label}
                         </div>
                         {appData?.route !== "#" && (
-                          <div className="text-[10px] md:text-xs text-[#FFD700] opacity-0 group-hover:opacity-100 transition-opacity duration-300 uppercase tracking-widest font-medium">
+                          <div className="text-[10px] md:text-xs text-[#FFD700] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 uppercase tracking-widest font-medium">
                             فتح التطبيق
                           </div>
                         )}
@@ -122,8 +137,9 @@ export const HeroAnimation = () => {
         <div className="frozen-container relative w-full h-full flex items-center justify-center origin-center pointer-events-none">
           <Link
             href="/editor"
-            className="unified-entity relative w-full h-full flex items-center justify-center block"
             id="center-unified-entity"
+            aria-label="فتح محرر النسخة"
+            className="unified-entity relative w-full h-full flex items-center justify-center block pointer-events-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD700]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-2xl"
           >
             {/* V-Shape Container */}
             <div className="v-shape-container absolute top-0 left-0 w-full h-full m-0 p-0">
@@ -144,11 +160,18 @@ export const HeroAnimation = () => {
                       }}
                     >
                       <div className="card-elite w-full h-full overflow-hidden relative">
-                        <ImageWithFallback
-                          src={getImage(i)}
-                          alt={`Scene ${i}`}
-                          className="w-full h-full object-cover"
-                        />
+                        {(() => {
+                          const imageSrc = getImage(i)
+                          const imageStyle = HERO_CARD_IMAGE_STYLES[imageSrc]
+                          return (
+                            <ImageWithFallback
+                              src={imageSrc}
+                              alt={`Scene ${i}`}
+                              className="w-full h-full object-cover"
+                              style={imageStyle}
+                            />
+                          )
+                        })()}
                         <div className="hero-card-sheen absolute inset-0 pointer-events-none" />
                       </div>
                     </div>
@@ -183,6 +206,20 @@ export const HeroAnimation = () => {
               </div>
             </div>
           </Link>
+        </div>
+      </div>
+
+      {/* CTA / UX Hint */}
+      <div className="hero-cta fixed bottom-6 left-0 right-0 z-[10020] flex flex-col items-center gap-3 opacity-0 pointer-events-none">
+        <Link
+          href="/editor"
+          className="pointer-events-auto inline-flex items-center justify-center rounded-full px-6 py-3 text-sm md:text-base font-semibold bg-white/10 hover:bg-white/15 active:bg-white/20 border border-white/15 backdrop-blur-md"
+          aria-label="افتح المحرر الآن"
+        >
+          افتح المحرر
+        </Link>
+        <div className="text-xs md:text-sm text-white/60 tracking-wider">
+          اسحب لأسفل لاستكشاف أدوات النسخة
         </div>
       </div>
 
