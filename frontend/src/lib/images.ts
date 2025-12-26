@@ -2,9 +2,9 @@
 const images: string[] = [
   // 0-6: The V-Shape Images (High impact cinema scenes)
   "/assets/v-shape/ChatGPT-Image-1.png", // Cinema Projector
-  "/assets/v-shape/ChatGPT-Image-2.png", // Movie Theater Dark
+  "/assets\v-shape\V-Shape-4.png", // Movie Theater Dark
   "/assets/v-shape/V-Shape-3.jpeg", // Film Reels
-  "/assets/v-shape/V-Shape-4.png", // Movie Set Light
+  "/assets\v-shape\ChatGPT-Image-2.png", // Movie Set Light
   "/assets/v-shape/V-Shape-5.png", // Old Cinema
   "/assets/v-shape/V-Shape-6.png", // Clapperboard
   "/assets/v-shape/V-Shape-7.jpg", // Director Chair
