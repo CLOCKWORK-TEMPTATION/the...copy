@@ -1,13 +1,14 @@
 // Cinema & Series Theme Images (High Quality, Dramatic, B&W/Muted style preferred)
 const images: string[] = [
   // 0-6: The V-Shape Images (High impact cinema scenes)
-  "/صور حرف v/ChatGPT Image Dec 26, 2025, 09_27_00 AM.png", // Cinema Projector
-  "/صور حرف v/ChatGPT Image Dec 26, 2025, 12_20_49 PM.png", // Movie Theater Dark
-  "/صور حرف v/a-vertical-post-impressionist-painting-i_VxSVMjXIREeheWN05hCqMg_m76ox95qSVSqW363qOTKJA.jpeg", // Film Reels
-  "/صور حرف v/generation-52f62429-a6e5-48c9-8ced-711ec1d94c3c (1).png", // Movie Set Light
-  "/صور حرف v/generation-b16b25ce-5b1c-44bf-a263-2f8b07b5cc58.png", // Old Cinema
-  "/صور حرف v/generation-fe766630-eb65-4bba-8d29-7a791986ae52.png", // Clapperboard
-  "/صور حرف v/lucid-origin_AAt_the_heart_of_the_composition_stands_a_shrine_lavishly_adorned_with_Arabic_Is-0.jpg", // Director Chair
+  "/assets/v-shape/ChatGPT-Image-1.png", // Cinema Projector
+  "/assets/v-shape/ChatGPT-Image-2.png", // Movie Theater Dark
+  "/assets/v-shape/V-Shape-3.jpeg", // Film Reels
+  "/assets/v-shape/V-Shape-4.png", // Movie Set Light
+  "/assets/v-shape/V-Shape-5.png", // Old Cinema
+  "/assets/v-shape/V-Shape-6.png", // Clapperboard
+  "/assets/v-shape/V-Shape-7.jpg", // Director Chair
+
   // 7-18: The Surrounding Grid Images (Atmospheric, Behind the scenes)
   "https://images.unsplash.com/photo-1533488765986-dfa2a9939acd?q=80&w=1080&auto=format&fit=crop", // Vintage Camera
   "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=1080&auto=format&fit=crop", // Film Studio
