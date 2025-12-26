@@ -5,15 +5,14 @@ node_modules/
 /.pnp
 .pnp.*
 
-# Environment variables
+# Environment variables - ALL VARIATIONS
 .env
 .env.local
 .env.development
 .env.production
 .env.test
-# Ensure specific files are ignored
-.env.local
-.env.production
+.env.blue
+.env.green
 
 # Next.js build output
 .next/
@@ -28,6 +27,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+build_log*.txt
 
 # Runtime data
 pids
@@ -41,6 +41,7 @@ coverage/
 *.lcov
 .nyc_output/
 lib-cov
+test-results.json
 
 # TypeScript
 *.tsbuildinfo
@@ -59,9 +60,24 @@ typings/
 *.tgz
 .yarn-integrity
 .node_repl_history
+package.json.*
+tsconfig.tsbuildinfo
 
 # System files
 .DS_Store
 *.pem
+
+# Sensitive files
+.npmrc
+vercel.json
+firestore.rules
+sentry.*.config.ts
+.env.sentry-build-plugin
+
+# Temporary & IDE files
+temp_files.txt
+.next/
+.vscode/
+.idea/
 
 
