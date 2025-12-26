@@ -8,7 +8,6 @@ const images: string[] = [
   "/صور حرف v/generation-b16b25ce-5b1c-44bf-a263-2f8b07b5cc58.png", // Old Cinema
   "/صور حرف v/generation-fe766630-eb65-4bba-8d29-7a791986ae52.png", // Clapperboard
   "/صور حرف v/lucid-origin_AAt_the_heart_of_the_composition_stands_a_shrine_lavishly_adorned_with_Arabic_Is-0.jpg", // Director Chair
-
   // 7-18: The Surrounding Grid Images (Atmospheric, Behind the scenes)
   "https://images.unsplash.com/photo-1533488765986-dfa2a9939acd?q=80&w=1080&auto=format&fit=crop", // Vintage Camera
   "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=1080&auto=format&fit=crop", // Film Studio
