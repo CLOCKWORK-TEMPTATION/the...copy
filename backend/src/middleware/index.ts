@@ -71,7 +71,7 @@ export const setupMiddleware = (app: express.Application): void => {
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-XSRF-TOKEN"],
       exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
       maxAge: 86400, // 24 hours
     })
@@ -95,7 +95,7 @@ export const setupMiddleware = (app: express.Application): void => {
           scriptSrc,
           styleSrc,
           imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: ["'self'"],
+          connectSrc: ["'self'", "https://o*.ingest.sentry.io", process.env.OTEL_EXPORTER_OTLP_ENDPOINT ? new URL(process.env.OTEL_EXPORTER_OTLP_ENDPOINT).origin : ""].filter(Boolean),
           fontSrc: ["'self'"],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],

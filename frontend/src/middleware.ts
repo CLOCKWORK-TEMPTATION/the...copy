@@ -31,9 +31,10 @@ export function middleware(request: NextRequest) {
     "https://*.googleapis.com",
     "https://identitytoolkit.googleapis.com",
     "https://securetoken.googleapis.com",
+    process.env.NEXT_PUBLIC_SENTRY_DSN ? new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).origin : "",
     "wss:",
     "ws:",
-  ];
+  ].filter(Boolean);
 
   if (isDevelopment && allowedDevOrigin) {
     connectSrcParts.push(allowedDevOrigin);
