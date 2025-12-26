@@ -69,6 +69,18 @@ export const useHeroAnimation = (
         "-=2.5",
       )
 
+      // Show CTA after header appears
+      tl.to(
+        ".hero-cta",
+        {
+          opacity: 1,
+          duration: 0.8,
+          ease: "power2.out",
+          pointerEvents: "auto",
+        },
+        "-=0.6",
+      )
+
       // Phase 2: Title + Dedication (CRITICAL FIX: Set initial positions)
       tl.fromTo(
         ".text-content-wrapper",
@@ -79,7 +91,7 @@ export const useHeroAnimation = (
           scale: 1,
           duration: 2,
           ease: "power2.out",
-          zIndex: 30,
+          zIndex: 10050,
         },
         "-=1.5",
       )
@@ -93,7 +105,7 @@ export const useHeroAnimation = (
           scale: 1,
           duration: 2,
           ease: "power2.out",
-          zIndex: 29,
+          zIndex: 10049,
         },
         "-=1.45",
       )
@@ -105,6 +117,7 @@ export const useHeroAnimation = (
           y: -240,
           scale: 1,
           opacity: 0,
+          zIndex: 10048,
         },
         "<",
       )
@@ -209,6 +222,18 @@ export const useHeroAnimation = (
           ease: "power2.inOut",
         },
         "+=0.5",
+      )
+
+      // Hide CTA before Grid transition
+      tl.to(
+        ".hero-cta",
+        {
+          opacity: 0,
+          duration: 0.4,
+          ease: "power2.inOut",
+          pointerEvents: "none",
+        },
+        "<",
       )
 
       // 7.2: Zoom Out - تقليص أكبر للحاوية لتبقى في الفراغ الأسود فقط
