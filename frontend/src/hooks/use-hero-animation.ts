@@ -38,7 +38,7 @@ export const useHeroAnimation = (
         scrollTrigger: {
           trigger: triggerRef.current,
           start: "top top",
-          end: "+=8000", // reduced from 12000 for better performance
+          end: "+=5200", // reduced - Phase 7 removed, only need through Phase 5
           scrub: 1.2, // improved from 2.5 for faster response
           pin: true,
           anticipatePin: 1,
@@ -67,18 +67,6 @@ export const useHeroAnimation = (
           ease: "power2.inOut",
         },
         "-=2.5",
-      )
-
-      // Show CTA after header appears
-      tl.to(
-        ".hero-cta",
-        {
-          opacity: 1,
-          duration: 0.8,
-          ease: "power2.out",
-          pointerEvents: "auto",
-        },
-        "-=0.6",
       )
 
       // Phase 2: Title + Dedication (CRITICAL FIX: Set initial positions)
@@ -208,148 +196,20 @@ export const useHeroAnimation = (
         "<+=0.05", // Start almost immediately after dedication starts fading
       )
 
-      // Keep "بس اصلي" visible during this transition (no fade out)
-      // It will fade later with the unified entity shrink
-
-      // ===== المرحلة 7: Grid 4x4 Zoom Out Effect =====
-
-      // 7.1: إخفاء الهيدر مع بداية التحول
-      tl.to(
-        ".fixed-header",
-        {
-          opacity: 0,
-          duration: 1.0,
-          ease: "power2.inOut",
-        },
-        "+=0.5",
-      )
-
-      // Hide CTA before Grid transition
+      // Show CTA after cards are positioned and النسخة text appears (Portal-ready state)
       tl.to(
         ".hero-cta",
         {
-          opacity: 0,
-          duration: 0.4,
-          ease: "power2.inOut",
-          pointerEvents: "none",
-        },
-        "<",
-      )
-
-      // 7.2: Zoom Out - تقليص أكبر للحاوية لتبقى في الفراغ الأسود فقط
-      tl.to(
-        ".frozen-container",
-        {
-          scale: 0.48, // تقليص أكبر ليناسب مساحة 2×2 في Grid 4×4 (الفراغ الأسود فقط)
-          duration: 2.5,
-          ease: "power4.out",
-          transformOrigin: "center center",
-        },
-        "<", // متزامن مع إخفاء الهيدر
-      )
-
-      // 7.3: إظهار Grid 4x4 Layout
-      tl.to(
-        ".portfolio-grid-4x4",
-        {
           opacity: 1,
-          duration: 1.5,
+          duration: 0.8,
           ease: "power2.out",
+          pointerEvents: "auto",
         },
-        "-=2.0", // يبدأ قبل انتهاء التقليص
+        "+=0.3", // After Phase 5 transition completes
       )
 
-      // إضافة الإطار والظلال للحاوية الداخلية
-      tl.to(
-        ".v-shape-container",
-        {
-          borderRadius: "2rem",
-          border: "1px solid rgba(255,255,255,0.2)",
-          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
-          duration: 4,
-          ease: "power3.inOut",
-        },
-        "<", // متزامن مع التقليص
-      )
-
-      // 7.4: تبديل النصوص فور انتهاء التقليص (قبل ظهور الصور)
-
-      // الخطوة 1: إخفاء "النسخة" السفلى أولاً
-      tl.to(
-        ".phase-5-wrapper",
-        {
-          opacity: 0,
-          duration: 0.3,
-          ease: "power2.inOut",
-        },
-        "-=0.5", // يبدأ قبل انتهاء التقليص بقليل
-      )
-
-      // الخطوة 2: إخفاء "بس اصلي" الكبيرة ثانياً
-      tl.to(
-        ".text-content-wrapper",
-        {
-          opacity: 0,
-          duration: 0.3,
-          ease: "power2.inOut",
-        },
-        "+=0.2", // بعد إخفاء النسخة
-      )
-
-      // الخطوة 3: تغيير محتوى النص السفلي إلى "بس اصلي"
-      tl.call(() => {
-        if (!containerRef.current) return
-        const secondaryTextRef = containerRef.current.querySelector(".phase-5-wrapper p")
-        if (secondaryTextRef) {
-          secondaryTextRef.textContent = "بس اصلي"
-        }
-      })
-
-      // الخطوة 4: إظهار "بس اصلي" في المكان السفلي
-      tl.to(
-        ".phase-5-wrapper",
-        {
-          opacity: 1,
-          duration: 0.4,
-          ease: "power2.inOut",
-        },
-        "+=0.1",
-      )
-
-      // الخطوة 5: تغيير محتوى النص الكبير إلى "النسخة"
-      tl.call(() => {
-        if (!containerRef.current) return
-        const mainTitleRef = containerRef.current.querySelector(".text-content-wrapper h1")
-        if (mainTitleRef) {
-          mainTitleRef.textContent = "النسخة"
-        }
-      })
-
-      // الخطوة 6: إظهار "النسخة" في المكان الكبير
-      tl.to(
-        ".text-content-wrapper",
-        {
-          opacity: 1,
-          duration: 0.4,
-          ease: "power2.inOut",
-        },
-        "+=0.2",
-      )
-
-      // 7.5: إظهار 12 Portfolio Items المحيطة بعد انتهاء تبديل النصوص
-      tl.to(
-        ".portfolio-item-container",
-        {
-          opacity: 1,
-          scale: 1,
-          duration: 1.8,
-          ease: "power4.out",
-          stagger: 0.08, // تأخير بين كل عنصر
-        },
-        "+=0.3", // بعد انتهاء تبديل النصوص
-      )
-
-      // انتهاء الأنيميشن مع النصوص المبدلة والصور
+      // Animation ends here - no Phase 7 Grid transformation
+      // User clicks on the V-shape portal to navigate to /ui
     }, containerRef)
 
     return () => {

@@ -1,35 +1,13 @@
 "use client"
 
-import { useRef, type CSSProperties } from "react"
+import { useRef, useState, type CSSProperties } from "react"
 
 import Link from "next/link"
 import { VideoTextMask } from "./VideoTextMask"
 import { useHeroAnimation } from "@/hooks/use-hero-animation"
 import { ImageWithFallback } from "./figma/ImageWithFallback"
+import { IntroVideoModal } from "./IntroVideoModal"
 import images from "@/lib/images"
-
-const CENTER_CELLS = [5, 6, 9, 10]
-
-const GRID_SIZE = 16
-const GRID_CENTER_START_INDEX = 5
-
-// Mapping for the 12 surrounding grid cells
-// Indices: 0-15, excluding 5, 6, 9, 10
-const APP_MAPPING: Record<number, { route: string; label: string }> = {
-  0: { route: "/directors-studio", label: "رؤية المخرج" },
-  1: { route: "/cinematography-studio", label: "التصوير السينمائي" },
-  2: { route: "/arabic-creative-writing-studio", label: "الكتابة الإبداعية" },
-  3: { route: "/arabic-prompt-engineering-studio", label: "هندسة التلقين" },
-  4: { route: "/actorai-arabic", label: "الممثل الذكي" },
-  7: { route: "/breakdown", label: "تحليل المشهد" },
-  8: { route: "/brain-storm-ai", label: "العصف الذهني" },
-  11: { route: "/metrics-dashboard", label: "لوحة التحليلات" },
-  12: { route: "/analysis", label: "التحليل الدرامي" },
-  13: { route: "/new", label: "مشروع جديد" },
-  // التطبيقات الإضافية
-  14: { route: "/brainstorm", label: "منصة Jules" },
-  15: { route: "/development", label: "التطوير" },
-}
 
 const HERO_CARD_IMAGE_STYLES: Record<string, CSSProperties> = {
   "/assets/v-shape/V-Shape-3.jpeg": {
@@ -41,6 +19,7 @@ const HERO_CARD_IMAGE_STYLES: Record<string, CSSProperties> = {
 export const HeroAnimation = () => {
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
+  const [introOpen, setIntroOpen] = useState(false)
 
   const { responsiveValues } = useHeroAnimation(containerRef, triggerRef)
 
@@ -64,87 +43,18 @@ export const HeroAnimation = () => {
 
       <div className="scene-container fixed inset-0 z-[10000] flex items-center justify-center pointer-events-none">
 
-        {/* Phase 7: 4x4 Grid Layout (16 cells total) */}
-        <div className="portfolio-grid-4x4 absolute inset-0 w-full h-full opacity-0 p-4">
-          <div className="grid grid-cols-4 grid-rows-4 gap-2 md:gap-4 w-full h-full">
-            {/* Generate 16 grid cells */}
-            {Array.from({ length: GRID_SIZE }, (_, i) => {
-              // Center 4 cells (indices 5,6,9,10) for unified entity
-              const isCenterCell = CENTER_CELLS.includes(i)
-              // Skip rendering individual cells for center area
-              if (isCenterCell && i !== GRID_CENTER_START_INDEX) return null
-
-              const appData = APP_MAPPING[i];
-
-              return (
-                <div
-                  key={`grid-cell-${i}`}
-                  className={`grid-cell relative rounded-lg overflow-hidden ${isCenterCell
-                    ? 'col-span-2 row-span-2 unified-entity-grid-container'
-                    : 'portfolio-item-container opacity-0 transform-gpu'
-                    }`}
-                  style={{
-                    backgroundColor: isCenterCell ? 'transparent' : 'rgba(255,255,255,0.05)',
-                    border: isCenterCell ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                  }}
-                >
-                  {isCenterCell ? (
-                    // Center area - clean space for unified entity (no text artifacts)
-                    <div className="unified-entity-placeholder w-full h-full" />
-                  ) : (
-                    // Portfolio items for surrounding cells
-                    <Link
-                      href={appData?.route || "#"}
-                      className="group block w-full h-full relative cursor-pointer pointer-events-auto"
-                      aria-label={appData?.label || `Design ${i + 1}`}
-                    >
-                      {(() => {
-                        const imageSrc = getImage(i)
-                        const imageStyle = HERO_CARD_IMAGE_STYLES[imageSrc]
-                        return (
-                          <ImageWithFallback
-                            src={imageSrc}
-                            alt={appData?.label || `Portfolio Design ${i + 1}`}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            style={imageStyle}
-                          />
-                        )
-                      })()}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-300" />
-
-                      {/* Active Border Effect on Hover */}
-                      <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#FFD700]/50 transition-colors duration-300 rounded-lg" />
-
-                      <div className="absolute bottom-4 left-0 right-0 p-4 text-center">
-                        <div className="text-sm md:text-base font-bold text-white mb-1 drop-shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                          {appData?.label}
-                        </div>
-                        {appData?.route !== "#" && (
-                          <div className="text-[10px] md:text-xs text-[#FFD700] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 uppercase tracking-widest font-medium">
-                            فتح التطبيق
-                          </div>
-                        )}
-                      </div>
-                    </Link>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Original Unified Entity - Will be positioned in center during Phase 7 */}
+        {/* Original Unified Entity - Clickable Portal to /ui */}
         <div className="frozen-container relative w-full h-full flex items-center justify-center origin-center pointer-events-none">
           <Link
-            href="/editor"
+            href="/ui"
             id="center-unified-entity"
-            aria-label="فتح محرر النسخة"
+            aria-label="فتح قائمة أدوات النسخة"
             className="unified-entity relative w-full h-full flex items-center justify-center block pointer-events-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD700]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-2xl"
           >
             {/* V-Shape Container */}
             <div className="v-shape-container absolute top-0 left-0 w-full h-full m-0 p-0">
               <div className="v-shape-cards-layer absolute inset-0">
-                {responsiveValues.cardPositions.map((pos: any, i: number) => {
+                {responsiveValues.cardPositions.map((_pos: any, i: number) => {
                   const centerIndex = Math.floor(responsiveValues.cardPositions.length / 2)
                   const distanceFromCenter = Math.abs(i - centerIndex)
                   const zIndex = 10010 - distanceFromCenter
@@ -211,15 +121,15 @@ export const HeroAnimation = () => {
 
       {/* CTA / UX Hint */}
       <div className="hero-cta fixed bottom-6 left-0 right-0 z-[10020] flex flex-col items-center gap-3 opacity-0 pointer-events-none">
-        <Link
-          href="/editor"
-          className="pointer-events-auto inline-flex items-center justify-center rounded-full px-6 py-3 text-sm md:text-base font-semibold bg-white/10 hover:bg-white/15 active:bg-white/20 border border-white/15 backdrop-blur-md"
-          aria-label="افتح المحرر الآن"
+        <button
+          onClick={() => setIntroOpen(true)}
+          className="pointer-events-auto inline-flex items-center justify-center rounded-full px-6 py-3 text-sm md:text-base font-semibold bg-white/10 hover:bg-white/15 active:bg-white/20 border border-white/15 backdrop-blur-md cursor-pointer transition-colors"
+          aria-label="شاهد الفيديو التعريفي"
         >
-          افتح المحرر
-        </Link>
+          اضغط على الفيديو
+        </button>
         <div className="text-xs md:text-sm text-white/60 tracking-wider">
-          اسحب لأسفل لاستكشاف أدوات النسخة
+          اضغط على الكروت لفتح الأدوات
         </div>
       </div>
 
@@ -235,6 +145,14 @@ export const HeroAnimation = () => {
           />
         </div>
       </div>
+
+      {/* Intro Video Modal */}
+      <IntroVideoModal
+        open={introOpen}
+        onClose={() => setIntroOpen(false)}
+        videoSrc="https://cdn.pixabay.com/video/2025/11/09/314880.mp4"
+        title="فيديو تعريفي عن النسخة"
+      />
     </div>
   )
 }
