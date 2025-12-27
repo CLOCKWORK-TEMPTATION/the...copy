@@ -13,7 +13,7 @@ interface LauncherCenterCardProps {
  * Layout normalized حول مركز الكارت:
  * x,y كنسبة من عرض/ارتفاع المشهد (0 = المركز)
  * s = scale multiplier لحجم الكارت
- * r = rotation
+ * r = rotation ش
  * z = zIndex
  */
 const CARD_SCALE = 0.82;
