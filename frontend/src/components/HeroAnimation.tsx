@@ -106,9 +106,15 @@ export const HeroAnimation = () => {
                     </p>
                   </div>
 
-                  {/* Phase 5 Text: "بس اصلي" - السلوغن الثانوي بعد الإهداء */}
-                  <div className="phase-5-wrapper absolute pt-62 md:pt-40 mr-30 md:mr-32 opacity-0">
-                    <p className="unified-text-style">
+                  {/* Phase 5 Text: "بس اصلي" - بنفس موضع بطاقة الإطلاق */}
+                  <div
+                    className="phase-5-wrapper absolute left-1/2 -translate-x-1/2 text-center px-4 opacity-0"
+                    style={{ top: "12%" }}
+                  >
+                    <p
+                      className="text-white/65 font-medium drop-shadow-[0_12px_30px_rgba(0,0,0,0.75)]"
+                      style={{ fontSize: "clamp(12px, 1.6vw, 18px)" }}
+                    >
                       بس اصلي
                     </p>
                   </div>

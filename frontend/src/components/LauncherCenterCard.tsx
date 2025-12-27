@@ -1,129 +1,166 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import { ImageWithFallback } from "@/components/figma/ImageWithFallback"
-import images from "@/lib/images"
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
+import images from "@/lib/images";
 
 interface LauncherCenterCardProps {
-  className?: string
+  className?: string;
 }
 
-// V-Shape card positions matching the hero layout feel
-const CARD_POSITIONS = [
-  // Left side (ascending)
-  { left: "15%", top: "35%", width: 52, rotation: -12, zIndex: 1 },
-  { left: "24%", top: "45%", width: 56, rotation: -8, zIndex: 2 },
-  { left: "34%", top: "55%", width: 60, rotation: -4, zIndex: 3 },
-  // Center (front/bottom - largest)
-  { left: "50%", top: "62%", width: 72, rotation: 0, zIndex: 5 },
-  // Right side (ascending)
-  { left: "66%", top: "55%", width: 60, rotation: 4, zIndex: 3 },
-  { left: "76%", top: "45%", width: 56, rotation: 8, zIndex: 2 },
-  { left: "85%", top: "35%", width: 52, rotation: 12, zIndex: 1 },
-]
+/**
+ * Layout normalized حول مركز الكارت:
+ * x,y كنسبة من عرض/ارتفاع المشهد (0 = المركز)
+ * s = scale multiplier لحجم الكارت
+ * r = rotation
+ * z = zIndex
+ */
+const CARD_SCALE = 0.82;
+const V_LAYOUT = [
+  { x: -0.19, y: -0.01, s: CARD_SCALE, r: -7,  z: 1 }, // أعلى يسار
+  { x: -0.11, y:  0.07, s: CARD_SCALE, r: -4,  z: 2 }, // وسط يسار
+  { x: -0.03, y:  0.15, s: CARD_SCALE, r: -1,  z: 3 }, // أسفل يسار
+  { x:  0.05, y:  0.23, s: CARD_SCALE, r:  0,  z: 6 }, // المركز
+  { x:  0.13, y:  0.15, s: CARD_SCALE, r:  1,  z: 3 }, // أسفل يمين
+  { x:  0.21, y:  0.07, s: CARD_SCALE, r:  4,  z: 2 }, // وسط يمين
+  { x:  0.28, y: -0.01, s: CARD_SCALE, r:  7,  z: 1 }, // أعلى يمين
+];
+
+function useElementSize<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const el = ref.current;
+    const ro = new ResizeObserver(() => {
+      const rect = el.getBoundingClientRect();
+      setSize({ w: rect.width, h: rect.height });
+    });
+
+    ro.observe(el);
+    // init
+    const rect = el.getBoundingClientRect();
+    setSize({ w: rect.width, h: rect.height });
+
+    return () => ro.disconnect();
+  }, []);
+
+  return { ref, size };
+}
 
 export default function LauncherCenterCard({ className }: LauncherCenterCardProps) {
-  const router = useRouter()
+  const router = useRouter();
+  const { ref: sceneRef, size } = useElementSize<HTMLDivElement>();
 
-  // Use the first 7 images (V-shape images from hero)
-  const heroImages = images.slice(0, 7)
+  const heroImages = useMemo(() => {
+    const arr = Array.isArray(images) ? images : [];
+    return arr.slice(0, 7);
+  }, []);
 
-  const handleClick = () => {
-    router.push("/editor")
-  }
+  const goEditor = () => router.push("/editor");
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault()
-      handleClick()
-    }
-  }
+  // قاعدة حجم الكارت (يتناسب مع مساحة الكارت نفسها)
+  const baseW = useMemo(() => {
+    const w = size.w || 0;
+    const h = size.h || 0;
+    if (!w || !h) return 120; // fallback
+    // اختر حجمًا مريحًا: نسبة من أصغر بعد
+    const m = Math.min(w, h);
+    // اجعل القاعدة كبيرة بما يكفي لإظهار الـ V-Shape
+    return Math.max(110, Math.min(170, m * 0.22));
+  }, [size.w, size.h]);
+
+  // aspect 3/4 => height = width * 4/3
+  const aspectH = (w: number) => w * (4 / 3);
 
   return (
     <button
       type="button"
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      aria-label="افتح محرر النسخة"
-      className={`
-        relative w-full h-full overflow-hidden rounded-2xl
-        border border-white/15 bg-black
-        outline-none focus-visible:ring-2 focus-visible:ring-[#FFD700]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black
-        transition-all duration-300 hover:scale-[1.01] hover:border-[#FFD700]/40
-        cursor-pointer group
-        ${className ?? ""}
-      `}
+      onClick={goEditor}
+      aria-label="افتح المحرر"
+      className={[
+        "relative w-full h-full overflow-hidden rounded-2xl",
+        "border border-white/15 bg-black",
+        "outline-none focus-visible:ring-2 focus-visible:ring-[#FFD700]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
+        "transition-all duration-300 hover:scale-[1.01] hover:border-[#FFD700]/40",
+        "cursor-pointer",
+        className ?? "",
+      ].join(" ")}
     >
-      {/* Background vignette effect */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.06),rgba(0,0,0,0.95)_70%)]" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/90" />
+      {/* خلفية Vignette مثل الهيرو */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.08),rgba(0,0,0,0.92)_62%)]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-black/90" />
 
-      {/* Content container */}
-      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center px-4 text-center">
-        {/* Title section */}
-        <div className="mb-2 md:mb-4">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter text-white drop-shadow-[0_8px_20px_rgba(0,0,0,0.7)]">
-            النسخة
-          </h2>
-          <p className="mt-1 md:mt-2 text-sm md:text-base lg:text-lg text-white/70 font-medium">
-            بس اصلي
-          </p>
-        </div>
+      {/* مشهد السبع كروت: طبقة خلفية كاملة */}
+      <div ref={sceneRef} className="absolute inset-0 pointer-events-none">
+        {/* طبقة لمعة خفيفة */}
+        <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_50%_45%,rgba(255,215,0,0.08),transparent_55%)]" />
+        {heroImages.map((src, i) => {
+          const p = V_LAYOUT[i];
+          if (!p) return null;
 
-        {/* V-Shape cards scene */}
-        <div className="relative w-full max-w-[400px] h-[120px] sm:h-[150px] md:h-[180px] lg:h-[200px] mt-2 md:mt-4">
-          {heroImages.map((src, i) => {
-            const pos = CARD_POSITIONS[i]
-            if (!pos) return null
+          const w = baseW * p.s;
+          const h = aspectH(w);
 
-            // Responsive width multiplier
-            const baseWidth = pos.width
+          // مركز المشهد: منتصف الكارت، مع إمكان تحريك بسيط للأعلى
+          const cx = size.w * 0.5;
+          const cy = size.h * 0.52;
 
-            return (
-              <div
-                key={`v-card-${i}`}
-                className="absolute -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 group-hover:scale-105"
-                style={{
-                  left: pos.left,
-                  top: pos.top,
-                  width: `${baseWidth}px`,
-                  transform: `translate(-50%, -50%) rotate(${pos.rotation}deg)`,
-                  zIndex: pos.zIndex,
-                }}
-              >
-                <div className="relative overflow-hidden rounded-lg shadow-xl">
-                  {/* Golden glow ring */}
-                  <div className="absolute inset-0 rounded-lg ring-1 ring-[#FFD700]/60 shadow-[0_0_12px_rgba(255,215,0,0.3)]" />
-                  <ImageWithFallback
-                    src={src}
-                    alt=""
-                    className="w-full aspect-[3/4] object-cover rounded-lg"
-                  />
-                  {/* Subtle overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-lg" />
-                </div>
+          const left = cx + p.x * size.w;
+          const top = cy + p.y * size.h;
+
+          return (
+            <div
+              key={`vcard-${i}`}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{
+                left,
+                top,
+                width: w,
+                height: h,
+                transform: `translate(-50%, -50%) rotate(${p.r}deg)`,
+                zIndex: p.z,
+              }}
+            >
+              <div className="relative w-full h-full overflow-hidden rounded-xl">
+                {/* Glow ذهبي */}
+                <div className="absolute inset-0 rounded-xl ring-2 ring-[#FFD700]/55 shadow-[0_0_20px_rgba(255,215,0,0.25)]" />
+                <ImageWithFallback
+                  src={src}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
               </div>
-            )
-          })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* نصوص مثل “الصورة الثانية” */}
+      <div className="relative z-10 h-full w-full">
+        <div className="absolute top-[12%] left-1/2 -translate-x-1/2 text-center px-4">
+          <div className="text-[clamp(34px,6vw,92px)] font-black tracking-tighter text-white drop-shadow-[0_12px_30px_rgba(0,0,0,0.75)] leading-none">
+            النسخة
+          </div>
+          <div className="mt-2 text-[clamp(12px,1.6vw,18px)] text-white/65 font-medium">
+            بس اصلي
+          </div>
         </div>
 
-        {/* CTA Button (visual only - not a real button to avoid nested interactive) */}
-        <div className="mt-4 md:mt-6">
-          <span className="inline-flex items-center justify-center rounded-full border border-[#FFD700]/40 bg-white/10 hover:bg-white/15 px-5 py-2.5 md:px-6 md:py-3 text-sm md:text-base font-semibold text-white shadow-[0_8px_20px_rgba(0,0,0,0.5)] transition-colors duration-200 group-hover:border-[#FFD700]/60 group-hover:shadow-[0_8px_25px_rgba(255,215,0,0.15)]">
+        {/* CTA داخل الكارت */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center">
+          <span className="inline-flex items-center justify-center rounded-full border border-[#FFD700]/45 bg-white/10 px-6 py-3 text-sm md:text-base font-semibold text-white shadow-[0_10px_25px_rgba(0,0,0,0.55)]">
             افتح المحرر
           </span>
+          <div className="mt-2 text-[11px] md:text-xs text-white/45">
+            اضغط للدخول مباشرة
+          </div>
         </div>
-
-        {/* Hint text */}
-        <p className="mt-2 md:mt-3 text-[10px] md:text-xs text-white/40">
-          اضغط للدخول مباشرة
-        </p>
-      </div>
-
-      {/* Hover glow overlay */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700]/5 via-transparent to-[#FFD700]/5" />
       </div>
     </button>
-  )
+  );
 }
