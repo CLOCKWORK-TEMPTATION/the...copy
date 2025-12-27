@@ -173,8 +173,9 @@ export const useHeroAnimation = (
         3.5,
       )
 
-      // Phase 5: CRITICAL FIX - Direct transition from dedication to النسخة
-      // Hide dedication text immediately
+      // Phase 5: Crossfade from dedication to slogan "بس اصلي"
+      // H1 "النسخة" stays visible throughout - only the secondary text changes
+      // Hide dedication text
       tl.to(
         ".dedication-wrapper",
         {
@@ -185,7 +186,7 @@ export const useHeroAnimation = (
         "+=0.4",
       )
 
-      // CRITICAL FIX: Show النسخة immediately after dedication fades (no intermediate step)
+      // Show "بس اصلي" slogan immediately after dedication fades
       tl.to(
         ".phase-5-wrapper",
         {
@@ -196,7 +197,7 @@ export const useHeroAnimation = (
         "<+=0.05", // Start almost immediately after dedication starts fading
       )
 
-      // Show CTA after cards are positioned and النسخة text appears (Portal-ready state)
+      // Show CTA after cards are positioned and slogan appears (Portal-ready state)
       tl.to(
         ".hero-cta",
         {

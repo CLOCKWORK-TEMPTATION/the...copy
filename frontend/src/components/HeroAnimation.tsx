@@ -90,14 +90,14 @@ export const HeroAnimation = () => {
               </div>
 
               <div className="main-content-wrapper relative flex flex-col items-center justify-center text-center w-full h-full">
-                {/* Main Title: "بس اصلي" */}
+                {/* Main Title: "النسخة" - الكبير دايماً */}
                 <div className="text-content-wrapper flex flex-col items-center justify-center w-auto z-30 -ml-0.5 opacity-0">
                   <h1 className="text-main text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-black tracking-tighter leading-tight text-center drop-shadow-2xl">
-                    بس اصلي
+                    النسخة
                   </h1>
                 </div>
 
-                {/* CRITICAL FIX: Dedication and النسخة use SAME positioning wrapper */}
+                {/* Secondary texts container - Dedication then Slogan */}
                 <div className="text-overlay-container absolute inset-0 z-[54] flex flex-col items-center justify-center pointer-events-none">
                   {/* Dedication Text: "اهداء ليسري نصر الله" */}
                   <div className="dedication-wrapper absolute pt-62 md:pt-40 mr-30 md:mr-32 opacity-0">
@@ -106,10 +106,10 @@ export const HeroAnimation = () => {
                     </p>
                   </div>
 
-                  {/* Phase 5 Text: "النسخة" - SAME COORDINATES as dedication */}
+                  {/* Phase 5 Text: "بس اصلي" - السلوغن الثانوي بعد الإهداء */}
                   <div className="phase-5-wrapper absolute pt-62 md:pt-40 mr-30 md:mr-32 opacity-0">
                     <p className="unified-text-style">
-                      النسخة
+                      بس اصلي
                     </p>
                   </div>
                 </div>
