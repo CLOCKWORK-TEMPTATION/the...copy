@@ -53,8 +53,7 @@ function useElementSize<T extends HTMLElement>() {
 
 export default function LauncherCenterCard({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
-  const sceneRef = useRef<HTMLDivElement>(null);
-  const { size } = useElementSize(sceneRef);
+  const { ref: sceneRef, size } = useElementSize<HTMLDivElement>();
 
   useEffect(() => {
     setMounted(true);
