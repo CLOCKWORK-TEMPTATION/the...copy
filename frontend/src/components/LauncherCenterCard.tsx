@@ -142,13 +142,13 @@ export default function LauncherCenterCard({ className }: LauncherCenterCardProp
           <div className="text-[clamp(34px,6vw,92px)] font-black tracking-tighter text-white drop-shadow-[0_12px_30px_rgba(0,0,0,0.75)] leading-none">
             النسخة
           </div>
-          <div className="mt-2 text-[clamp(12px,1.6vw,18px)] text-white/65 font-medium">
+          <div className="mt-6 md:mt-8 text-[clamp(12px,1.6vw,18px)] text-white/65 font-medium">
             بس اصلي
           </div>
         </div>
 
         {/* CTA داخل الكارت */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-center">
           <span className="inline-flex items-center justify-center rounded-full border border-[#FFD700]/45 bg-white/10 px-6 py-3 text-sm md:text-base font-semibold text-white shadow-[0_10px_25px_rgba(0,0,0,0.55)]">
             افتح المحرر
           </span>
