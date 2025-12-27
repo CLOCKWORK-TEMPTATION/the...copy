@@ -105,12 +105,8 @@ export default function LauncherCenterCard({ className }: LauncherCenterCardProp
           const w = baseW * p.s;
           const h = aspectH(w);
 
-          // مركز المشهد: منتصف الكارت، مع إمكان تحريك بسيط للأعلى
-          const cx = size.w * 0.5;
-          const cy = size.h * 0.52;
-
-          const left = cx + p.x * size.w;
-          const top = cy + p.y * size.h;
+          const left = `calc(50% + ${p.x * 100}%)`;
+          const top = `calc(52% + ${p.y * 100}%)`;
 
           return (
             <div
