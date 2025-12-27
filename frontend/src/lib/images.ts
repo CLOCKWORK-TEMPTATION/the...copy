@@ -1,14 +1,13 @@
 // Cinema & Series Theme Images (High Quality, Dramatic, B&W/Muted style preferred)
 const images: string[] = [
   // 0-6: The V-Shape Images (High impact cinema scenes)
-  "/assets/v-shape/ChatGPT-Image-1.png", // Cinema Projector
-  "/assets/v-shape/V-Shape-4.png", // Movie Theater Dark
-  "/assets/v-shape/V-Shape-3.jpeg", // Film Reels
-  "/assets/v-shape/ChatGPT-Image-2.png", // Movie Set Light
-
-  "/assets/v-shape/V-Shape-5.png", // Old Cinema
-  "/assets/v-shape/V-Shape-6.png", // Clapperboard
-  "/assets/v-shape/V-Shape-7.jpg", // Director Chair
+  "/assets/v-shape/v-shape-card-1.png", // Cinema Projector
+  "/assets/v-shape/v-shape-card-2.png", // Movie Theater Dark
+  "/assets/v-shape/v-shape-card-3.png", // Film Reels
+  "/assets/v-shape/v-shape-card-4.png", // Movie Set Light (center card)
+  "/assets/v-shape/v-shape-card-5.png", // Old Cinema
+  "/assets/v-shape/v-shape-card-6.png", // Clapperboard
+  "/assets/v-shape/v-shape-card-7.jpg", // Director Chair
 
   // 7-18: The Surrounding Grid Images (Atmospheric, Behind the scenes)
   "https://images.unsplash.com/photo-1533488765986-dfa2a9939acd?q=80&w=1080&auto=format&fit=crop", // Vintage Camera
