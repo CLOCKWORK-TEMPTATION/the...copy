@@ -49,26 +49,32 @@ class HeroConfiguration {
         { left: "70%", top: "28%", rotation: 6 },  // back-right
       ]
     } else if (isTablet) {
-      // Tablet: 5 cards - تكتل مضغوط
-      cardWidth = 160
-      cardHeight = 235
-      scale = 0.78
+      // Tablet: نفس الـ 7 كروت لكن بتوزيع أضيق
+      cardWidth = 150
+      cardHeight = 215
+      scale = 0.8
       positions = [
-        { left: "34%", top: "34%", rotation: -5 },
-        { left: "42%", top: "44%", rotation: -2 },
-        { left: "50%", top: "56%", rotation: 0 },
-        { left: "58%", top: "44%", rotation: 2 },
-        { left: "66%", top: "34%", rotation: 5 },
+        { left: "28%", top: "30%", rotation: -6 },
+        { left: "34%", top: "36%", rotation: -3 },
+        { left: "41%", top: "46%", rotation: -1 },
+        { left: "50%", top: "58%", rotation: 0 },
+        { left: "59%", top: "46%", rotation: 1 },
+        { left: "66%", top: "36%", rotation: 3 },
+        { left: "72%", top: "30%", rotation: 6 },
       ]
     } else {
-      // Mobile: 3 cards - تكتل مضغوط
-      cardWidth = 100
-      cardHeight = 150
-      scale = 0.74
+      // Mobile: 7 كروت أيضًا مع أحجام أصغر
+      cardWidth = 110
+      cardHeight = 165
+      scale = 0.78
       positions = [
-        { left: "42%", top: "42%", rotation: -4 },
-        { left: "50%", top: "56%", rotation: 0 },
-        { left: "58%", top: "42%", rotation: 4 },
+        { left: "22%", top: "34%", rotation: -8 },
+        { left: "32%", top: "42%", rotation: -4 },
+        { left: "40%", top: "52%", rotation: -2 },
+        { left: "50%", top: "64%", rotation: 0 },
+        { left: "60%", top: "52%", rotation: 2 },
+        { left: "68%", top: "42%", rotation: 4 },
+        { left: "78%", top: "34%", rotation: 8 },
       ]
     }
 

@@ -26,7 +26,7 @@ export default function MainLayout({
         </SidebarContent>
         <SidebarFooter>
           <p className="px-2 text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} النسخة
+            &copy; 2025 النسخة
           </p>
         </SidebarFooter>
       </Sidebar>
