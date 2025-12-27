@@ -102,6 +102,8 @@ export const useHeroAnimation = (
       tl.set(
         ".phase-5-wrapper",
         {
+          y: -240,
+          scale: 1,
           opacity: 0,
           zIndex: 10048,
         },
