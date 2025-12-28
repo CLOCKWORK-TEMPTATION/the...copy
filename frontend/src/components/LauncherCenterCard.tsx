@@ -112,7 +112,7 @@ export default function LauncherCenterCard({ className }: { className?: string }
           const h = aspectH(w);
 
           const left = `calc(50% + ${p.x * 100}%)`;
-          const top = `calc(52% + ${p.y * 100}%)`;
+          const top = `calc(58% + ${p.y * 100}%)`;
 
           return (
             <div
@@ -145,11 +145,11 @@ export default function LauncherCenterCard({ className }: { className?: string }
       {/* نصوص مثل “الصورة الثانية” */}
       <div className="relative z-10 h-full w-full">
         {mounted && (
-          <div className="absolute top-[12%] left-1/2 -translate-x-1/2 text-center px-4">
+          <div className="absolute top-[clamp(18px,9%,54px)] left-1/2 -translate-x-1/2 text-center px-4">
             <div className="text-[clamp(34px,6vw,92px)] font-black tracking-tighter text-white drop-shadow-[0_12px_30px_rgba(0,0,0,0.75)] leading-none">
               النسخة
             </div>
-            <div className="mt-6 md:mt-8 text-[clamp(12px,1.6vw,18px)] text-white/65 font-medium">
+            <div className="mt-2 md:mt-3 text-[clamp(12px,1.6vw,18px)] text-white/55 font-medium">
               بس اصلي
             </div>
           </div>
