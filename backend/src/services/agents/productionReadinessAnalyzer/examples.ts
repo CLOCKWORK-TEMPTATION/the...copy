@@ -5,7 +5,7 @@
  * to generate a comprehensive readiness report in Arabic.
  */
 
-import { productionReadinessAnalyzerAgent } from '../index';
+import { productionReadinessAnalyzerAgent } from './ProductionReadinessAnalyzerAgent';
 
 async function exampleBasicUsage() {
   console.log('=== Example 1: Basic Production Readiness Report ===\n');
