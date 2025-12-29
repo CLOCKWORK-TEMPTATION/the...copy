@@ -12,6 +12,7 @@ import { themesMessagesAnalyzerAgent } from './themesMessagesAnalyzer/ThemesMess
 import { culturalHistoricalAnalyzerAgent } from './culturalHistoricalAnalyzer/CulturalHistoricalAnalyzerAgent';
 import { producibilityAnalyzerAgent } from './producibilityAnalyzer/ProducibilityAnalyzerAgent';
 import { targetAudienceAnalyzerAgent } from './targetAudienceAnalyzer/TargetAudienceAnalyzerAgent';
+import { productionReadinessAnalyzerAgent } from './productionReadinessAnalyzer/ProductionReadinessAnalyzerAgent';
 
 /**
  * Agent Registry Map
@@ -44,6 +45,7 @@ export class AgentRegistry {
     this.agents.set(TaskType.CULTURAL_HISTORICAL_ANALYZER, culturalHistoricalAnalyzerAgent);
     this.agents.set(TaskType.PRODUCIBILITY_ANALYZER, producibilityAnalyzerAgent);
     this.agents.set(TaskType.TARGET_AUDIENCE_ANALYZER, targetAudienceAnalyzerAgent);
+    this.agents.set(TaskType.PRODUCTION_READINESS_ANALYZER, productionReadinessAnalyzerAgent);
   }
 
   /**

@@ -20,6 +20,7 @@ export enum TaskType {
   PRODUCIBILITY_ANALYZER = "producibility-analyzer",
   TARGET_AUDIENCE_ANALYZER = "target-audience-analyzer",
   LITERARY_QUALITY_ANALYZER = "literary-quality-analyzer",
+  PRODUCTION_READINESS_ANALYZER = "production-readiness-analyzer",
 
   // Creative tasks
   CREATIVE = "creative",

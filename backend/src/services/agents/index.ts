@@ -18,6 +18,7 @@ export { themesMessagesAnalyzerAgent } from './themesMessagesAnalyzer/ThemesMess
 export { culturalHistoricalAnalyzerAgent } from './culturalHistoricalAnalyzer/CulturalHistoricalAnalyzerAgent';
 export { producibilityAnalyzerAgent } from './producibilityAnalyzer/ProducibilityAnalyzerAgent';
 export { targetAudienceAnalyzerAgent } from './targetAudienceAnalyzer/TargetAudienceAnalyzerAgent';
+export { productionReadinessAnalyzerAgent } from './productionReadinessAnalyzer/ProductionReadinessAnalyzerAgent';
 
 // Registry and orchestrator
 export { agentRegistry, AgentRegistry } from './registry';
