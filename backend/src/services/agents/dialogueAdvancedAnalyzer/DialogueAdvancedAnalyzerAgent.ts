@@ -1,17 +1,16 @@
+import { TaskType } from "@core/types";
+import { BaseAgent } from "../shared/BaseAgent";
+import {
+  StandardAgentInput,
+  StandardAgentOutput,
+} from "../shared/standardAgentPattern";
+import { DIALOGUE_ADVANCED_ANALYZER_AGENT_CONFIG } from "./agent";
+
 /**
  * DialogueAdvancedAnalyzerAgent - وكيل التحليل المتقدم للحوار
  * يطبق النمط القياسي: RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
  * يحلل الحوار بعمق: الطبقات النصية (Subtext)، الديناميكيات، التوتر، والوظائف الدرامية.
  */
-
-import { TaskType } from '../core/enums';
-import { BaseAgent } from '../shared/BaseAgent';
-import {
-  StandardAgentInput,
-  StandardAgentOutput,
-} from '../core/types';
-import { DIALOGUE_ADVANCED_ANALYZER_AGENT_CONFIG } from './config';
-
 export class DialogueAdvancedAnalyzerAgent extends BaseAgent {
   constructor() {
     super(
@@ -31,8 +30,8 @@ export class DialogueAdvancedAnalyzerAgent extends BaseAgent {
 
     // Extract dialogue context
     const contextObj =
-      typeof context === 'object' && context !== null ? context : {};
-    const dialogueContext = (contextObj as any)?.dialogueContext || 'مشهد عام';
+      typeof context === "object" && context !== null ? context : {};
+    const dialogueContext = (contextObj as any)?.dialogueContext || "مشهد عام";
 
     let prompt = `## مهمة التحليل المتقدم للحوار
 
