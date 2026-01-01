@@ -1,17 +1,16 @@
+import { TaskType } from "@core/types";
+import { BaseAgent } from "../shared/BaseAgent";
+import {
+  StandardAgentInput,
+  StandardAgentOutput,
+} from "../shared/standardAgentPattern";
+import { CHARACTER_DEEP_ANALYZER_AGENT_CONFIG } from "./agent";
+
 /**
  * CharacterDeepAnalyzerAgent - وكيل التحليل العميق للشخصيات
  * يطبق النمط القياسي: RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
  * يحلل الشخصيات بعمق: الدوافع، الصراعات، التطور النفسي، والأقواس السردية.
  */
-
-import { TaskType } from '../core/enums';
-import { BaseAgent } from '../shared/BaseAgent';
-import {
-  StandardAgentInput,
-  StandardAgentOutput,
-} from '../core/types';
-import { CHARACTER_DEEP_ANALYZER_AGENT_CONFIG } from './config';
-
 export class CharacterDeepAnalyzerAgent extends BaseAgent {
   constructor() {
     super(
@@ -31,8 +30,8 @@ export class CharacterDeepAnalyzerAgent extends BaseAgent {
 
     // Extract character context
     const contextObj =
-      typeof context === 'object' && context !== null ? context : {};
-    const characterName = (contextObj as any)?.characterName || 'الشخصية المستهدفة';
+      typeof context === "object" && context !== null ? context : {};
+    const characterName = (contextObj as any)?.characterName || "الشخصية المستهدفة";
     const previousAnalysis = (contextObj as any)?.previousAnalysis;
 
     let prompt = `## مهمة التحليل العميق للشخصية: ${characterName}

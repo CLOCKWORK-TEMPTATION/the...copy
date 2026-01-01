@@ -1,5 +1,5 @@
 /**
- * Standard Agent Execution Pattern - Backend
+ * Standard Agent Execution Pattern
  *
  * This module provides a unified execution pattern for all drama analyst agents:
  * RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → (Optional) Debate
@@ -11,18 +11,85 @@
  * - Constitutional compliance
  */
 
-import {
-  StandardAgentInput,
-  StandardAgentOptions,
-  StandardAgentOutput,
-  RAGContext,
-  SelfCritiqueResult,
-  ConstitutionalCheckResult,
-  UncertaintyMetrics,
-  HallucinationCheckResult,
-} from '../core/types';
-import { GeminiService } from '@/services/gemini.service';
-import { logger } from '@/utils/logger';
+import { callGeminiText, toText, safeSub } from "@/lib/ai/gemini-core";
+import type { ModelId } from "@/lib/ai/gemini-core";
+
+// =====================================================
+// Types
+// =====================================================
+
+export interface StandardAgentInput {
+  input: string;
+  options?: StandardAgentOptions;
+  context?: string | Record<string, any>;
+}
+
+export interface StandardAgentOptions {
+  temperature?: number;
+  maxTokens?: number;
+  timeout?: number;
+  retries?: number;
+  enableCaching?: boolean;
+  enableLogging?: boolean;
+  enableRAG?: boolean;
+  enableSelfCritique?: boolean;
+  enableConstitutional?: boolean;
+  enableUncertainty?: boolean;
+  enableHallucination?: boolean;
+  enableDebate?: boolean;
+  confidenceThreshold?: number;
+  maxIterations?: number;
+}
+
+export interface StandardAgentOutput {
+  text: string;
+  confidence: number;
+  notes: string[];
+  metadata?: {
+    ragUsed?: boolean;
+    critiqueIterations?: number;
+    constitutionalViolations?: number;
+    uncertaintyScore?: number;
+    hallucinationDetected?: boolean;
+    debateRounds?: number;
+    completionQuality?: number;
+    creativityScore?: number;
+    sceneQuality?: number;
+    worldQuality?: any;
+    processingTime?: number;
+    [key: string]: any; // Allow additional metadata properties
+  };
+}
+
+export interface RAGContext {
+  chunks: string[];
+  relevanceScores: number[];
+}
+
+export interface SelfCritiqueResult {
+  improved: boolean;
+  iterations: number;
+  finalText: string;
+  improvementScore: number;
+}
+
+export interface ConstitutionalCheckResult {
+  compliant: boolean;
+  violations: string[];
+  correctedText: string;
+}
+
+export interface UncertaintyMetrics {
+  score: number;
+  confidence: number;
+  uncertainAspects: string[];
+}
+
+export interface HallucinationCheckResult {
+  detected: boolean;
+  claims: Array<{ claim: string; supported: boolean }>;
+  correctedText: string;
+}
 
 // =====================================================
 // Default Options
@@ -81,179 +148,260 @@ async function performRAG(
   // Sort by relevance and take top 3
   const indexed = chunks.map((chunk, i) => ({
     chunk,
-    score: relevanceScores[i] ?? 0,
+    score: relevanceScores[i],
   }));
-  indexed.sort((a, b) => b.score - a.score);
+  indexed.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
-  const topChunks = indexed.slice(0, 3).map((item) => item.chunk);
-  const topScores = indexed.slice(0, 3).map((item) => item.score);
+  const topChunks = indexed.slice(0, 3).map((x) => x.chunk);
+  const topScores = indexed.slice(0, 3).map((x) => x.score ?? 0);
 
-  return { chunks: topChunks, relevanceScores: topScores };
+  return {
+    chunks: topChunks,
+    relevanceScores: topScores,
+  };
+}
+
+function buildPromptWithRAG(
+  basePrompt: string,
+  ragContext: RAGContext
+): string {
+  if (ragContext.chunks.length === 0) {
+    return basePrompt;
+  }
+
+  const contextSection = ragContext.chunks
+    .map((chunk, i) => `[سياق ${i + 1}]:\n${chunk}`)
+    .join("\n\n");
+
+  return `${basePrompt}\n\n=== سياق إضافي من النص ===\n${contextSection}\n\n=== نهاية السياق ===\n`;
 }
 
 // =====================================================
-// Self-Critique Module
+// Self-Critique
 // =====================================================
 
 async function performSelfCritique(
-  geminiService: GeminiService,
-  text: string,
-  maxIterations: number = 2
+  initialText: string,
+  prompt: string,
+  model: ModelId,
+  temperature: number,
+  maxIterations: number
 ): Promise<SelfCritiqueResult> {
-  let currentText = text;
+  let currentText = initialText;
   let iterations = 0;
+  let improved = false;
 
   for (let i = 0; i < maxIterations; i++) {
     iterations++;
 
-    const critiquePrompt = `قم بنقد النص التالي وحدد نقاط الضعف أو التحسينات المحتملة:
+    // Generate critique
+    const critiquePrompt = `قم بمراجعة النص التالي وحدد نقاط الضعف أو الأخطاء:
 
-${currentText}
+النص:
+${currentText.substring(0, 2000)}
 
-قدم:
-1. نقد موجز ومحدد
-2. نص محسّن يدمج التحسينات
+قدم نقدًا بناءً يحدد:
+1. الأخطاء المنطقية
+2. التناقضات
+3. النقاط غير الواضحة
+4. المبالغات أو الادعاءات غير المدعومة
 
-الرد:`;
+إذا كان النص جيدًا بما فيه الكفاية، قل "لا يوجد تحسينات ضرورية".`;
 
-    try {
-      const critiqueResponse = await geminiService.analyzeText(
-        critiquePrompt,
-        'self-critique'
-      );
+    const critique = await callGeminiText(critiquePrompt, {
+      temperature: 0.2,
+    });
 
-      // Check if improvements were suggested
-      if (
-        critiqueResponse.includes('لا يوجد') ||
-        critiqueResponse.includes('ممتاز')
-      ) {
-        return {
-          improved: false,
-          iterations,
-          finalText: currentText,
-          improvementScore: 0.95,
-        };
-      }
-
-      // Extract improved text (simplified extraction)
-      const lines = critiqueResponse.split('\n');
-      const improvedLines = lines.filter(
-        (line) => line.trim().length > 20 && !line.includes('نقد')
-      );
-      if (improvedLines.length > 0) {
-        currentText = improvedLines.join('\n');
-      }
-    } catch (error) {
-      logger.error('Self-critique iteration failed:', error);
+    // Check if improvement is needed
+    if (
+      critique.toLowerCase().includes("لا يوجد تحسينات") ||
+      critique.toLowerCase().includes("النص جيد")
+    ) {
+      improved = i > 0;
       break;
     }
+
+    // Generate improved version
+    const improvementPrompt = `بناءً على النقد التالي، قم بتحسين النص:
+
+النص الأصلي:
+${currentText.substring(0, 2000)}
+
+النقد:
+${critique.substring(0, 1000)}
+
+قدم نسخة محسّنة من النص تعالج نقاط الضعف المذكورة.`;
+
+    const improvedText = await callGeminiText(improvementPrompt, {
+      temperature,
+    });
+
+    currentText = improvedText;
+    improved = true;
   }
 
+  // Calculate improvement score
+  const improvementScore = iterations > 1 ? 0.8 : improved ? 0.5 : 1.0;
+
   return {
-    improved: true,
+    improved,
     iterations,
     finalText: currentText,
-    improvementScore: 0.85,
+    improvementScore,
   };
 }
 
 // =====================================================
-// Constitutional AI Check
+// Constitutional AI
 // =====================================================
 
+const CONSTITUTIONAL_RULES = [
+  {
+    name: "احترام النص الأصلي",
+    description: "يجب عدم تحريف أو تغيير المعنى الأساسي للنص الأصلي",
+    check: (text: string, input: string) => {
+      // Simple heuristic: output shouldn't contradict input
+      return (
+        !text.toLowerCase().includes("على عكس النص") &&
+        !text.toLowerCase().includes("خلافًا لما ورد")
+      );
+    },
+  },
+  {
+    name: "عدم المبالغة",
+    description: "تجنب الادعاءات المبالغ فيها أو غير المدعومة",
+    check: (text: string) => {
+      const exaggerations = [
+        "دائمًا",
+        "أبدًا",
+        "كل",
+        "لا شيء",
+        "مستحيل",
+        "حتمًا",
+      ];
+      const lowerText = text.toLowerCase();
+      const count = exaggerations.filter((word) =>
+        lowerText.includes(word)
+      ).length;
+      return count < 3;
+    },
+  },
+  {
+    name: "الوضوح والدقة",
+    description: "يجب أن يكون التحليل واضحًا ودقيقًا",
+    check: (text: string) => {
+      return text.length > 50 && !text.includes("...") && !text.includes("إلخ");
+    },
+  },
+  {
+    name: "الموضوعية",
+    description: "تجنب الأحكام الشخصية المفرطة",
+    check: (text: string) => {
+      const subjective = ["أعتقد", "في رأيي", "أظن", "ربما"];
+      const lowerText = text.toLowerCase();
+      const count = subjective.filter((phrase) =>
+        lowerText.includes(phrase)
+      ).length;
+      return count < 2;
+    },
+  },
+  {
+    name: "الاحترام والأدب",
+    description: "تجنب اللغة المسيئة أو غير المحترمة",
+    check: (text: string) => {
+      const offensive = ["سخيف", "غبي", "تافه", "عديم القيمة"];
+      const lowerText = text.toLowerCase();
+      return !offensive.some((word) => lowerText.includes(word));
+    },
+  },
+];
+
 async function performConstitutionalCheck(
-  geminiService: GeminiService,
-  text: string
+  text: string,
+  input: string,
+  model: ModelId,
+  temperature: number
 ): Promise<ConstitutionalCheckResult> {
-  const checkPrompt = `تحقق من أن النص التالي يلتزم بالمعايير الأخلاقية:
-- عدم التحيز أو التمييز
-- احترام الثقافات المختلفة
-- عدم وجود محتوى مسيء أو ضار
-- دقة المعلومات
+  const violations: string[] = [];
 
-النص:
-${text}
-
-إذا كان هناك أي انتهاك، قدم نصاً محسّناً. وإلا، قل "متوافق".
-
-الرد:`;
-
-  try {
-    const checkResponse = await geminiService.analyzeText(
-      checkPrompt,
-      'constitutional'
-    );
-
-    if (
-      checkResponse.includes('متوافق') ||
-      checkResponse.includes('لا يوجد انتهاك')
-    ) {
-      return {
-        compliant: true,
-        violations: [],
-        correctedText: text,
-      };
+  // Check each rule
+  for (const rule of CONSTITUTIONAL_RULES) {
+    if (!rule.check(text, input)) {
+      violations.push(rule.name);
     }
+  }
 
-    return {
-      compliant: false,
-      violations: ['محتوى يحتاج تحسين'],
-      correctedText: checkResponse,
-    };
-  } catch (error) {
-    logger.error('Constitutional check failed:', error);
+  if (violations.length === 0) {
     return {
       compliant: true,
       violations: [],
       correctedText: text,
     };
   }
+
+  // Generate corrected version
+  const correctionPrompt = `النص التالي يحتوي على انتهاكات للمبادئ الدستورية:
+
+الانتهاكات: ${violations.join(", ")}
+
+النص:
+${text.substring(0, 2000)}
+
+قم بتصحيح النص مع الحفاظ على المعنى الأساسي ولكن معالجة الانتهاكات المذكورة.`;
+
+  const correctedText = await callGeminiText(correctionPrompt, {
+    temperature,
+  });
+
+  return {
+    compliant: false,
+    violations,
+    correctedText,
+  };
 }
 
 // =====================================================
 // Uncertainty Quantification
 // =====================================================
 
-async function quantifyUncertainty(
-  geminiService: GeminiService,
-  text: string
+async function measureUncertainty(
+  text: string,
+  prompt: string,
+  model: ModelId,
+  temperature: number
 ): Promise<UncertaintyMetrics> {
-  const uncertaintyPrompt = `حدد مستوى الثقة في التحليل التالي وأي جوانب غير مؤكدة:
+  // Generate alternative versions
+  const alternatives: string[] = [text];
 
-${text}
-
-قيّم من 0 إلى 1 وحدد الجوانب غير المؤكدة.
-
-الرد:`;
-
-  try {
-    const uncertaintyResponse = await geminiService.analyzeText(
-      uncertaintyPrompt,
-      'uncertainty'
-    );
-
-    // Extract confidence score (simplified)
-    const confidenceMatch = uncertaintyResponse.match(/\d+\.\d+/);
-    const confidence = confidenceMatch ? parseFloat(confidenceMatch[0]) : 0.8;
-
-    const uncertainAspects: string[] = [];
-    if (uncertaintyResponse.includes('غير مؤكد')) {
-      uncertainAspects.push('بعض الجوانب تحتاج مزيد من التحليل');
-    }
-
-    return {
-      score: 1 - confidence,
-      confidence,
-      uncertainAspects,
-    };
-  } catch (error) {
-    logger.error('Uncertainty quantification failed:', error);
-    return {
-      score: 0.2,
-      confidence: 0.8,
-      uncertainAspects: [],
-    };
+  for (let i = 0; i < 2; i++) {
+    const alt = await callGeminiText(prompt, {
+      temperature: temperature + 0.2,
+    });
+    alternatives.push(alt);
   }
+
+  // Calculate consistency
+  const avgLength =
+    alternatives.reduce((sum, t) => sum + t.length, 0) / alternatives.length;
+  const lengthVariance =
+    alternatives.reduce(
+      (sum, t) => sum + Math.pow(t.length - avgLength, 2),
+      0
+    ) / alternatives.length;
+
+  const consistency = 1 - Math.min(lengthVariance / (avgLength * avgLength), 1);
+  const uncertaintyScore = 1 - consistency;
+  const confidence = Math.max(0.5, consistency);
+
+  // Identify uncertain aspects (simple heuristic)
+  const uncertainPhrases =
+    text.match(/ربما|قد يكون|محتمل|من الممكن|غالبًا/gi) || [];
+
+  return {
+    score: uncertaintyScore,
+    confidence,
+    uncertainAspects: uncertainPhrases.slice(0, 3),
+  };
 }
 
 // =====================================================
@@ -261,79 +409,95 @@ ${text}
 // =====================================================
 
 async function detectHallucinations(
-  geminiService: GeminiService,
   text: string,
-  context?: string
+  input: string,
+  model: ModelId
 ): Promise<HallucinationCheckResult> {
-  if (!context) {
-    return {
-      detected: false,
-      claims: [],
-      correctedText: text,
-    };
-  }
+  // Extract claims
+  const claimsPrompt = `استخرج الادعاءات الرئيسية من النص التالي، كل ادعاء في سطر:
 
-  const hallucinationPrompt = `تحقق من أن التحليل التالي مبني على المحتوى الأصلي فقط، دون اختراع معلومات:
+${text.substring(0, 1500)}
 
-المحتوى الأصلي:
-${context.substring(0, 1000)}
+قدم قائمة بالادعاءات فقط، كل ادعاء في سطر منفصل.`;
 
-التحليل:
-${text}
+  const claimsText = await callGeminiText(claimsPrompt, {
+    temperature: 0.1,
+  });
 
-حدد أي ادعاءات غير مدعومة بالمحتوى الأصلي.
+  const claims = claimsText
+    .split("\n")
+    .map((line: string) => line.trim())
+    .filter((line: string) => line.length > 0)
+    .slice(0, 5);
 
-الرد:`;
+  // Check each claim against input
+  const checkedClaims = await Promise.all(
+    claims.map(async (claim: string) => {
+      const checkPrompt = `هل الادعاء التالي مدعوم بالنص الأصلي؟
 
-  try {
-    const hallucinationResponse = await geminiService.analyzeText(
-      hallucinationPrompt,
-      'hallucination'
-    );
+النص الأصلي:
+${input.substring(0, 2000)}
 
-    if (
-      hallucinationResponse.includes('جميع الادعاءات مدعومة') ||
-      hallucinationResponse.includes('لا يوجد')
-    ) {
+الادعاء:
+${claim}
+
+أجب بـ "نعم" أو "لا" فقط.`;
+
+      const result = await callGeminiText(checkPrompt, {
+        temperature: 0.1,
+      });
+
       return {
-        detected: false,
-        claims: [],
-        correctedText: text,
+        claim,
+        supported: result.toLowerCase().includes("نعم"),
       };
-    }
+    })
+  );
 
-    return {
-      detected: true,
-      claims: [{ claim: 'ادعاء غير مدعوم', supported: false }],
-      correctedText: hallucinationResponse,
-    };
-  } catch (error) {
-    logger.error('Hallucination detection failed:', error);
-    return {
-      detected: false,
-      claims: [],
-      correctedText: text,
-    };
+  const unsupportedClaims = checkedClaims.filter(
+    (c: { claim: string; supported: boolean }) => !c.supported
+  );
+  const detected = unsupportedClaims.length > 0;
+
+  let correctedText = text;
+  if (detected) {
+    const correctionPrompt = `قم بتصحيح النص التالي بإزالة أو تصحيح الادعاءات غير المدعومة:
+
+النص:
+${text.substring(0, 2000)}
+
+الادعاءات غير المدعومة:
+${unsupportedClaims.map((c) => `- ${c.claim}`).join("\n")}
+
+قدم نسخة محسنة بدون ادعاءات غير مدعومة.`;
+
+    correctedText = await callGeminiText(correctionPrompt, {
+      temperature: 0.2,
+    });
   }
+
+  return {
+    detected,
+    claims: checkedClaims,
+    correctedText,
+  };
 }
 
 // =====================================================
-// Main Execution Pattern
+// Standard Agent Execution
 // =====================================================
 
 export async function executeStandardAgentPattern(
-  basePrompt: string,
+  taskPrompt: string,
   options: StandardAgentOptions,
-  executionContext: Record<string, any>
+  context?: Record<string, unknown>
 ): Promise<StandardAgentOutput> {
-  const startTime = Date.now();
-  const geminiService = new GeminiService();
-
-  // Merge with defaults
-  const opts = { ...DEFAULT_OPTIONS, ...options };
-
+  const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
   const notes: string[] = [];
-  const metadata: any = {
+  let currentText = "";
+  let confidence = 0.7;
+
+  const metadata = {
     ragUsed: false,
     critiqueIterations: 0,
     constitutionalViolations: 0,
@@ -343,96 +507,165 @@ export async function executeStandardAgentPattern(
   };
 
   try {
-    // Step 1: RAG (if enabled and context provided)
-    let enhancedPrompt = basePrompt;
-    if (opts.enableRAG && executionContext.context) {
+    // Step 1: RAG
+    let finalPrompt = taskPrompt;
+    if (mergedOptions.enableRAG && context?.originalText) {
       const ragContext = await performRAG(
-        basePrompt,
-        typeof executionContext.context === 'string'
-          ? executionContext.context
-          : JSON.stringify(executionContext.context)
+        taskPrompt,
+        context.originalText as string
       );
+      finalPrompt = buildPromptWithRAG(taskPrompt, ragContext);
       metadata.ragUsed = ragContext.chunks.length > 0;
-
-      if (ragContext.chunks.length > 0) {
-        enhancedPrompt = `${basePrompt}\n\nسياق إضافي:\n${ragContext.chunks.join('\n\n')}`;
-        notes.push(`تم استخدام ${ragContext.chunks.length} مقاطع سياقية ذات صلة`);
+      if (metadata.ragUsed) {
+        notes.push(`استخدم RAG: ${ragContext.chunks.length} أجزاء ذات صلة`);
       }
     }
 
-    // Step 2: Initial generation
-    let generatedText = await geminiService.analyzeText(
-      enhancedPrompt,
-      executionContext.taskType || 'general'
-    );
+    // Initial generation
+    currentText = await callGeminiText(finalPrompt, {
+      temperature: mergedOptions.temperature || 0.3,
+    });
 
-    // Step 3: Self-Critique (if enabled)
-    if (opts.enableSelfCritique) {
+    // Step 2: Self-Critique
+    if (options.enableSelfCritique) {
       const critiqueResult = await performSelfCritique(
-        geminiService,
-        generatedText,
-        opts.maxIterations
+        currentText,
+        finalPrompt,
+        "gemini-1.5-flash",
+        mergedOptions.temperature || 0.3,
+        mergedOptions.maxIterations || 3
       );
-      generatedText = critiqueResult.finalText;
+      currentText = critiqueResult.finalText;
       metadata.critiqueIterations = critiqueResult.iterations;
+      confidence *= critiqueResult.improvementScore;
       if (critiqueResult.improved) {
-        notes.push(`تم تحسين النص خلال ${critiqueResult.iterations} دورة نقد ذاتي`);
+        notes.push(`تم التحسين عبر ${critiqueResult.iterations} دورة نقد ذاتي`);
       }
     }
 
-    // Step 4: Constitutional Check (if enabled)
-    if (opts.enableConstitutional) {
+    // Step 3: Constitutional Check
+    if (options.enableConstitutional) {
       const constitutionalResult = await performConstitutionalCheck(
-        geminiService,
-        generatedText
+        currentText,
+        taskPrompt,
+        "gemini-1.5-flash",
+        mergedOptions.temperature || 0.3
       );
+      currentText = constitutionalResult.correctedText;
+      metadata.constitutionalViolations =
+        constitutionalResult.violations.length;
       if (!constitutionalResult.compliant) {
-        generatedText = constitutionalResult.correctedText;
-        metadata.constitutionalViolations = constitutionalResult.violations.length;
-        notes.push('تم تصحيح بعض الجوانب للالتزام بالمعايير الأخلاقية');
+        notes.push(
+          `تصحيح دستوري: ${constitutionalResult.violations.join(", ")}`
+        );
+        confidence *= 0.9;
       }
     }
 
-    // Step 5: Uncertainty Quantification (if enabled)
-    let confidence = 0.85;
-    if (opts.enableUncertainty) {
-      const uncertaintyMetrics = await quantifyUncertainty(
-        geminiService,
-        generatedText
+    // Step 4: Uncertainty Quantification
+    if (options.enableUncertainty) {
+      const uncertaintyMetrics = await measureUncertainty(
+        currentText,
+        finalPrompt,
+        "gemini-1.5-flash",
+        mergedOptions.temperature || 0.3
       );
-      confidence = uncertaintyMetrics.confidence;
       metadata.uncertaintyScore = uncertaintyMetrics.score;
+      confidence = Math.min(confidence, uncertaintyMetrics.confidence);
       if (uncertaintyMetrics.uncertainAspects.length > 0) {
-        notes.push(...uncertaintyMetrics.uncertainAspects);
+        notes.push(
+          `جوانب غير مؤكدة: ${uncertaintyMetrics.uncertainAspects.length}`
+        );
       }
     }
 
-    // Step 6: Hallucination Detection (if enabled)
-    if (opts.enableHallucination && executionContext.context) {
+    // Step 5: Hallucination Detection
+    if (options.enableHallucination) {
       const hallucinationResult = await detectHallucinations(
-        geminiService,
-        generatedText,
-        typeof executionContext.context === 'string'
-          ? executionContext.context
-          : JSON.stringify(executionContext.context)
+        currentText,
+        taskPrompt,
+        "gemini-1.5-flash"
       );
+      metadata.hallucinationDetected = hallucinationResult.detected;
       if (hallucinationResult.detected) {
-        generatedText = hallucinationResult.correctedText;
-        metadata.hallucinationDetected = true;
-        notes.push('تم اكتشاف وتصحيح بعض الادعاءات غير المدعومة');
+        currentText = hallucinationResult.correctedText;
+        const unsupported = hallucinationResult.claims.filter(
+          (c) => !c.supported
+        ).length;
+        notes.push(`تصحيح هلوسة: ${unsupported} ادعاء غير مدعوم`);
+        confidence *= 0.85;
       }
     }
 
-    metadata.processingTime = Date.now() - startTime;
+    // Step 6: Debate (Optional - if confidence is low)
+    if (
+      mergedOptions.enableDebate &&
+      confidence < (mergedOptions.confidenceThreshold || 0.7)
+    ) {
+      notes.push("الثقة منخفضة - يُوصى بتفعيل النقاش متعدد الوكلاء");
+      // Debate would be handled at orchestration level
+    }
 
+    // Final output
     return {
-      text: generatedText,
-      confidence,
+      text: toText(currentText),
+      confidence: Math.round(confidence * 100) / 100,
       notes,
       metadata,
     };
   } catch (error) {
-    logger.error('Standard agent pattern execution failed:', error);
-    throw error;
+    const errorMsg = error instanceof Error ? error.message : "خطأ غير معروف";
+    return {
+      text: `حدث خطأ في التنفيذ: ${errorMsg}`,
+      confidence: 0,
+      notes: [`خطأ: ${errorMsg}`],
+      metadata,
+    };
   }
+}
+
+// =====================================================
+// Helper: Format output for display (text only, no JSON)
+// =====================================================
+
+export function formatAgentOutput(
+  output: StandardAgentOutput,
+  agentName: string
+): string {
+  const sections = [
+    `=== ${agentName} - التقرير ===`,
+    "",
+    `الثقة: ${(output.confidence * 100).toFixed(0)}%`,
+    "",
+    "--- التحليل ---",
+    output.text,
+    "",
+  ];
+
+  if (output.notes.length > 0) {
+    sections.push("--- ملاحظات ---");
+    output.notes.forEach((note) => sections.push(`• ${note}`));
+    sections.push("");
+  }
+
+  if (output.metadata) {
+    sections.push("--- معلومات إضافية ---");
+    if (output.metadata.ragUsed) sections.push("✓ استخدم RAG");
+    if ((output.metadata.critiqueIterations ?? 0) > 0) {
+      sections.push(`✓ نقد ذاتي: ${output.metadata.critiqueIterations} دورات`);
+    }
+    if ((output.metadata.constitutionalViolations ?? 0) > 0) {
+      sections.push(
+        `⚠ انتهاكات دستورية: ${output.metadata.constitutionalViolations}`
+      );
+    }
+    if (output.metadata.hallucinationDetected) {
+      sections.push("⚠ تم اكتشاف وتصحيح هلوسات");
+    }
+  }
+
+  sections.push("");
+  sections.push("=".repeat(50));
+
+  return sections.join("\n");
 }

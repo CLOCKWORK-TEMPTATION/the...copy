@@ -31,6 +31,9 @@
       "@/*": [
         "src/*"
       ],
+      "@core/*": [
+        "src/services/agents/core/*"
+      ],
       "@/types/*": [
         "src/types/*"
       ],
@@ -45,6 +48,9 @@
       ],
       "@/utils/*": [
         "src/utils/*"
+      ],
+      "@/lib/*": [
+        "src/lib/*"
       ]
     }
   },

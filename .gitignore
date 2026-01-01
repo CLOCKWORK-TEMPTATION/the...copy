@@ -39,6 +39,7 @@ dist/
 build/
 .cache/
 .parcel-cache/
+C:\Users\Mohmed Aimen Raed\.pochi\config.jsonc
 
 # Package manager files
 package-lock.json
