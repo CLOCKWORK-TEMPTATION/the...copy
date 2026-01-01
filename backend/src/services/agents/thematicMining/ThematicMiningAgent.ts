@@ -5,7 +5,7 @@ import {
   StandardAgentOutput,
 } from "../shared/standardAgentPattern";
 import { THEMATIC_MINING_AGENT_CONFIG } from "./agent";
-import { safeCountMultipleTerms } from "../shared/safe-regexp";
+import { safeCountMultipleTerms, sumCounts } from "../shared/safe-regexp";
 
 interface ThematicMiningContext {
   originalText?: string;
@@ -166,7 +166,7 @@ ${includeMotifs ? `5. **الموتيفات المتكررة**: الأنماط و
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const termCount = safeCountMultipleTerms(text, thematicTerms);
-    score += Math.min(0.25, termCount * 0.015);
+    score += Math.min(0.25, sumCounts(termCount) * 0.015);
 
     const abstractTerms = [
       "الحرية",
@@ -180,7 +180,7 @@ ${includeMotifs ? `5. **الموتيفات المتكررة**: الأنماط و
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const abstractCount = safeCountMultipleTerms(text, abstractTerms);
-    score += Math.min(0.15, abstractCount * 0.03);
+    score += Math.min(0.15, sumCounts(abstractCount) * 0.03);
 
     if (text.length > 1500) score += 0.1;
 
@@ -202,7 +202,7 @@ ${includeMotifs ? `5. **الموتيفات المتكررة**: الأنماط و
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const evidenceCount = safeCountMultipleTerms(text, evidenceMarkers);
-    score += Math.min(0.25, evidenceCount * 0.025);
+    score += Math.min(0.25, sumCounts(evidenceCount) * 0.025);
 
     const hasQuotes = (text.match(/["«]/g) || []).length;
     score += Math.min(0.15, hasQuotes * 0.015);
@@ -226,7 +226,7 @@ ${includeMotifs ? `5. **الموتيفات المتكررة**: الأنماط و
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const insightCount = safeCountMultipleTerms(text, insightWords);
-    score += Math.min(0.3, insightCount * 0.03);
+    score += Math.min(0.3, sumCounts(insightCount) * 0.03);
 
     const hasAnalysis =
       text.includes("لماذا") ||
@@ -251,7 +251,7 @@ ${includeMotifs ? `5. **الموتيفات المتكررة**: الأنماط و
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const connectiveCount = safeCountMultipleTerms(text, connectiveWords);
-    score += Math.min(0.2, connectiveCount * 0.04);
+    score += Math.min(0.2, sumCounts(connectiveCount) * 0.04);
 
     const hasStructure =
       text.includes("أولاً") || text.includes("ثانياً") || text.match(/\d\./);

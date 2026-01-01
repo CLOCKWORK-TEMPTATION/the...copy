@@ -157,3 +157,10 @@ export const getAllAgentConfigs = async (): Promise<AIAgentConfig[]> => {
 
 // Legacy export for backward compatibility (will be deprecated)
 export const AGENT_CONFIGS = Object.freeze<AIAgentConfig[]>([]);
+
+/**
+ * Re-export orchestrator and types for external use
+ */
+export { multiAgentOrchestrator } from './orchestrator';
+export { TaskType } from './core/enums';
+export type { OrchestrationInput, OrchestrationOutput } from './orchestrator';

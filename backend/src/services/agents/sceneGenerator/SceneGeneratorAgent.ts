@@ -8,6 +8,7 @@ import { SCENE_GENERATOR_AGENT_CONFIG } from "./agent";
 import {
   safeCountOccurrences,
   safeCountMultipleTerms,
+  sumCounts,
 } from "../shared/safe-regexp";
 
 /**
@@ -266,7 +267,7 @@ export class SceneGeneratorAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const conflictCount = safeCountMultipleTerms(text, conflictWords);
-    score += Math.min(0.2, conflictCount * 0.02);
+    score += Math.min(0.2, sumCounts(conflictCount) * 0.02);
 
     // Check for emotional intensity
     const emotionalWords = [
@@ -281,7 +282,7 @@ export class SceneGeneratorAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const emotionCount = safeCountMultipleTerms(text, emotionalWords);
-    score += Math.min(0.15, emotionCount * 0.015);
+    score += Math.min(0.15, sumCounts(emotionCount) * 0.015);
 
     // Check for turning points
     const turningWords = ["فجأة", "لحظة", "الآن", "أخيراً", "لا يمكن"];
@@ -343,7 +344,7 @@ export class SceneGeneratorAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const visualCount = safeCountMultipleTerms(text, visualWords);
-    score += Math.min(0.25, visualCount * 0.025);
+    score += Math.min(0.25, sumCounts(visualCount) * 0.025);
 
     // Check for spatial indicators
     const spatialWords = [
@@ -358,7 +359,7 @@ export class SceneGeneratorAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const spatialCount = safeCountMultipleTerms(text, spatialWords);
-    score += Math.min(0.15, spatialCount * 0.03);
+    score += Math.min(0.15, sumCounts(spatialCount) * 0.03);
 
     // Check for action verbs
     const actionVerbs = [
@@ -373,7 +374,7 @@ export class SceneGeneratorAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const actionCount = safeCountMultipleTerms(text, actionVerbs);
-    score += Math.min(0.1, actionCount * 0.02);
+    score += Math.min(0.1, sumCounts(actionCount) * 0.02);
 
     return Math.min(1, score);
   }
@@ -400,7 +401,7 @@ export class SceneGeneratorAgent extends BaseAgent {
     const rhythmWords = ["ثم", "بعد", "فجأة", "ببطء", "بسرعة", "في الحال"];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const rhythmCount = safeCountMultipleTerms(text, rhythmWords);
-    score += Math.min(0.2, rhythmCount * 0.04);
+    score += Math.min(0.2, sumCounts(rhythmCount) * 0.04);
 
     return Math.min(1, score);
   }

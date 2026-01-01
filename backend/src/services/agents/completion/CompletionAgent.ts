@@ -9,6 +9,7 @@ import { COMPLETION_MODE_INSTRUCTIONS } from "./instructions";
 import {
   safeCountOccurrences,
   safeCountMultipleTerms,
+  sumCounts,
 } from "../shared/safe-regexp";
 
 /**
@@ -203,7 +204,7 @@ export class CompletionAgent extends BaseAgent {
     const connectorCount = safeCountMultipleTerms(text, connectors);
 
     // More connectors suggest better flow (normalized)
-    const flowScore = Math.min(1, connectorCount / 10);
+    const flowScore = Math.min(1, sumCounts(connectorCount) / 10);
     return 0.7 + flowScore * 0.3;
   }
 

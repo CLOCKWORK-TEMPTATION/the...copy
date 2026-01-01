@@ -5,7 +5,7 @@ import {
   StandardAgentOutput,
 } from "../shared/standardAgentPattern";
 import { RHYTHM_MAPPING_AGENT_CONFIG } from "./agent";
-import { safeCountMultipleTerms } from "../shared/safe-regexp";
+import { safeCountMultipleTerms, sumCounts } from "../shared/safe-regexp";
 
 interface RhythmMappingContext {
   originalText?: string;
@@ -250,7 +250,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const termCount = safeCountMultipleTerms(text, rhythmTerms);
-    score += Math.min(0.25, termCount * 0.015);
+    score += Math.min(0.25, sumCounts(termCount) * 0.015);
 
     const aspectsTerms = [
       "سريع",
@@ -263,7 +263,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const aspectsCount = safeCountMultipleTerms(text, aspectsTerms);
-    score += Math.min(0.15, aspectsCount * 0.02);
+    score += Math.min(0.15, sumCounts(aspectsCount) * 0.02);
 
     if (text.length > 1500) score += 0.1;
 
@@ -285,7 +285,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const techCount = safeCountMultipleTerms(text, technicalTerms);
-    score += Math.min(0.25, techCount * 0.03);
+    score += Math.min(0.25, sumCounts(techCount) * 0.03);
 
     const hasVisualIndicators =
       text.includes("▲") || text.includes("▼") || text.includes("━");
@@ -309,7 +309,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const insightCount = safeCountMultipleTerms(text, insightWords);
-    score += Math.min(0.3, insightCount * 0.03);
+    score += Math.min(0.3, sumCounts(insightCount) * 0.03);
 
     const hasOptimization = text.includes("تحسين") || text.includes("اقتراح");
     if (hasOptimization) score += 0.2;
@@ -330,7 +330,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const evidenceCount = safeCountMultipleTerms(text, evidenceMarkers);
-    score += Math.min(0.25, evidenceCount * 0.025);
+    score += Math.min(0.25, sumCounts(evidenceCount) * 0.025);
 
     const hasExamples = (text.match(/["«]/g) || []).length >= 2;
     if (hasExamples) score += 0.15;
