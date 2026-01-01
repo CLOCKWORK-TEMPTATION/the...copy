@@ -138,6 +138,10 @@ export interface SelfCritiqueResult {
   iterations: number;
   finalText: string;
   improvementScore: number;
+  originalOutput?: string;
+  critiqueNotes?: string[];
+  critiques?: string[];
+  refinedOutput?: string;
 }
 
 export interface ConstitutionalCheckResult {
@@ -188,6 +192,40 @@ export interface AIResponse {
   raw?: string;
   parsed?: any;
   agent?: string;
+}
+
+// Agent ID type - string identifier for agents
+export type AgentId = string;
+
+// Plot Predictor Types - for causal graph analysis
+export interface PlotNode {
+  id: string;
+  event: string;
+  timestamp: number;
+  importance: number;
+}
+
+export interface PlotEdge {
+  from: string;
+  to: string;
+  causationType: "direct" | "indirect" | "consequence";
+  strength: number;
+}
+
+export interface CausalRelation {
+  type: "direct" | "indirect" | "consequence";
+  strength: number;
+  cause?: string;
+  effect?: string;
+  explanation?: string;
+  confidence?: number;
+}
+
+export interface CausalPlotGraph {
+  nodes: PlotNode[];
+  edges: PlotEdge[];
+  timeline: string[];
+  causality: any;
 }
 
 export { TaskType, TaskCategory };

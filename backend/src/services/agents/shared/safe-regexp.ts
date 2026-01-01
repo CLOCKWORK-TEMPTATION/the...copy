@@ -31,14 +31,22 @@ export function safeCountMultipleTerms(
   terms: string[]
 ): Record<string, number> {
   if (!text || !terms || terms.length === 0) return {};
-  
+
   const counts: Record<string, number> = {};
-  
+
   for (const term of terms) {
     counts[term] = safeCountOccurrences(text, term);
   }
-  
+
   return counts;
+}
+
+/**
+ * Sum all counts from a count record
+ * جمع جميع العدادات من سجل العدادات
+ */
+export function sumCounts(counts: Record<string, number>): number {
+  return Object.values(counts).reduce((sum, count) => sum + count, 0);
 }
 
 /**

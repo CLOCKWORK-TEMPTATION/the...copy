@@ -2,8 +2,8 @@
  * Task instructions and agent mappings
  */
 
-import { TaskType } from "../enums";
-import type { AgentId } from "../types";
+import { TaskType } from "@core/enums";
+import type { AgentId } from "@core/types";
 
 export const agentIdToTaskTypeMap: Record<AgentId, TaskType> = {
   "character-analyst": TaskType.CHARACTER_ANALYSIS,

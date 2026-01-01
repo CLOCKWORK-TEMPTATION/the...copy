@@ -5,7 +5,7 @@ import {
   StandardAgentOutput,
 } from "../shared/standardAgentPattern";
 import { DIALOGUE_FORENSICS_AGENT_CONFIG } from "./agent";
-import { safeCountMultipleTerms } from "../shared/safe-regexp";
+import { safeCountMultipleTerms, sumCounts } from "../shared/safe-regexp";
 
 interface DialogueForensicsContext {
   originalText?: string;
@@ -218,12 +218,12 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const termCount = safeCountMultipleTerms(text, authenticityTerms);
-    score += Math.min(0.25, termCount * 0.04);
+    score += Math.min(0.25, sumCounts(termCount) * 0.04);
 
     const negativeTerms = ["مفتعل", "غير طبيعي", "متكلف", "مصطنع"];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const negCount = safeCountMultipleTerms(text, negativeTerms);
-    score -= Math.min(0.2, negCount * 0.05);
+    score -= Math.min(0.2, sumCounts(negCount) * 0.05);
 
     const hasExamples = (text.match(/["«]/g) || []).length >= 3;
     if (hasExamples) score += 0.15;
@@ -245,7 +245,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const charCount = safeCountMultipleTerms(text, charTerms);
-    score += Math.min(0.25, charCount * 0.03);
+    score += Math.min(0.25, sumCounts(charCount) * 0.03);
 
     const hasVoiceAnalysis = text.includes("الشخصية") && text.includes("حوار");
     if (hasVoiceAnalysis) score += 0.15;
@@ -267,7 +267,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const funcCount = safeCountMultipleTerms(text, functionalTerms);
-    score += Math.min(0.3, funcCount * 0.03);
+    score += Math.min(0.3, sumCounts(funcCount) * 0.03);
 
     const hasPurposeAnalysis =
       text.includes("الغرض") ||
@@ -292,7 +292,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const techCount = safeCountMultipleTerms(text, technicalTerms);
-    score += Math.min(0.25, techCount * 0.04);
+    score += Math.min(0.25, sumCounts(techCount) * 0.04);
 
     if (text.length > 1500) score += 0.15;
 

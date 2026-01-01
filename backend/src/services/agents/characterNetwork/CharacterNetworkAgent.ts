@@ -5,7 +5,7 @@ import {
   StandardAgentOutput,
 } from "../shared/standardAgentPattern";
 import { CHARACTER_NETWORK_AGENT_CONFIG } from "./agent";
-import { safeCountMultipleTerms } from "../shared/safe-regexp";
+import { safeCountMultipleTerms, sumCounts } from "../shared/safe-regexp";
 import {
   buildOriginalTextSection,
   buildCharactersSection,
@@ -161,7 +161,7 @@ export class CharacterNetworkAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const termCount = safeCountMultipleTerms(text, networkTerms);
-    score += Math.min(0.25, termCount * 0.015);
+    score += Math.min(0.25, sumCounts(termCount) * 0.015);
 
     const aspectsTerms = [
       "مركزي",
@@ -174,7 +174,7 @@ export class CharacterNetworkAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const aspectsCount = safeCountMultipleTerms(text, aspectsTerms);
-    score += Math.min(0.15, aspectsCount * 0.02);
+    score += Math.min(0.15, sumCounts(aspectsCount) * 0.02);
 
     if (text.length > 1500) score += 0.1;
 
@@ -194,7 +194,7 @@ export class CharacterNetworkAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const typesCount = safeCountMultipleTerms(text, relTypes);
-    score += Math.min(0.25, typesCount * 0.04);
+    score += Math.min(0.25, sumCounts(typesCount) * 0.04);
 
     const dynamicTerms = [
       "يتطور",
@@ -207,7 +207,7 @@ export class CharacterNetworkAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const dynamicCount = safeCountMultipleTerms(text, dynamicTerms);
-    score += Math.min(0.15, dynamicCount * 0.03);
+    score += Math.min(0.15, sumCounts(dynamicCount) * 0.03);
 
     const hasDirectionalIndicators =
       text.includes("→") || text.includes("←") || text.includes("↔");
@@ -231,7 +231,7 @@ export class CharacterNetworkAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const structCount = safeCountMultipleTerms(text, structuralTerms);
-    score += Math.min(0.25, structCount * 0.04);
+    score += Math.min(0.25, sumCounts(structCount) * 0.04);
 
     const insightTerms = [
       "يكشف",
@@ -243,7 +243,7 @@ export class CharacterNetworkAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const insightCount = safeCountMultipleTerms(text, insightTerms);
-    score += Math.min(0.25, insightCount * 0.03);
+    score += Math.min(0.25, sumCounts(insightCount) * 0.03);
 
     return Math.min(1, score);
   }
@@ -261,7 +261,7 @@ export class CharacterNetworkAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const evidenceCount = safeCountMultipleTerms(text, evidenceMarkers);
-    score += Math.min(0.25, evidenceCount * 0.025);
+    score += Math.min(0.25, sumCounts(evidenceCount) * 0.025);
 
     const hasExamples = (text.match(/["«]/g) || []).length >= 2;
     if (hasExamples) score += 0.15;
