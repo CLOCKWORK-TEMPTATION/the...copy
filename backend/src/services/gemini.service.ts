@@ -179,6 +179,20 @@ export class GeminiService {
     }
   }
 
+  /**
+   * Generate content from prompt - simple wrapper around model.generateContent
+   * إنشاء محتوى من prompt
+   */
+  async generateContent(prompt: string, options?: { temperature?: number; maxTokens?: number }): Promise<string> {
+    try {
+      const result = await this.model.generateContent(prompt);
+      return (result as any).response.text();
+    } catch (error) {
+      logger.error('Error in generateContent:', error);
+      throw error;
+    }
+  }
+
   async reviewScreenplay(text: string): Promise<string> {
     const startTime = Date.now();
 
@@ -457,3 +471,8 @@ ${text}`,
     return prompts[analysisType as keyof typeof prompts] || prompts.characters;
   }
 }
+
+/**
+ * Singleton instance export
+ */
+export const geminiService = new GeminiService();

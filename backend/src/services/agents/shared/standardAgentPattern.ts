@@ -11,8 +11,32 @@
  * - Constitutional compliance
  */
 
-import { callGeminiText, toText, safeSub } from "@/lib/ai/gemini-core";
-import type { ModelId } from "@/lib/ai/gemini-core";
+import { geminiService } from "@/services/gemini.service";
+
+// Type for Gemini model IDs
+export type ModelId = "gemini-2.0-flash-exp" | "gemini-1.5-flash" | "gemini-1.5-pro" | string;
+
+// Helper function to call Gemini AI with text prompt
+async function callGeminiText(
+  prompt: string,
+  options?: { temperature?: number; model?: ModelId }
+): Promise<string> {
+  const response = await geminiService.analyzeText(prompt, "general");
+  return response;
+}
+
+// Helper function to safely convert value to text
+function toText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === null || value === undefined) return "";
+  return String(value);
+}
+
+// Helper function for safe substring operation
+function safeSub(text: string, start: number, end?: number): string {
+  if (!text) return "";
+  return text.substring(start, end);
+}
 
 // =====================================================
 // Types
@@ -443,7 +467,7 @@ ${claim}
 
 أجب بـ "نعم" أو "لا" فقط.`;
 
-      const result = await callGeminiText(checkPrompt, {
+      const result: string = await callGeminiText(checkPrompt, {
         temperature: 0.1,
       });
 

@@ -5,7 +5,7 @@ import {
   StandardAgentOutput,
 } from "../shared/standardAgentPattern";
 import { CONFLICT_DYNAMICS_AGENT_CONFIG } from "./agent";
-import { safeCountMultipleTerms } from "../shared/safe-regexp";
+import { safeCountMultipleTerms, sumCounts } from "../shared/safe-regexp";
 
 interface ConflictDynamicsContext {
   originalText?: string;
@@ -204,12 +204,12 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const termCount = safeCountMultipleTerms(text, conflictTerms);
-    score += Math.min(0.25, termCount * 0.02);
+    score += Math.min(0.25, sumCounts(termCount) * 0.02);
 
     const typeTerms = ["داخلي", "خارجي", "بين شخصي", "مجتمعي", "فردي"];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const typeCount = safeCountMultipleTerms(text, typeTerms);
-    score += Math.min(0.15, typeCount * 0.05);
+    score += Math.min(0.15, sumCounts(typeCount) * 0.05);
 
     if (text.includes("الأطراف") || text.includes("المتصارع")) score += 0.1;
 
@@ -231,7 +231,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const depthCount = safeCountMultipleTerms(text, depthIndicators);
-    score += Math.min(0.25, depthCount * 0.025);
+    score += Math.min(0.25, sumCounts(depthCount) * 0.025);
 
     const hasCausality =
       text.includes("لأن") || text.includes("بسبب") || text.includes("نتيجة");
@@ -256,7 +256,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const evidenceCount = safeCountMultipleTerms(text, evidenceMarkers);
-    score += Math.min(0.25, evidenceCount * 0.025);
+    score += Math.min(0.25, sumCounts(evidenceCount) * 0.025);
 
     const hasQuotes = (text.match(/["«]/g) || []).length;
     score += Math.min(0.15, hasQuotes * 0.015);
@@ -279,7 +279,7 @@ ${
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const insightCount = safeCountMultipleTerms(text, insightWords);
-    score += Math.min(0.3, insightCount * 0.03);
+    score += Math.min(0.3, sumCounts(insightCount) * 0.03);
 
     const hasFunctionAnalysis =
       text.includes("وظيفة") || text.includes("دور") || text.includes("يخدم");

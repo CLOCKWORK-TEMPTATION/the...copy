@@ -6,7 +6,7 @@ import {
 } from "../shared/standardAgentPattern";
 import { ADAPTIVE_REWRITING_AGENT_CONFIG } from "./agent";
 // نفترض وجود هذه الأداة المساعدة أو يمكن استبدالها بـ RegExp عادي مع الحذر
-import { safeCountMultipleTerms } from "../shared/safe-regexp";
+import { safeCountMultipleTerms, sumCounts } from "../shared/safe-regexp";
 
 /**
  * واجهة السياق الخاصة بإعادة الكتابة
@@ -221,7 +221,7 @@ export class AdaptiveRewritingAgent extends BaseAgent {
     ];
 
     const termCount = safeCountMultipleTerms(text, achievementTerms);
-    score += Math.min(0.3, termCount * 0.05);
+    score += Math.min(0.3, sumCounts(termCount) * 0.05);
 
     // مكافأة للطول المناسب (افتراض أن النص القصير جداً لم يحقق الهدف)
     if (text.length > 200) score += 0.2;
@@ -245,7 +245,7 @@ export class AdaptiveRewritingAgent extends BaseAgent {
     ];
 
     const qualityCount = safeCountMultipleTerms(text, qualityIndicators);
-    score += Math.min(0.3, qualityCount * 0.04);
+    score += Math.min(0.3, sumCounts(qualityCount) * 0.04);
 
     // التحقق من وجود قسم "ملاحظات التحسين" أو ما يشابهه
     const hasMetaAnalysis = /ملاحظات|التحسينات|التغييرات/i.test(text);
@@ -271,7 +271,7 @@ export class AdaptiveRewritingAgent extends BaseAgent {
     ];
 
     const connectiveCount = safeCountMultipleTerms(text, connectiveWords);
-    score += Math.min(0.25, connectiveCount * 0.03);
+    score += Math.min(0.25, sumCounts(connectiveCount) * 0.03);
 
     // التحقق من التنسيق (وجود فقرات)
     const paragraphs = text.split("\n\n").filter((p) => p.trim().length > 30);
@@ -296,7 +296,7 @@ export class AdaptiveRewritingAgent extends BaseAgent {
     ];
 
     const creativeCount = safeCountMultipleTerms(text, creativeWords);
-    score += Math.min(0.4, creativeCount * 0.08);
+    score += Math.min(0.4, sumCounts(creativeCount) * 0.08);
 
     // تنوع علامات الترقيم قد يدل على تنوع هيكلي (علامات تعجب، استفهام)
     if (text.includes("!") || text.includes("؟")) score += 0.1;
