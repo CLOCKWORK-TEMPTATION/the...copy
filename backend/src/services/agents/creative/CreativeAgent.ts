@@ -6,7 +6,7 @@ import {
 } from "../shared/standardAgentPattern";
 import { CREATIVE_AGENT_CONFIG } from "./agent";
 import { CREATIVE_MODE_INSTRUCTIONS } from "./instructions";
-import { safeCountMultipleTerms } from "../shared/safe-regexp";
+import { safeCountMultipleTerms, sumCounts } from "../shared/safe-regexp";
 
 /**
  * Creative Development Agent - وكيل التطوير الإبداعي
@@ -232,7 +232,7 @@ export class CreativeAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const innovationCount = safeCountMultipleTerms(text, innovativeWords);
-    score += Math.min(0.2, innovationCount * 0.02);
+    score += Math.min(0.2, sumCounts(innovationCount) * 0.02);
 
     // Check for multiple perspectives
     const perspectiveMarkers = [
@@ -244,7 +244,7 @@ export class CreativeAgent extends BaseAgent {
     ];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const perspectiveCount = safeCountMultipleTerms(text, perspectiveMarkers);
-    score += Math.min(0.15, perspectiveCount * 0.03);
+    score += Math.min(0.15, sumCounts(perspectiveCount) * 0.03);
 
     // Check for concrete examples
     if (text.includes("مثال") || text.includes("مثلاً")) {
@@ -267,7 +267,7 @@ export class CreativeAgent extends BaseAgent {
     const actionableWords = ["يمكن", "ينبغي", "يجب", "خطوة", "تطبيق", "تنفيذ"];
     // SECURITY FIX: Use safe RegExp utility to prevent injection
     const actionableCount = safeCountMultipleTerms(text, actionableWords);
-    score += Math.min(0.2, actionableCount * 0.02);
+    score += Math.min(0.2, sumCounts(actionableCount) * 0.02);
 
     // Check for specific details
     const hasNumbers = /\d+/.test(text);

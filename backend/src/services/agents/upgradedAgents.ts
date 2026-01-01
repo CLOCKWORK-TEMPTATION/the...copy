@@ -84,7 +84,7 @@ export const recommendationsGeneratorAgent = new RecommendationsGeneratorAgent()
 export const UPGRADED_AGENTS = new Map<TaskType, BaseAgent>([
   // الوكلاء الأساسية الأصلية (16 وكيل)
   [TaskType.COMPLETION, completionAgent],
-  [TaskType.CREATIVE_DEVELOPMENT, creativeAgent],
+  [TaskType.CREATIVE, creativeAgent],
   [TaskType.CHARACTER_VOICE, characterVoiceAgent],
   [TaskType.SCENE_GENERATOR, sceneGeneratorAgent],
   [TaskType.STYLE_FINGERPRINT, styleFingerprintAgent],

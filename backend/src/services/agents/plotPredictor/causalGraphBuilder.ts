@@ -10,8 +10,8 @@ import {
   PlotNode,
   PlotEdge,
   CausalRelation,
-} from "../../core/types";
-import { geminiService } from "../../services/geminiService";
+} from "@core/types";
+import { geminiService } from "@/services/gemini.service";
 
 export class CausalGraphBuilder {
   /**
@@ -255,6 +255,8 @@ ${text}
         );
 
         causality.push({
+          type: "direct" as const,
+          strength: 0.8,
           cause: fromNode.event,
           effect: toNode.event,
           explanation,

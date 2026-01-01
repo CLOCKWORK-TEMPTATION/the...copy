@@ -5,8 +5,8 @@
  * Based on Self-Refine and Constitutional AI research
  */
 
-import { SelfCritiqueResult } from "../../core/types";
-import { geminiService } from "../../services/geminiService";
+import { SelfCritiqueResult } from "@core/types";
+import { geminiService } from "@/services/gemini.service";
 
 export class SelfCritiqueModule {
   /**
@@ -72,11 +72,13 @@ export class SelfCritiqueModule {
     );
 
     return {
+      improved: improvementScore > 0.1,
+      iterations: iteration,
+      finalText: currentOutput,
+      improvementScore,
       originalOutput: output,
       critiques,
       refinedOutput: currentOutput,
-      improvementScore,
-      iterations: iteration,
     };
   }
 
