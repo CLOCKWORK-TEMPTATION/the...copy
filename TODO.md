@@ -224,8 +224,8 @@ frontend/src/components/debate/InteractiveDebate.tsx
 
 Copy
 typescript
-الأولوية: 🟢 منخفضة
-المدة المتوقعة: 4-5 أيام
+الأولوية: 🟢 مرتفعة
+ :    
 التسليمات: Debate System + Orchestrator Integration + UI + Tests
 
 🟪 الوكيل الرابع: Meta-Learning Engineer
@@ -299,8 +299,8 @@ frontend/src/components/learning/FeedbackPanel.tsx
 
 Copy
 typescript
-الأولوية: 🟢 منخفضة
-المدة المتوقعة: 4-5 أيام
+الأولوية: 🟢 مرتفعة
+ :    
 التسليمات: Learning System + Knowledge Base + Analytics UI + Tests
 
 🟧 الوكيل الخامس: Quality Metrics Specialist
@@ -400,7 +400,7 @@ SupervisorOrchestrator:
 5. إنشاء Git branches لكل وكيل
 
 Copy
-المرحلة 2: التنفيذ المتوازي (أيام 2-5)
+المرحلة 2: التنفيذ المتوازي (  2-5)
 جميع الوكلاء يعملون في نفس الوقت:
 
 RAGEngineer → branch: feature/rag-semantic-chunking
@@ -416,7 +416,7 @@ SupervisorOrchestrator:
 - integration testing تدريجي
 
 Copy
-المرحلة 3: التكامل (أيام 6-7)
+المرحلة 3: التكامل (  6-7)
 SupervisorOrchestrator:
 1. دمج جميع الـ branches
 2. حل التعارضات
@@ -592,19 +592,19 @@ Prometheus: Metrics collection
 Grafana: Visualization
 
 📊 Timeline المتوقع
-Day 1: Planning & Setup
+  : Planning & Setup
 ├── Supervisor: توزيع المهام
 ├── All Agents: فهم المتطلبات
 └── Setup: بيئة التطوير
 
- 2-5: Parallel Development
+ : Parallel Development
 ├── RAGEngineer: Phase 1 (High Priority)
-├── RulesArchitect: Phase 2 (Medium Priority)
-├── DebateCoordinator: Phase 3 (Low Priority)
-├── LearningSpecialist: Phase 4 (Low Priority)
+├── RulesArchitect: Phase 2 (high Priority)
+├── DebateCoordinator: Phase 3 (very high  Priority)
+├── LearningSpecialist: Phase 4 (very high  Priority)
 └── MetricsAnalyst: Phase 5 (Medium Priority)
 
- 6-7: Integration & Testing
+ : Integration & Testing
 ├── Supervisor: دمج الكود
 ├── All Agents: Integration testing
 └── Final: Documentation & Deployment
