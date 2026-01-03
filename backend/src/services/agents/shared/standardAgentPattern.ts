@@ -12,6 +12,7 @@
  */
 
 import { geminiService } from "@/services/gemini.service";
+import { enhancedRAGService } from "@/services/rag/enhancedRAG.service";
 
 // Type for Gemini model IDs
 export type ModelId = "gemini-2.0-flash-exp" | "gemini-1.5-flash" | "gemini-1.5-pro" | string;
@@ -56,6 +57,7 @@ export interface StandardAgentOptions {
   enableCaching?: boolean;
   enableLogging?: boolean;
   enableRAG?: boolean;
+  enableSemanticRAG?: boolean; // New: Use semantic RAG with embeddings
   enableSelfCritique?: boolean;
   enableConstitutional?: boolean;
   enableUncertainty?: boolean;
@@ -88,6 +90,12 @@ export interface StandardAgentOutput {
 export interface RAGContext {
   chunks: string[];
   relevanceScores: number[];
+  metrics?: {
+    precision?: number;
+    recall?: number;
+    avgRelevance?: number;
+    processingTime?: number;
+  };
 }
 
 export interface SelfCritiqueResult {
@@ -122,6 +130,7 @@ export interface HallucinationCheckResult {
 const DEFAULT_OPTIONS: StandardAgentOptions = {
   temperature: 0.3,
   enableRAG: true,
+  enableSemanticRAG: true, // Use enhanced semantic RAG by default
   enableSelfCritique: true,
   enableConstitutional: true,
   enableUncertainty: true,
@@ -137,13 +146,35 @@ const DEFAULT_OPTIONS: StandardAgentOptions = {
 
 async function performRAG(
   input: string,
-  context?: string
+  context?: string,
+  useSemanticRAG: boolean = true
 ): Promise<RAGContext> {
   if (!context || context.length < 100) {
     return { chunks: [], relevanceScores: [] };
   }
 
-  // Simple chunking strategy
+  // Use Enhanced Semantic RAG if enabled
+  if (useSemanticRAG) {
+    try {
+      const result = await enhancedRAGService.performRAG(input, context);
+
+      return {
+        chunks: result.chunks.map(c => c.text),
+        relevanceScores: result.chunks.map(c => c.relevanceScore),
+        metrics: {
+          precision: result.metrics.precision,
+          recall: result.metrics.recall,
+          avgRelevance: result.metrics.avgRelevanceScore,
+          processingTime: result.metrics.processingTimeMs,
+        },
+      };
+    } catch (error) {
+      console.warn('Semantic RAG failed, falling back to keyword-based RAG:', error);
+      // Fall through to legacy RAG
+    }
+  }
+
+  // Legacy keyword-based RAG (fallback)
   const chunkSize = 500;
   const overlap = 50;
   const chunks: string[] = [];
@@ -534,14 +565,25 @@ export async function executeStandardAgentPattern(
     // Step 1: RAG
     let finalPrompt = taskPrompt;
     if (mergedOptions.enableRAG && context?.originalText) {
+      const useSemanticRAG = mergedOptions.enableSemanticRAG ?? true;
       const ragContext = await performRAG(
         taskPrompt,
-        context.originalText as string
+        context.originalText as string,
+        useSemanticRAG
       );
       finalPrompt = buildPromptWithRAG(taskPrompt, ragContext);
       metadata.ragUsed = ragContext.chunks.length > 0;
       if (metadata.ragUsed) {
-        notes.push(`استخدم RAG: ${ragContext.chunks.length} أجزاء ذات صلة`);
+        const ragType = useSemanticRAG ? 'Semantic RAG' : 'Keyword RAG';
+        notes.push(`استخدم ${ragType}: ${ragContext.chunks.length} أجزاء ذات صلة`);
+
+        // Add metrics if available
+        if (ragContext.metrics) {
+          notes.push(
+            `دقة RAG: ${(ragContext.metrics.precision! * 100).toFixed(0)}%, ` +
+            `استدعاء: ${(ragContext.metrics.recall! * 100).toFixed(0)}%`
+          );
+        }
       }
     }
 
