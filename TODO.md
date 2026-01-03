@@ -91,7 +91,6 @@ backend/src/services/rag/__tests__/
 Copy
 bash
 الأولوية: 🔴 عالية
-المدة المتوقعة: 3-4 أيام
 التسليمات: API endpoints + UI components + Tests
 
 🟩 الوكيل الثاني: Rules Engine Specialist
@@ -154,7 +153,6 @@ frontend/src/components/rules/ViolationsDashboard.tsx
 Copy
 typescript
 الأولوية: 🟡 متوسطة
-المدة المتوقعة: 3-4 أيام
 التسليمات: Rules Engine + Domain Rules + UI + Tests
 
 🟨 الوكيل الثالث: Debate System Architect
@@ -390,11 +388,10 @@ frontend/src/components/metrics/DrillDownAnalysis.tsx
 Copy
 typescript
 الأولوية: 🟡 متوسطة
-المدة المتوقعة: 3-4 أيام
 التسليمات: Metrics System + Benchmarking + Dashboard + Tests
 
 🔄 آلية العمل المتوازي
-المرحلة 1: التخطيط (يوم 1)
+المرحلة 1: التخطيط م )
 SupervisorOrchestrator:
 1. تحليل الاعتماديات بين المراحل
 2. إنشاء خطة تنفيذ متوازية
@@ -413,7 +410,7 @@ LearningSpecialist → branch: feature/meta-learning
 MetricsAnalyst → branch: feature/quality-metrics
 
 SupervisorOrchestrator:
-- مراقبة يومية للتقدم
+- مراقبة ية للتقدم
 - حل التعارضات الفورية
 - code reviews مستمرة
 - integration testing تدريجي
@@ -477,7 +474,7 @@ interface TaskAssignment {
   tasks: Task[];
   dependencies: string[];
   priority: 'high' | 'medium' | 'low';
-  estimatedDays: number;
+  estimated: number;
 }
 
 const assignments: TaskAssignment[] = [
@@ -487,7 +484,7 @@ const assignments: TaskAssignment[] = [
     tasks: [...],
     dependencies: [],
     priority: 'high',
-    estimatedDays: 4
+    estimated: 4
   },
   // ... باقي الوكلاء
 ];
@@ -600,14 +597,14 @@ Day 1: Planning & Setup
 ├── All Agents: فهم المتطلبات
 └── Setup: بيئة التطوير
 
-Days 2-5: Parallel Development
+ 2-5: Parallel Development
 ├── RAGEngineer: Phase 1 (High Priority)
 ├── RulesArchitect: Phase 2 (Medium Priority)
 ├── DebateCoordinator: Phase 3 (Low Priority)
 ├── LearningSpecialist: Phase 4 (Low Priority)
 └── MetricsAnalyst: Phase 5 (Medium Priority)
 
-Days 6-7: Integration & Testing
+ 6-7: Integration & Testing
 ├── Supervisor: دمج الكود
 ├── All Agents: Integration testing
 └── Final: Documentation & Deployment
@@ -645,4 +642,3 @@ Quality Success:
 ✅ Accessibility compliant
 
 🎯 ابدأ التنفيذ الآن! كل وكيل يبدأ مرحلته بشكل متوازي تحت إشراف SupervisorOrchestrator.
-
