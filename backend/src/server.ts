@@ -505,4 +505,8 @@ process.on('SIGINT', async (): Promise<void> => {
 });
 
 export { app, httpServer };
+<<<<<<< HEAD
 export default app;
+=======
+export default app;
+>>>>>>> 2a6ee7e (first commit)
