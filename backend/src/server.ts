@@ -32,6 +32,7 @@ import { initializeWorkers, shutdownQueues } from '@/queues';
 import { setupBullBoard, getAuthenticatedBullBoardRouter } from '@/middleware/bull-board.middleware';
 import { queueController } from '@/controllers/queue.controller';
 import { metricsController } from '@/controllers/metrics.controller';
+import { critiqueController } from '@/controllers/critique.controller';
 import { websocketService } from '@/services/websocket.service';
 import { sseService } from '@/services/sse.service';
 
@@ -240,6 +241,12 @@ app.get('/api/auth/me', authMiddleware, authController.getCurrentUser.bind(authC
 // Seven Stations Pipeline endpoints (protected)
 app.post('/api/analysis/seven-stations', authMiddleware, csrfProtection, analysisController.runSevenStationsPipeline.bind(analysisController));
 app.get('/api/analysis/stations-info', authMiddleware, analysisController.getStationDetails.bind(analysisController));
+
+// Enhanced Self-Critique endpoints (protected)
+app.get('/api/critique/config', authMiddleware, critiqueController.getAllCritiqueConfigs.bind(critiqueController));
+app.get('/api/critique/config/:taskType', authMiddleware, critiqueController.getCritiqueConfig.bind(critiqueController));
+app.get('/api/critique/dimensions/:taskType', authMiddleware, critiqueController.getDimensionDetails.bind(critiqueController));
+app.post('/api/critique/summary', authMiddleware, csrfProtection, critiqueController.getCritiqueSummary.bind(critiqueController));
 
 // Directors Studio - Projects endpoints (protected)
 app.get('/api/projects', authMiddleware, projectsController.getProjects.bind(projectsController));
