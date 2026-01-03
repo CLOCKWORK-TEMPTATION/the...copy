@@ -156,7 +156,7 @@
     "autoprefixer": "^10.4.16",
     "cross-env": "^10.1.0",
     "cssnano": "^7.1.2",
-    "eslint": "^8.57.0",
+    "eslint": "^9.39.2",
     "eslint-config-next": "^16.0.7",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
