@@ -1,12 +1,16 @@
 /**
  * Multi-Agent Orchestrator - Backend
  * Orchestrates multiple agents to work together on complex analysis tasks
+ * Includes multi-agent debate system (المرحلة 3)
  */
 
 import { TaskType } from './core/enums';
 import { StandardAgentInput, StandardAgentOutput } from './core/types';
 import { agentRegistry } from './registry';
 import { logger } from '@/utils/logger';
+import { startDebate } from './debate';
+import { DebateConfig } from './debate/types';
+import { BaseAgent } from './shared/BaseAgent';
 
 export interface OrchestrationInput {
   fullText: string;
@@ -260,6 +264,141 @@ export class MultiAgentOrchestrator {
       default:
         return commonAgents;
     }
+  }
+
+  /**
+   * Run a multi-agent debate on a topic
+   * المرحلة 3 - Multi-Agent Debate System
+   *
+   * @param topic - The topic to debate
+   * @param taskTypes - Task types of agents to include in debate (optional)
+   * @param context - Additional context for the debate
+   * @param config - Debate configuration
+   * @param confidenceThreshold - Minimum confidence to trigger debate (default: 0.6)
+   */
+  async debateAgents(
+    topic: string,
+    taskTypes?: TaskType[],
+    context?: string,
+    config?: Partial<DebateConfig>,
+    confidenceThreshold: number = 0.6
+  ): Promise<StandardAgentOutput> {
+    logger.info(`Starting multi-agent debate on: ${topic}`);
+
+    try {
+      // Get available agents
+      let availableAgents: BaseAgent[];
+
+      if (taskTypes && taskTypes.length > 0) {
+        // Use specified task types
+        availableAgents = taskTypes
+          .map(taskType => agentRegistry.getAgent(taskType))
+          .filter((agent): agent is BaseAgent => agent !== undefined);
+      } else {
+        // Use all available agents
+        const allAgents = agentRegistry.getAllAgents();
+        availableAgents = Array.from(allAgents.values());
+      }
+
+      if (availableAgents.length === 0) {
+        throw new Error('لا توجد وكلاء متاحة للمناظرة');
+      }
+
+      logger.info(`Selected ${availableAgents.length} agents for debate`);
+
+      // Merge config with defaults
+      const debateConfig: Partial<DebateConfig> = {
+        confidenceThreshold,
+        ...config,
+      };
+
+      // Start debate
+      const result = await startDebate(
+        topic,
+        availableAgents,
+        context,
+        debateConfig
+      );
+
+      logger.info(
+        `Multi-agent debate completed with confidence: ${result.confidence}`
+      );
+
+      return result;
+    } catch (error) {
+      logger.error('Multi-agent debate failed:', error);
+
+      // Return fallback result
+      return {
+        text: `فشلت المناظرة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`,
+        confidence: 0.3,
+        notes: ['فشل في إتمام المناظرة'],
+        metadata: {
+          debateRounds: 0,
+        },
+      };
+    }
+  }
+
+  /**
+   * Execute agents with optional debate
+   * If confidence is below threshold, trigger a debate
+   *
+   * @param input - Orchestration input
+   * @param enableDebate - Whether to enable debate for low-confidence results
+   * @param debateConfig - Configuration for debate
+   */
+  async executeWithDebate(
+    input: OrchestrationInput,
+    enableDebate: boolean = true,
+    debateConfig?: Partial<DebateConfig>
+  ): Promise<OrchestrationOutput> {
+    // First, execute normally
+    const result = await this.executeAgents(input);
+
+    // Check if debate is needed
+    if (enableDebate && result.summary.averageConfidence < 0.7) {
+      logger.info(
+        `Low average confidence (${result.summary.averageConfidence.toFixed(2)}), triggering debate`
+      );
+
+      try {
+        // Get agents that participated
+        const participatingTaskTypes = Array.from(result.results.keys());
+        const agents = participatingTaskTypes
+          .map(taskType => agentRegistry.getAgent(taskType))
+          .filter((agent): agent is BaseAgent => agent !== undefined);
+
+        // Run debate to improve results
+        const debateTopic = `تحسين تحليل المشروع: ${input.projectName}`;
+        const debateResult = await startDebate(
+          debateTopic,
+          agents,
+          input.fullText,
+          debateConfig
+        );
+
+        // Add debate result to results
+        result.results.set(TaskType.INTEGRATED, debateResult);
+
+        // Update summary
+        result.summary.successfulTasks += 1;
+        const allConfidences = Array.from(result.results.values()).map(
+          r => r.confidence
+        );
+        result.summary.averageConfidence =
+          allConfidences.reduce((sum, c) => sum + c, 0) / allConfidences.length;
+
+        logger.info(
+          `Debate completed, new average confidence: ${result.summary.averageConfidence.toFixed(2)}`
+        );
+      } catch (error) {
+        logger.error('Debate execution failed:', error);
+        // Continue with original results
+      }
+    }
+
+    return result;
   }
 }
 
