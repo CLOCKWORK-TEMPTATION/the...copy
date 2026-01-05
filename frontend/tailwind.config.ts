@@ -27,9 +27,12 @@ const config: Config = {
     extend: {
       // === Font Families ===
       fontFamily: {
-        // Cairo هو الخط الوحيد المستخدم في التطبيق
+        // Cairo هو الخط الأساسي للتطبيق
         sans: ["Cairo", "system-ui", "-apple-system", "sans-serif"],
         cairo: ["Cairo", "system-ui", "-apple-system", "sans-serif"],
+        // خطوط عربية إضافية للمحرر العربي
+        amiri: ["Amiri", "serif"],
+        tajawal: ["Tajawal", "sans-serif"],
         mono: ["IBM Plex Mono", "Courier New", "monospace"],
       },
       // === Font Sizes (1.25 ratio scale) ===

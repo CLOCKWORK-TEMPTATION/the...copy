@@ -2,17 +2,20 @@
 
 import dynamic from "next/dynamic";
 
-const ScreenplayEditor = dynamic(() => import("./screenplay-editor"), {
-  loading: () => (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-muted-foreground">جاري تحميل محرر السيناريو...</p>
+const ScreenplayEditor = dynamic(
+  () => import("@/components/screenplay-editor").then(mod => ({ default: mod.ScreenplayEditor })),
+  {
+    loading: () => (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">جاري تحميل محرر السيناريو العربي...</p>
+        </div>
       </div>
-    </div>
-  ),
-  ssr: false,
-});
+    ),
+    ssr: false,
+  }
+);
 
 export default function EditorPage() {
   return <ScreenplayEditor />;
