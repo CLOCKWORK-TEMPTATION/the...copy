@@ -35,13 +35,14 @@ import {
 import { FolderOpen, Trash2, Edit2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Project } from "@/types/api";
 
 export default function ProjectManager() {
   const { data: projects, isLoading } = useProjects();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
   const { toast } = useToast();
-  const currentProjectId = getCurrentProject();
+  const currentProject = getCurrentProject<Project>();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -88,7 +89,7 @@ export default function ProjectManager() {
     try {
       await deleteProject.mutateAsync(projectToDelete);
 
-      if (currentProjectId && currentProjectId.id === projectToDelete) {
+      if (currentProject && currentProject.id === projectToDelete) {
         clearCurrentProject();
         window.location.reload();
       }
@@ -138,7 +139,7 @@ export default function ProjectManager() {
               <Card
                 key={project.id}
                 className={
-                  currentProjectId && currentProjectId.id === project.id
+                  currentProject && currentProject.id === project.id
                     ? "border-primary"
                     : ""
                 }
