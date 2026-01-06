@@ -1,7 +1,7 @@
 {
   "name": "the-copy-monorepo",
   "private": true,
-  "packageManager": "pnpm@10.20.0",
+  "packageManager": "pnpm@10.27.0",
   "pnpm": {
     "onlyBuiltDependencies": ["esbuild"]
   },

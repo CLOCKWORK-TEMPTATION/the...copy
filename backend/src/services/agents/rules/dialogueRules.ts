@@ -50,7 +50,7 @@ export const dialogueRules: Rule[] = [
     name: 'الوعي باللهجات',
     description: 'الانتباه للهجات والمستويات اللغوية المختلفة في الحوار',
     category: 'dialogue',
-    severity: 'medium',
+    severity: 'minor',
     priority: 'medium',
     enabled: true,
     parameters: [
@@ -126,7 +126,7 @@ export const dialogueRules: Rule[] = [
     name: 'تحليل الصراع والتوتر',
     description: 'تحديد مصادر التوتر والصراع في الحوار',
     category: 'dialogue',
-    severity: 'medium',
+    severity: 'minor',
     priority: 'medium',
     enabled: true,
     parameters: [
@@ -213,7 +213,7 @@ export const dialogueRules: Rule[] = [
     name: 'تحليل وظيفة الحوار',
     description: 'يجب تحليل ما يحققه الحوار في السرد (معلومات، تطوير شخصيات، إلخ)',
     category: 'dialogue',
-    severity: 'medium',
+    severity: 'minor',
     priority: 'medium',
     enabled: true,
     parameters: [

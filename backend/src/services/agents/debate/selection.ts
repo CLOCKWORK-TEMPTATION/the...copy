@@ -85,11 +85,13 @@ export function assignRoles(agents: BaseAgent[]): DebateParticipant[] {
   }
 
   // First agent is the proposer
-  participants.push({
-    agent: agents[0],
-    role: DebateRole.PROPOSER,
-    voteWeight: 1.0,
-  });
+  if (agents.length > 0) {
+    participants.push({
+      agent: agents[0],
+      role: DebateRole.PROPOSER,
+      voteWeight: 1.0,
+    });
+  }
 
   // Second agent is the opponent (if exists)
   if (agents.length > 1) {
@@ -110,11 +112,14 @@ export function assignRoles(agents: BaseAgent[]): DebateParticipant[] {
 
     // Middle agents are additional opponents or moderators
     for (let i = 2; i < agents.length - 1; i++) {
-      participants.push({
-        agent: agents[i],
-        role: i % 2 === 0 ? DebateRole.OPPONENT : DebateRole.MODERATOR,
-        voteWeight: 1.0,
-      });
+      const agent = agents[i];
+      if (agent) {
+        participants.push({
+          agent,
+          role: i % 2 === 0 ? DebateRole.OPPONENT : DebateRole.MODERATOR,
+          voteWeight: 1.0,
+        });
+      }
     }
   }
 

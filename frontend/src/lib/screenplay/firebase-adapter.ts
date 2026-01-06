@@ -22,6 +22,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { logger } from '../../services/LoggerService';
 
 /**
  * وثيقة السيناريو في Firestore
@@ -93,7 +94,7 @@ export class ScreenplayFirebaseAdapter {
 
       return { success: true, data: { id: screenplayId } };
     } catch (error) {
-      console.error('Failed to save screenplay:', error);
+      logger.error('Failed to save screenplay:', error);
       return {
         success: false,
         error: `فشل حفظ السيناريو: ${error}`,
@@ -125,7 +126,7 @@ export class ScreenplayFirebaseAdapter {
 
       return null;
     } catch (error) {
-      console.error('Failed to load screenplay:', error);
+      logger.error('Failed to load screenplay:', error);
       throw new Error(`فشل تحميل السيناريو: ${error}`);
     }
   }
@@ -146,7 +147,7 @@ export class ScreenplayFirebaseAdapter {
 
       return { success: true };
     } catch (error) {
-      console.error('Failed to delete screenplay:', error);
+      logger.error('Failed to delete screenplay:', error);
       return {
         success: false,
         error: `فشل حذف السيناريو: ${error}`,
@@ -179,7 +180,7 @@ export class ScreenplayFirebaseAdapter {
 
       return screenplays;
     } catch (error) {
-      console.error('Failed to get user screenplays:', error);
+      logger.error('Failed to get user screenplays:', error);
       throw new Error(`فشل الحصول على السيناريوهات: ${error}`);
     }
   }
@@ -214,7 +215,7 @@ export class ScreenplayFirebaseAdapter {
 
       return screenplays;
     } catch (error) {
-      console.error('Failed to get project screenplays:', error);
+      logger.error('Failed to get project screenplays:', error);
       throw new Error(`فشل الحصول على سيناريوهات المشروع: ${error}`);
     }
   }
@@ -247,7 +248,7 @@ export class ScreenplayFirebaseAdapter {
         }
       },
       (error) => {
-        console.error('Screenplay subscription error:', error);
+        logger.error('Screenplay subscription error:', error);
         onError?.(error);
       }
     );
@@ -277,7 +278,7 @@ export class ScreenplayFirebaseAdapter {
 
       return filtered;
     } catch (error) {
-      console.error('Failed to search screenplays:', error);
+      logger.error('Failed to search screenplays:', error);
       throw new Error(`فشل البحث في السيناريوهات: ${error}`);
     }
   }
@@ -336,7 +337,7 @@ export class ScreenplayFirebaseAdapter {
         metadata: newScreenplay.metadata!,
       } as ScreenplayDocument;
     } catch (error) {
-      console.error('Failed to create screenplay:', error);
+      logger.error('Failed to create screenplay:', error);
       throw new Error(`فشل إنشاء السيناريو: ${error}`);
     }
   }
@@ -363,7 +364,7 @@ export class ScreenplayFirebaseAdapter {
 
       return { success: true };
     } catch (error) {
-      console.error('Failed to update title:', error);
+      logger.error('Failed to update title:', error);
       return {
         success: false,
         error: `فشل تحديث العنوان: ${error}`,
@@ -398,7 +399,7 @@ export class ScreenplayFirebaseAdapter {
         original.projectId
       );
     } catch (error) {
-      console.error('Failed to duplicate screenplay:', error);
+      logger.error('Failed to duplicate screenplay:', error);
       throw new Error(`فشل نسخ السيناريو: ${error}`);
     }
   }
@@ -414,7 +415,7 @@ export class ScreenplayFirebaseAdapter {
     try {
       return await this.getUserScreenplays(userId);
     } catch (error) {
-      console.error('Failed to export screenplays:', error);
+      logger.error('Failed to export screenplays:', error);
       throw new Error(`فشل تصدير السيناريوهات: ${error}`);
     }
   }
@@ -444,7 +445,7 @@ export class ScreenplayFirebaseAdapter {
 
         importedCount++;
       } catch (error) {
-        console.error(`Failed to import screenplay: ${screenplay.title}`, error);
+        logger.error(`Failed to import screenplay: ${screenplay.title}`, error);
       }
     }
 
@@ -487,7 +488,7 @@ export class ScreenplayFirebaseAdapter {
         totalScenes,
       };
     } catch (error) {
-      console.error('Failed to get user stats:', error);
+      logger.error('Failed to get user stats:', error);
       throw new Error(`فشل الحصول على الإحصائيات: ${error}`);
     }
   }

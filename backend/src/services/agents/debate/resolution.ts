@@ -12,27 +12,27 @@ import { DebateArgument, ConsensusResult, Vote } from './types';
  * حساب درجة التوافق بين الحجج
  */
 export async function calculateAgreementScore(
-  arguments: DebateArgument[]
+  args: DebateArgument[]
 ): Promise<number> {
-  console.log(`[Resolution] Calculating agreement score for ${arguments.length} arguments`);
+  console.log(`[Resolution] Calculating agreement score for ${args.length} arguments`);
 
-  if (arguments.length === 0) {
+  if (args.length === 0) {
     return 0;
   }
 
-  if (arguments.length === 1) {
-    return arguments[0].confidence;
+  if (args.length === 1) {
+    return args[0].confidence;
   }
 
   try {
     // Method 1: Confidence variance (30%)
-    const confidenceScore = calculateConfidenceAgreement(arguments);
+    const confidenceScore = calculateConfidenceAgreement(args);
 
     // Method 2: Position similarity via AI (50%)
-    const positionScore = await calculatePositionSimilarity(arguments);
+    const positionScore = await calculatePositionSimilarity(args);
 
     // Method 3: Evidence overlap (20%)
-    const evidenceScore = calculateEvidenceOverlap(arguments);
+    const evidenceScore = calculateEvidenceOverlap(args);
 
     // Weighted combination
     const agreementScore =
@@ -51,7 +51,7 @@ export async function calculateAgreementScore(
 
     // Fallback: use average confidence
     const avgConfidence =
-      arguments.reduce((sum, arg) => sum + arg.confidence, 0) / arguments.length;
+      args.reduce((sum, arg) => sum + arg.confidence, 0) / args.length;
     return avgConfidence;
   }
 }
@@ -61,12 +61,12 @@ export async function calculateAgreementScore(
  * تحديد نقاط التوافق
  */
 export async function identifyConsensusPoints(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   topic: string
 ): Promise<string[]> {
   console.log(`[Resolution] Identifying consensus points`);
 
-  if (arguments.length === 0) {
+  if (args.length === 0) {
     return [];
   }
 
@@ -74,7 +74,7 @@ export async function identifyConsensusPoints(
     const prompt = `
 قم بتحليل الحجج التالية في مناظرة حول: "${topic}"
 
-${arguments
+${args
   .map(
     (arg, idx) => `
 **الحجة ${idx + 1}** (${arg.agentName}):
@@ -110,12 +110,12 @@ ${arg.position}
  * تحديد نقاط الاختلاف
  */
 export async function identifyDisagreementPoints(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   topic: string
 ): Promise<string[]> {
   console.log(`[Resolution] Identifying disagreement points`);
 
-  if (arguments.length === 0) {
+  if (args.length === 0) {
     return [];
   }
 
@@ -123,7 +123,7 @@ export async function identifyDisagreementPoints(
     const prompt = `
 قم بتحليل الحجج التالية في مناظرة حول: "${topic}"
 
-${arguments
+${args
   .map(
     (arg, idx) => `
 **الحجة ${idx + 1}** (${arg.agentName}):
@@ -158,7 +158,7 @@ ${arg.position}
  * حل الخلافات وإيجاد أرضية مشتركة
  */
 export async function resolveDisagreements(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   disagreementPoints: string[],
   topic: string
 ): Promise<string> {
@@ -178,7 +178,7 @@ export async function resolveDisagreements(
 ${disagreementPoints.map((point, idx) => `${idx + 1}. ${point}`).join('\n')}
 
 بناءً على الحجج الأصلية:
-${arguments
+${args
   .map(
     (arg, idx) => `
 ${idx + 1}. ${arg.agentName}:
@@ -208,14 +208,14 @@ ${arg.position.substring(0, 400)}
  * توليف نهائي من جميع الحجج
  */
 export async function generateFinalSynthesis(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   consensusPoints: string[],
   disagreementPoints: string[],
   topic: string
 ): Promise<string> {
   console.log(`[Resolution] Generating final synthesis`);
 
-  if (arguments.length === 0) {
+  if (args.length === 0) {
     return 'لا توجد حجج لتوليفها';
   }
 
@@ -230,7 +230,7 @@ ${consensusPoints.length > 0 ? consensusPoints.map((p, i) => `${i + 1}. ${p}`).j
 ${disagreementPoints.length > 0 ? disagreementPoints.map((p, i) => `${i + 1}. ${p}`).join('\n') : 'لا توجد'}
 
 **الحجج الأصلية:**
-${arguments
+${args
   .map(
     (arg, idx) => `
 ${idx + 1}. **${arg.agentName}** (ثقة: ${(arg.confidence * 100).toFixed(0)}%):
@@ -266,24 +266,24 @@ ${arg.position}
  * بناء نتيجة التوافق الكاملة
  */
 export async function buildConsensusResult(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   topic: string
 ): Promise<ConsensusResult> {
   console.log(`[Resolution] Building consensus result`);
 
   try {
     // 1. Calculate agreement score
-    const agreementScore = await calculateAgreementScore(arguments);
+    const agreementScore = await calculateAgreementScore(args);
 
     // 2. Identify consensus and disagreement points
     const [consensusPoints, disagreementPoints] = await Promise.all([
-      identifyConsensusPoints(arguments, topic),
-      identifyDisagreementPoints(arguments, topic),
+      identifyConsensusPoints(args, topic),
+      identifyDisagreementPoints(args, topic),
     ]);
 
     // 3. Generate final synthesis
     const finalSynthesis = await generateFinalSynthesis(
-      arguments,
+      args,
       consensusPoints,
       disagreementPoints,
       topic
@@ -294,7 +294,7 @@ export async function buildConsensusResult(
 
     // 5. Get participating agents
     const participatingAgents = Array.from(
-      new Set(arguments.map(arg => arg.agentName))
+      new Set(args.map(arg => arg.agentName))
     );
 
     return {
@@ -361,8 +361,8 @@ export function calculateVoteResults(
 /**
  * Calculate agreement based on confidence variance
  */
-function calculateConfidenceAgreement(arguments: DebateArgument[]): number {
-  const confidences = arguments.map(arg => arg.confidence);
+function calculateConfidenceAgreement(args: DebateArgument[]): number {
+  const confidences = args.map(arg => arg.confidence);
   const avgConfidence =
     confidences.reduce((a, b) => a + b, 0) / confidences.length;
 
@@ -380,13 +380,13 @@ function calculateConfidenceAgreement(arguments: DebateArgument[]): number {
  * Calculate position similarity using AI
  */
 async function calculatePositionSimilarity(
-  arguments: DebateArgument[]
+  args: DebateArgument[]
 ): Promise<number> {
   try {
     const prompt = `
 على مقياس من 0 إلى 1، ما مدى تشابه المواقف التالية؟
 
-${arguments
+${args
   .map(
     (arg, idx) => `
 ${idx + 1}. ${arg.agentName}:
@@ -411,7 +411,7 @@ ${arg.position.substring(0, 300)}
     });
 
     const match = response.match(/(\d+\.?\d*)/);
-    if (match) {
+    if (match && match[1]) {
       return Math.min(1, Math.max(0, parseFloat(match[1])));
     }
 
@@ -425,13 +425,13 @@ ${arg.position.substring(0, 300)}
 /**
  * Calculate evidence overlap
  */
-function calculateEvidenceOverlap(arguments: DebateArgument[]): number {
-  if (arguments.length < 2) {
+function calculateEvidenceOverlap(args: DebateArgument[]): number {
+  if (args.length < 2) {
     return 1;
   }
 
   // Collect all evidence
-  const allEvidence = arguments.flatMap(arg => arg.evidence);
+  const allEvidence = args.flatMap(arg => arg.evidence);
 
   if (allEvidence.length === 0) {
     return 0.5; // No evidence, neutral score

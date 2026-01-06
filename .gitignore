@@ -151,6 +151,7 @@ COMPLETED_FILES.txt
 CONFLICTS_RESOLVED.txt
 current_settings.txt
 technical-reality-report.json
+المحرر/
 
 # Sentry
 .env.sentry-build-plugin

@@ -5,6 +5,7 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import { logger } from '../../services/LoggerService';
 
 // Event types matching backend
 export enum RealtimeEventType {
@@ -13,16 +14,16 @@ export enum RealtimeEventType {
   AGENT_PROGRESS = 'agent:progress',
   AGENT_COMPLETED = 'agent:completed',
   AGENT_FAILED = 'agent:failed',
-  
+
   // Job events
   JOB_STARTED = 'job:started',
   JOB_PROGRESS = 'job:progress',
   JOB_COMPLETED = 'job:completed',
   JOB_FAILED = 'job:failed',
-  
+
   // Step events
   STEP_PROGRESS = 'step:progress',
-  
+
   // Connection events
   CONNECTED = 'connect',
   DISCONNECTED = 'disconnect',
@@ -64,13 +65,13 @@ class WebSocketClient {
    */
   connect(token?: string): void {
     if (this.socket?.connected) {
-      console.warn('[WebSocket] Already connected');
+      logger.warn('[WebSocket] Already connected');
       return;
     }
 
     // Use environment variable or default to backend URL
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-    
+
     this.socket = io(backendUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -89,23 +90,23 @@ class WebSocketClient {
     if (!this.socket) return;
 
     this.socket.on(RealtimeEventType.CONNECTED, () => {
-      console.log('[WebSocket] Connected');
+      logger.info('[WebSocket] Connected');
       this.reconnectAttempts = 0;
       this.notifyListeners(RealtimeEventType.CONNECTED, {});
     });
 
     this.socket.on(RealtimeEventType.DISCONNECTED, (reason: string) => {
-      console.log('[WebSocket] Disconnected');
+      logger.info('[WebSocket] Disconnected');
       this.notifyListeners(RealtimeEventType.DISCONNECTED, { reason });
     });
 
     this.socket.on(RealtimeEventType.ERROR, (error: any) => {
-      console.error('[WebSocket] Error');
+      logger.error('[WebSocket] Error');
       this.notifyListeners(RealtimeEventType.ERROR, error);
     });
 
     this.socket.on(RealtimeEventType.UNAUTHORIZED, (data: any) => {
-      console.warn('[WebSocket] Unauthorized');
+      logger.warn('[WebSocket] Unauthorized');
       this.notifyListeners(RealtimeEventType.UNAUTHORIZED, data);
     });
 
@@ -121,7 +122,7 @@ class WebSocketClient {
    */
   authenticate(token: string): void {
     if (!this.socket) return;
-    
+
     this.socket.emit('authenticate', { token });
   }
 
@@ -167,7 +168,7 @@ class WebSocketClient {
     if (!this.listeners.has(eventType)) {
       this.listeners.set(eventType, new Set());
     }
-    
+
     this.listeners.get(eventType)!.add(callback);
 
     // Setup socket listener if not already set
@@ -207,7 +208,7 @@ class WebSocketClient {
         try {
           callback(data);
         } catch (error) {
-          console.error(`[WebSocket] Error in listener for ${eventType}`);
+          logger.error(`[WebSocket] Error in listener for ${eventType}`);
         }
       });
     }

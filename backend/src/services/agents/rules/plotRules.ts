@@ -94,7 +94,7 @@ export const plotRules: Rule[] = [
     name: 'اتساق الإيقاع',
     description: 'تحليل إيقاع السرد وتناسقه',
     category: 'plot',
-    severity: 'medium',
+    severity: 'minor',
     priority: 'medium',
     enabled: true,
     parameters: [
@@ -128,7 +128,7 @@ export const plotRules: Rule[] = [
     name: 'التعرف على البنية',
     description: 'التعرف على البنية السردية والهيكل الدرامي',
     category: 'plot',
-    severity: 'medium',
+    severity: 'minor',
     priority: 'medium',
     enabled: true,
     parameters: [
@@ -197,7 +197,7 @@ export const plotRules: Rule[] = [
     name: 'تكامل الحبكات الفرعية',
     description: 'تحليل كيفية تكامل الحبكات الفرعية مع الحبكة الرئيسية',
     category: 'plot',
-    severity: 'medium',
+    severity: 'minor',
     priority: 'medium',
     enabled: true,
     parameters: [
@@ -237,7 +237,7 @@ export const plotRules: Rule[] = [
     name: 'قوس التوتر',
     description: 'تحليل تصاعد وهبوط التوتر الدرامي',
     category: 'plot',
-    severity: 'medium',
+    severity: 'minor',
     priority: 'medium',
     enabled: true,
     parameters: [

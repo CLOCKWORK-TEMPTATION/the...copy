@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 
 const ScreenplayEditor = dynamic(
-  () => import("@/components/screenplay-editor").then(mod => ({ default: mod.ScreenplayEditor })),
+  () => import("@/components/screenplay-editor"),
   {
     loading: () => (
       <div className="min-h-screen flex items-center justify-center">

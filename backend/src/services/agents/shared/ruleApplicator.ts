@@ -75,7 +75,7 @@ export async function applyRulesWithContext(
 
   return {
     violations,
-    correctedText,
+    correctedText: correctedText || undefined,
     applied: violations.length === 0,
     summary,
   };

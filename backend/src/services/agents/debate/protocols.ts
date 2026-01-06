@@ -97,10 +97,10 @@ export async function presentArguments(
     }
   });
 
-  const arguments = await Promise.all(argumentPromises);
+  const debateArguments = await Promise.all(argumentPromises);
 
   // Filter out failed arguments
-  return arguments.filter((arg): arg is DebateArgument => arg !== null);
+  return debateArguments.filter((arg): arg is DebateArgument => arg !== null);
 }
 
 /**
@@ -108,11 +108,11 @@ export async function presentArguments(
  * الرد على الحجج
  */
 export async function refuteArguments(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   participants: DebateParticipant[],
   context?: string
 ): Promise<DebateArgument[]> {
-  console.log(`[DebateProtocol] Refuting ${arguments.length} arguments`);
+  console.log(`[DebateProtocol] Refuting ${args.length} arguments`);
 
   const refutations: DebateArgument[] = [];
 
@@ -120,7 +120,7 @@ export async function refuteArguments(
     const agentName = participant.agent.getConfig().name;
 
     // Each agent refutes arguments from other agents
-    const otherArguments = arguments.filter(arg => arg.agentName !== agentName);
+    const otherArguments = args.filter(arg => arg.agentName !== agentName);
 
     if (otherArguments.length === 0) continue;
 
@@ -163,13 +163,13 @@ export async function refuteArguments(
  * توليف التوافق من الحجج
  */
 export async function synthesizeConsensus(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   topic: string,
   synthesizer?: BaseAgent
 ): Promise<ConsensusResult> {
-  console.log(`[DebateProtocol] Synthesizing consensus from ${arguments.length} arguments`);
+  console.log(`[DebateProtocol] Synthesizing consensus from ${args.length} arguments`);
 
-  if (arguments.length === 0) {
+  if (args.length === 0) {
     return {
       achieved: false,
       agreementScore: 0,
@@ -184,24 +184,24 @@ export async function synthesizeConsensus(
   try {
     // Use synthesizer agent if provided, otherwise create synthesis directly
     const synthesisText = synthesizer
-      ? await getSynthesizerAgentOutput(synthesizer, arguments, topic)
-      : await generateDirectSynthesis(arguments, topic);
+      ? await getSynthesizerAgentOutput(synthesizer, args, topic)
+      : await generateDirectSynthesis(args, topic);
 
     // Analyze consensus points
     const { consensusPoints, disagreementPoints } = await analyzeConsensusPoints(
-      arguments,
+      args,
       synthesisText
     );
 
     // Calculate agreement score
-    const agreementScore = calculateAgreementScore(arguments, consensusPoints);
+    const agreementScore = calculateAgreementScore(args, consensusPoints);
 
     // Determine if consensus is achieved (threshold 0.75)
     const achieved = agreementScore >= 0.75;
 
     // Get participating agents
     const participatingAgents = Array.from(
-      new Set(arguments.map(arg => arg.agentName))
+      new Set(args.map(arg => arg.agentName))
     );
 
     return {
@@ -233,11 +233,11 @@ export async function synthesizeConsensus(
  * التصويت على أفضل رد
  */
 export async function voteOnBestResponse(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   participants: DebateParticipant[],
   topic: string
 ): Promise<{ argumentId: string; votes: Vote[]; winner: DebateArgument }> {
-  console.log(`[DebateProtocol] Voting on ${arguments.length} arguments`);
+  console.log(`[DebateProtocol] Voting on ${args.length} arguments`);
 
   const allVotes: Vote[] = [];
 
@@ -246,7 +246,7 @@ export async function voteOnBestResponse(
     const agentName = participant.agent.getConfig().name;
 
     try {
-      const prompt = buildVotingPrompt(arguments, topic);
+      const prompt = buildVotingPrompt(args, topic);
 
       const result = await participant.agent.executeTask({
         input: prompt,
@@ -257,7 +257,7 @@ export async function voteOnBestResponse(
       });
 
       // Parse votes from response
-      const votes = parseVotesFromResponse(result.text, arguments, agentName);
+      const votes = parseVotesFromResponse(result.text, args, agentName);
       allVotes.push(...votes);
     } catch (error) {
       console.error(`[DebateProtocol] Error getting votes from ${agentName}:`, error);
@@ -266,7 +266,7 @@ export async function voteOnBestResponse(
 
   // Calculate vote scores for each argument
   const scoreMap = new Map<string, number>();
-  arguments.forEach(arg => scoreMap.set(arg.id, 0));
+  args.forEach(arg => scoreMap.set(arg.id, 0));
 
   allVotes.forEach(vote => {
     const currentScore = scoreMap.get(vote.argumentId) || 0;
@@ -275,7 +275,7 @@ export async function voteOnBestResponse(
 
   // Find winner (highest score)
   let maxScore = 0;
-  let winnerId = arguments[0].id;
+  let winnerId = args[0].id;
 
   scoreMap.forEach((score, argId) => {
     if (score > maxScore) {
@@ -284,7 +284,7 @@ export async function voteOnBestResponse(
     }
   });
 
-  const winner = arguments.find(arg => arg.id === winnerId) || arguments[0];
+  const winner = args.find(arg => arg.id === winnerId) || args[0];
 
   return {
     argumentId: winnerId,
@@ -339,12 +339,12 @@ function buildArgumentPrompt(
  * Build refutation prompt
  */
 function buildRefutationPrompt(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   context?: string
 ): string {
   let prompt = 'قم بتحليل ونقد الحجج التالية:\n\n';
 
-  arguments.forEach((arg, idx) => {
+  args.forEach((arg, idx) => {
     prompt += `**الحجة ${idx + 1}** (${arg.agentName}):\n`;
     prompt += `${arg.position}\n\n`;
   });
@@ -361,10 +361,10 @@ function buildRefutationPrompt(
 /**
  * Build voting prompt
  */
-function buildVotingPrompt(arguments: DebateArgument[], topic: string): string {
+function buildVotingPrompt(args: DebateArgument[], topic: string): string {
   let prompt = `الموضوع: ${topic}\n\nقيّم الحجج التالية (من 0 إلى 1):\n\n`;
 
-  arguments.forEach((arg, idx) => {
+  args.forEach((arg, idx) => {
     prompt += `${idx + 1}. ${arg.agentName}:\n${arg.position.substring(0, 300)}\n\n`;
   });
 
@@ -415,7 +415,7 @@ function extractEvidence(text: string): string[] {
  */
 async function getSynthesizerAgentOutput(
   synthesizer: BaseAgent,
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   topic: string
 ): Promise<string> {
   const prompt = `
@@ -423,7 +423,7 @@ async function getSynthesizerAgentOutput(
 
 قم بتوليف الحجج التالية في رأي موحد:
 
-${arguments.map((arg, idx) => `
+${args.map((arg, idx) => `
 ${idx + 1}. ${arg.agentName}:
 ${arg.position}
 `).join('\n---\n')}
@@ -446,15 +446,15 @@ ${arg.position}
  * Generate direct synthesis without synthesizer agent
  */
 async function generateDirectSynthesis(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   topic: string
 ): Promise<string> {
   // Simple concatenation with summary
   let synthesis = `# توليف الآراء حول: ${topic}\n\n`;
 
-  synthesis += `بناءً على ${arguments.length} حجة من المشاركين، نستنتج ما يلي:\n\n`;
+  synthesis += `بناءً على ${args.length} حجة من المشاركين، نستنتج ما يلي:\n\n`;
 
-  arguments.forEach((arg, idx) => {
+  args.forEach((arg, idx) => {
     synthesis += `**${idx + 1}. ${arg.agentName}:**\n${arg.position.substring(0, 300)}...\n\n`;
   });
 
@@ -465,7 +465,7 @@ async function generateDirectSynthesis(
  * Analyze consensus points from arguments
  */
 async function analyzeConsensusPoints(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   synthesisText: string
 ): Promise<{ consensusPoints: string[]; disagreementPoints: string[] }> {
   // Simple extraction from synthesis text
@@ -490,16 +490,16 @@ async function analyzeConsensusPoints(
  * Calculate agreement score
  */
 function calculateAgreementScore(
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   consensusPoints: string[]
 ): number {
-  if (arguments.length === 0) return 0;
+  if (args.length === 0) return 0;
 
   // Base score on confidence similarity and consensus points
   const avgConfidence =
-    arguments.reduce((sum, arg) => sum + arg.confidence, 0) / arguments.length;
+    args.reduce((sum, arg) => sum + arg.confidence, 0) / args.length;
 
-  const consensusRatio = Math.min(1, consensusPoints.length / arguments.length);
+  const consensusRatio = Math.min(1, consensusPoints.length / args.length);
 
   return (avgConfidence * 0.6) + (consensusRatio * 0.4);
 }
@@ -509,12 +509,12 @@ function calculateAgreementScore(
  */
 function parseVotesFromResponse(
   response: string,
-  arguments: DebateArgument[],
+  args: DebateArgument[],
   voterId: string
 ): Vote[] {
   const votes: Vote[] = [];
 
-  arguments.forEach((arg, idx) => {
+  args.forEach((arg, idx) => {
     // Try to find score for this argument
     const scoreMatch = response.match(new RegExp(`${idx + 1}[\\s\\S]{0,50}(\\d+\\.?\\d*)`, 'i'));
 

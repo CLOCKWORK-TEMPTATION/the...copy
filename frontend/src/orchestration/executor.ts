@@ -4,6 +4,7 @@
 import { geminiService, type GeminiConfig } from "@/ai/gemini-service";
 import { cachedGeminiCall, generateGeminiCacheKey } from "@/lib/redis";
 import { AnalysisType } from "@/types/enums";
+import { logger } from "@/services/LoggerService";
 
 export interface PipelineStep {
   id: string;
@@ -86,7 +87,7 @@ export class PipelineOrchestrator {
     } catch (error) {
       execution.status = "failed";
       execution.endTime = new Date();
-      console.error("Pipeline execution failed");
+      logger.error("Pipeline execution failed");
     }
 
     return execution;
@@ -243,7 +244,7 @@ export class PipelineOrchestrator {
 export async function submitTask(taskRequest: any): Promise<any> {
   // Development mode: return mock response
   if (process.env.NODE_ENV !== "production") {
-    console.warn("[DEV STUB] submitTask: returning mock response");
+    logger.warn("[DEV STUB] submitTask: returning mock response");
   }
 
   // TODO PRODUCTION: Implement actual task submission

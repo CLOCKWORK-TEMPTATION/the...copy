@@ -224,10 +224,10 @@ export class DebateSessionClass implements DebateSession {
       }
     });
 
-    const arguments = await Promise.all(argumentPromises);
+    const debateArguments = await Promise.all(argumentPromises);
 
     // Add valid arguments to round
-    arguments.forEach(arg => {
+    debateArguments.forEach(arg => {
       if (arg) {
         round.addArgument(arg);
       }

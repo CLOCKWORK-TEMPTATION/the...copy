@@ -51,8 +51,8 @@ export class EnhancedRAGService {
   constructor(options: EnhancedRAGOptions = {}) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
     this.chunker = new SemanticChunker({
-      maxChunkSize: this.options.chunkSize,
-      coherenceThreshold: this.options.coherenceThreshold,
+      maxChunkSize: this.options.chunkSize ?? 800,
+      coherenceThreshold: this.options.coherenceThreshold ?? 0.6,
     });
   }
 
@@ -134,7 +134,7 @@ export class EnhancedRAGService {
       .map((chunk, index) => {
         const relevanceScore = embeddingsService.cosineSimilarity(
           queryEmbedding,
-          chunkEmbeddings[index]
+          chunkEmbeddings[index] ?? []
         );
 
         return {
@@ -273,8 +273,8 @@ export class EnhancedRAGService {
   setOptions(options: Partial<EnhancedRAGOptions>): void {
     this.options = { ...this.options, ...options };
     this.chunker = new SemanticChunker({
-      maxChunkSize: this.options.chunkSize,
-      coherenceThreshold: this.options.coherenceThreshold,
+      maxChunkSize: this.options.chunkSize ?? 800,
+      coherenceThreshold: this.options.coherenceThreshold ?? 0.6,
     });
   }
 

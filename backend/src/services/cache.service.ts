@@ -249,7 +249,7 @@ export class CacheService {
           const value = await this.redis.get(key);
           const redisLatency = Date.now() - redisStartTime;
           
-          if (value) {
+          if (value && typeof value === 'string') {
             logger.debug(`Cache hit (L2): ${key}`);
             const parsed = JSON.parse(value) as T;
 

@@ -49,7 +49,7 @@ export class EmbeddingsService {
     try {
       const cached = await cacheService.get(`embedding:${cacheKey}`);
       if (cached) {
-        const embedding = JSON.parse(cached) as number[];
+        const embedding = JSON.parse(cached as string) as number[];
         this.embeddingCache.set(cacheKey, embedding);
         return embedding;
       }
@@ -195,7 +195,7 @@ export class EmbeddingsService {
     const candidateEmbeddings = await this.getEmbeddingsBatch(candidates);
 
     const similarities = candidateEmbeddings.map((embedding, index) => ({
-      text: candidates[index],
+      text: candidates[index] ?? '',
       similarity: this.cosineSimilarity(queryEmbedding, embedding),
       index,
     }));

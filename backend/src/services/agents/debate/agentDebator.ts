@@ -171,23 +171,32 @@ ${context ? `\n**السياق الإضافي:**\n${context}` : ''}
    * التصويت على الحجج
    */
   async voteOnArguments(
-    arguments: DebateArgument[],
+    debateArguments: DebateArgument[],
     topic: string
   ): Promise<Map<string, number>> {
     const agentName = this.getAgentName();
-    console.log(`[AgentDebator] ${agentName} voting on ${arguments.length} arguments`);
+    console.log(`[AgentDebator] ${agentName} voting on ${debateArguments.length} arguments`);
 
     const votes = new Map<string, number>();
 
     const prompt = `
+
 بناءً على الموضوع: "${topic}"
+
+
 
 قم بتقييم الحجج التالية وأعطِ كل واحدة درجة من 0 إلى 1:
 
-${arguments.map((arg, idx) => `
+
+
+${debateArguments.map((arg, idx) => `
+
 **الحجة ${idx + 1}** (من ${arg.agentName}):
+
 ${arg.position}
+
 الثقة: ${arg.confidence}
+
 `).join('\n---\n')}
 
 قدم تقييمك بناءً على:
@@ -207,10 +216,10 @@ ${arg.position}
 
       // Parse voting results (simplified - in production, use structured output)
       const lines = result.split('\n');
-      arguments.forEach((arg, idx) => {
+      debateArguments.forEach((arg, idx) => {
         // Try to extract vote scores from the response
         const scoreMatch = lines.find(line =>
-          line.includes(`${idx + 1}`) || line.includes(arg.agentName)
+          line.includes(`${idx + 1}`) || (arg.agentName && line.includes(arg.agentName))
         );
 
         if (scoreMatch) {
@@ -232,7 +241,7 @@ ${arg.position}
       console.error(`[AgentDebator] Error voting:`, error);
 
       // Fallback: vote based on confidence scores
-      arguments.forEach(arg => {
+      debateArguments.forEach(arg => {
         votes.set(arg.id, arg.confidence * 0.7);
       });
 

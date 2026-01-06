@@ -167,12 +167,15 @@ export class DebateModerator {
    * Analyze arguments to find consensus and disagreement points
    */
   private async analyzeArguments(
-    arguments: DebateArgument[]
+    debateArguments: DebateArgument[]
   ): Promise<{ consensusPoints: string[]; disagreementPoints: string[] }> {
     const prompt = `
+
 قم بتحليل الحجج التالية في مناظرة حول: "${this.session.topic}"
 
-${arguments.map((arg, idx) => `
+
+
+${debateArguments.map((arg, idx) => `
 **الحجة ${idx + 1}** (${arg.agentName}):
 ${arg.position}
 الثقة: ${arg.confidence}
@@ -236,11 +239,11 @@ ${arg.position}
   /**
    * Calculate agreement score (0-1)
    */
-  private async calculateAgreementScore(arguments: DebateArgument[]): Promise<number> {
-    if (arguments.length === 0) return 0;
+  private async calculateAgreementScore(debateArguments: DebateArgument[]): Promise<number> {
+    if (debateArguments.length === 0) return 0;
 
     // Method 1: Based on confidence similarity
-    const confidences = arguments.map(arg => arg.confidence);
+    const confidences = debateArguments.map(arg => arg.confidence);
     const avgConfidence = confidences.reduce((a, b) => a + b, 0) / confidences.length;
     const variance = confidences.reduce((sum, c) => sum + Math.pow(c - avgConfidence, 2), 0) / confidences.length;
     const confidenceAgreement = 1 - Math.min(1, variance);
@@ -252,7 +255,7 @@ ${arg.position}
       const prompt = `
 على مقياس من 0 إلى 1، ما مدى تشابه المواقف التالية؟
 
-${arguments.map((arg, idx) => `
+${debateArguments.map((arg, idx) => `
 ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 200)}
 `).join('\n')}
 
@@ -265,7 +268,7 @@ ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 200)}
       });
 
       const match = response.match(/(\d+\.?\d*)/);
-      if (match) {
+      if (match && match[1]) {
         positionAgreement = Math.min(1, Math.max(0, parseFloat(match[1])));
       }
     } catch (error) {
@@ -282,7 +285,7 @@ ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 200)}
    * Generate synthesis from consensus points
    */
   private async generateSynthesis(
-    arguments: DebateArgument[],
+    debateArguments: DebateArgument[],
     consensusPoints: string[]
   ): Promise<string> {
     const prompt = `
@@ -292,8 +295,11 @@ ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 200)}
 ${consensusPoints.map((point, idx) => `${idx + 1}. ${point}`).join('\n')}
 
 **الحجج الأصلية:**
-${arguments.slice(0, 3).map((arg, idx) => `
+
+${debateArguments.slice(0, 3).map((arg, idx) => `
+
 ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 300)}
+
 `).join('\n')}
 
 قم بتوليف موقف نهائي موحد يجمع نقاط التوافق ويقدم رأياً متماسكاً وشاملاً.
@@ -360,16 +366,20 @@ ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 300)}
   /**
    * Synthesize result when no consensus is reached
    */
-  private async synthesizeWithoutConsensus(arguments: DebateArgument[]): Promise<string> {
+  private async synthesizeWithoutConsensus(debateArguments: DebateArgument[]): Promise<string> {
     const prompt = `
 لم يتم التوصل إلى توافق كامل في المناظرة حول: "${this.session.topic}"
 
 قم بتوليف الآراء المختلفة التالية في رؤية شاملة تعرض جميع وجهات النظر:
 
-${arguments.map((arg, idx) => `
+${debateArguments.map((arg, idx) => `
+
 **${idx + 1}. ${arg.agentName}:**
+
 ${arg.position}
+
 (الثقة: ${arg.confidence})
+
 `).join('\n---\n')}
 
 قدم توليفاً يشمل:

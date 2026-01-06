@@ -120,8 +120,12 @@ export class SemanticChunker {
     // Calculate cosine similarity between consecutive sentences
     const coherenceScores: number[] = [];
     for (let i = 0; i < sentences.length - 1; i++) {
-      const similarity = this.cosineSimilarity(embeddings[i], embeddings[i + 1]);
-      coherenceScores.push(similarity);
+      const embeddingA = embeddings[i];
+      const embeddingB = embeddings[i + 1];
+      if (embeddingA && embeddingB) {
+        const similarity = this.cosineSimilarity(embeddingA, embeddingB);
+        coherenceScores.push(similarity);
+      }
     }
 
     return coherenceScores;
@@ -131,7 +135,7 @@ export class SemanticChunker {
    * Calculate cosine similarity between two vectors
    */
   private cosineSimilarity(vecA: number[], vecB: number[]): number {
-    if (vecA.length !== vecB.length) {
+    if (vecA.length !== vecB.length || vecA.length === 0) {
       return 0;
     }
 
@@ -140,9 +144,11 @@ export class SemanticChunker {
     let normB = 0;
 
     for (let i = 0; i < vecA.length; i++) {
-      dotProduct += vecA[i] * vecB[i];
-      normA += vecA[i] * vecA[i];
-      normB += vecB[i] * vecB[i];
+      const a = vecA[i] ?? 0;
+      const b = vecB[i] ?? 0;
+      dotProduct += a * b;
+      normA += a * a;
+      normB += b * b;
     }
 
     if (normA === 0 || normB === 0) {
@@ -167,6 +173,8 @@ export class SemanticChunker {
 
     for (let i = 0; i < sentences.length; i++) {
       const sentence = sentences[i];
+      if (!sentence) continue;
+
       const sentenceLength = sentence.length;
 
       // Check if adding this sentence would exceed max chunk size

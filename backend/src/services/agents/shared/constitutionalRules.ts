@@ -164,14 +164,19 @@ export class ConstitutionalRulesEngine {
             suggestion = await rule.suggest(text, context);
           }
 
-          violations.push({
+          const violation: RuleViolation = {
             ruleId: rule.id,
             ruleName: rule.name,
             severity: rule.severity,
             message: rule.description,
-            suggestion,
             context: context?.agentName || 'unknown',
-          });
+          };
+
+          if (suggestion !== undefined) {
+            violation.suggestion = suggestion;
+          }
+
+          violations.push(violation);
 
           // Track violation
           this.trackViolation(rule.id);

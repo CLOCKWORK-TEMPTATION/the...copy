@@ -23,7 +23,7 @@ export interface Vote {
 }
 
 interface VotingPanelProps {
-  arguments: DebateArgument[];
+  debateArguments: DebateArgument[];
   onVoteSubmit?: (votes: Vote[]) => void;
   existingVotes?: Vote[];
   currentUserId?: string;
@@ -40,13 +40,13 @@ interface VoteState {
 // =====================================================
 
 function calculateVoteResults(
-  arguments: DebateArgument[],
+  debateArguments: DebateArgument[],
   votes: Vote[]
 ): Map<string, { totalScore: number; voteCount: number; averageScore: number }> {
   const results = new Map<string, { totalScore: number; voteCount: number; averageScore: number }>();
 
   // Initialize results for all arguments
-  arguments.forEach(arg => {
+  debateArguments.forEach(arg => {
     results.set(arg.id, { totalScore: 0, voteCount: 0, averageScore: 0 });
   });
 
@@ -64,10 +64,10 @@ function calculateVoteResults(
 }
 
 function getTopArguments(
-  arguments: DebateArgument[],
+  debateArguments: DebateArgument[],
   voteResults: Map<string, { totalScore: number; voteCount: number; averageScore: number }>
 ): DebateArgument[] {
-  const sorted = [...arguments].sort((a, b) => {
+  const sorted = [...debateArguments].sort((a, b) => {
     const scoreA = voteResults.get(a.id)?.averageScore || 0;
     const scoreB = voteResults.get(b.id)?.averageScore || 0;
     return scoreB - scoreA;
@@ -85,7 +85,7 @@ function getTopArguments(
  * لوحة التصويت على الحجج
  */
 export function VotingPanel({
-  arguments: debateArguments,
+  debateArguments,
   onVoteSubmit,
   existingVotes = [],
   currentUserId = 'user',
@@ -235,13 +235,12 @@ export function VotingPanel({
                 return (
                   <div
                     key={argument.id}
-                    className={`p-4 rounded-lg border ${
-                      idx === 0
+                    className={`p-4 rounded-lg border ${idx === 0
                         ? 'border-yellow-500/50 bg-yellow-500/10'
                         : idx === 1
-                        ? 'border-gray-400/50 bg-gray-400/10'
-                        : 'border-amber-600/50 bg-amber-600/10'
-                    }`}
+                          ? 'border-gray-400/50 bg-gray-400/10'
+                          : 'border-amber-600/50 bg-amber-600/10'
+                      }`}
                   >
                     <div className="flex items-start gap-3">
                       <span className="text-2xl">{medal}</span>
