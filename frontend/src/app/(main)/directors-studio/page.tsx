@@ -45,8 +45,22 @@ export default function DirectorsStudioPage() {
   const { data: characters, isLoading: charactersLoading } =
     useProjectCharacters(activeProjectKey);
 
+  const normalizeSceneStatus = (
+    status?: string | null
+  ): SceneCardProps["status"] => {
+    if (status === "planned" || status === "in-progress" || status === "completed") {
+      return status;
+    }
+    return "planned";
+  };
+
   const isLoading = [scenesLoading, charactersLoading].some(Boolean);
-  const scenesList: SceneCardProps[] = Array.isArray(scenes) ? scenes : [];
+  const scenesList: SceneCardProps[] = Array.isArray(scenes)
+    ? scenes.map((scene) => ({
+        ...scene,
+        status: normalizeSceneStatus(scene.status),
+      }))
+    : [];
   const charactersList: CharacterTrackerProps["characters"] =
     prepareCharacterList(characters as ProjectCharacterInput | undefined);
 
