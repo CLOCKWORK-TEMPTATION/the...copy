@@ -187,7 +187,6 @@
     ]
   },
   "overrides": {
-    "next": "16.0.7",
     "esbuild": "^0.25.0"
   },
   "keywords": [

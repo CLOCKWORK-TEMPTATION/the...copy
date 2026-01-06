@@ -5,14 +5,20 @@ import * as api from "@/lib/api";
 export function useProjects() {
   return useQuery({
     queryKey: ["/api/projects"],
-    queryFn: api.getProjects,
+    queryFn: async () => {
+      const response = await api.getProjects();
+      return response.data ?? [];
+    },
   });
 }
 
 export function useProject(id: string | undefined) {
   return useQuery({
     queryKey: ["/api/projects", id],
-    queryFn: () => api.getProject(id!),
+    queryFn: async () => {
+      const response = await api.getProject(id!);
+      return response.data;
+    },
     enabled: !!id,
   });
 }
@@ -20,7 +26,10 @@ export function useProject(id: string | undefined) {
 export function useProjectScenes(projectId: string | undefined) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "scenes"],
-    queryFn: () => api.getProjectScenes(projectId!),
+    queryFn: async () => {
+      const response = await api.getProjectScenes(projectId!);
+      return response.data ?? [];
+    },
     enabled: !!projectId,
   });
 }
@@ -28,7 +37,10 @@ export function useProjectScenes(projectId: string | undefined) {
 export function useProjectCharacters(projectId: string | undefined) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "characters"],
-    queryFn: () => api.getProjectCharacters(projectId!),
+    queryFn: async () => {
+      const response = await api.getProjectCharacters(projectId!);
+      return response.data ?? [];
+    },
     enabled: !!projectId,
   });
 }
@@ -176,7 +188,10 @@ export function useSceneShots(
 ) {
   return useQuery({
     queryKey: ["/api/scenes", sceneId, "shots"],
-    queryFn: () => api.getSceneShots(sceneId!),
+    queryFn: async () => {
+      const response = await api.getSceneShots(sceneId!);
+      return response.data ?? [];
+    },
     enabled: !!sceneId,
   });
 }
