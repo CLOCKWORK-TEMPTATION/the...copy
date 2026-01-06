@@ -123,3 +123,5 @@ export function FileUpload({
     </div>
   )
 }
+
+export default FileUpload

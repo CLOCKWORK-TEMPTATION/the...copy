@@ -15,4 +15,12 @@ export const db = {
   doc: () => ({}),
 }
 
-export default { auth, db }
+export async function loginUser(email: string, password: string) {
+  return auth.signInWithEmailAndPassword(email, password)
+}
+
+export async function registerUser(email: string, password: string) {
+  return auth.createUserWithEmailAndPassword(email, password)
+}
+
+export default { auth, db, loginUser, registerUser }
