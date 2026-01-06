@@ -10,7 +10,7 @@ import { AnalysisAgent } from '../../agents/analysis/analysisAgent';
 import { CharacterDeepAnalyzerAgent } from '../../agents/analysis/characterDeepAnalyzerAgent';
 import { environment } from '../../config/environment';
 import { AGENT_CONFIGS } from '../../config/agentConfigs';
-import type { ProcessedFile } from '../../agents/core/fileReaderService';
+import type { ProcessedFile } from '../../types/types';
 import type { AIAgentConfig } from '../../types/types';
 
 /**

@@ -4,10 +4,14 @@
  */
 
 export const auth = {
-  signInWithEmailAndPassword: async () => ({ user: null }),
-  createUserWithEmailAndPassword: async () => ({ user: null }),
+  signInWithEmailAndPassword: async (_email?: string, _password?: string) => ({
+    user: null,
+  }),
+  createUserWithEmailAndPassword: async (_email?: string, _password?: string) => ({
+    user: null,
+  }),
   signOut: async () => {},
-  onAuthStateChanged: () => () => {},
+  onAuthStateChanged: (_callback?: (user: any) => void) => () => {},
 }
 
 export const db = {
@@ -23,4 +27,8 @@ export async function registerUser(email: string, password: string) {
   return auth.createUserWithEmailAndPassword(email, password)
 }
 
-export default { auth, db, loginUser, registerUser }
+export function onAuthChange(callback: (user: any) => void) {
+  return auth.onAuthStateChanged(callback)
+}
+
+export default { auth, db, loginUser, registerUser, onAuthChange }

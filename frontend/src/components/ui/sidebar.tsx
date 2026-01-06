@@ -100,8 +100,9 @@ interface SidebarMenuButtonProps
 const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
   ({ className, asChild, children, ...props }, ref) => {
     if (asChild && React.isValidElement(children)) {
-      return React.cloneElement(children, {
-        className: cn(className, children.props.className),
+      const child = children as React.ReactElement<{ className?: string }>
+      return React.cloneElement(child, {
+        className: cn(className, child.props.className),
         ...props,
       })
     }

@@ -37,6 +37,7 @@ Avatar.displayName = "Avatar"
 
 interface AvatarImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   className?: string
+  onLoadingStatusChange?: (status: "loading" | "loaded" | "error") => void
 }
 
 const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(

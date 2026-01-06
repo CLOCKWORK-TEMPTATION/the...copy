@@ -81,6 +81,8 @@
     "**/*.test.tsx",
     "**/*.spec.ts",
     "**/*.spec.tsx",
+    "**/*.backup.*",
+    "**/*.legacy.backup.*",
     "tests/**",
     "_archive/**",
     "_analysis/**",
