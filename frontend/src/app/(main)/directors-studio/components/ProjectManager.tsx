@@ -197,8 +197,8 @@ export default function ProjectManager() {
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
-                          {(!currentProjectId ||
-                            currentProjectId.id !== project.id) && (
+                          {(!currentProject ||
+                            currentProject.id !== project.id) && (
                             <Button
                               variant="outline"
                               onClick={() => handleSelectProject(project)}
@@ -207,8 +207,8 @@ export default function ProjectManager() {
                               اختيار
                             </Button>
                           )}
-                          {currentProjectId &&
-                            currentProjectId.id === project.id && (
+                          {currentProject &&
+                            currentProject.id === project.id && (
                               <Button
                                 variant="default"
                                 disabled
