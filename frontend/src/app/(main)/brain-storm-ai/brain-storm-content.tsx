@@ -47,7 +47,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import FileUpload from "@/components/file-upload";
+import { FileUpload } from "@/components/file-upload";
 
 // استيراد الوكلاء الحقيقيين
 import {
