@@ -14,7 +14,7 @@ export const enum TaskType {
     CREATIVE = 'creative',
     INTEGRATED = 'integrated',
     COMPLETION = 'completion',
-
+    
     // Advanced analytical agents
     RHYTHM_MAPPING = 'rhythm-mapping',
     CHARACTER_NETWORK = 'character-network',
@@ -22,19 +22,19 @@ export const enum TaskType {
     THEMATIC_MINING = 'thematic-mining',
     STYLE_FINGERPRINT = 'style-fingerprint',
     CONFLICT_DYNAMICS = 'conflict-dynamics',
-
+    
     // Creative generation agents
     ADAPTIVE_REWRITING = 'adaptive-rewriting',
     SCENE_GENERATOR = 'scene-generator',
     CHARACTER_VOICE = 'character-voice',
     WORLD_BUILDER = 'world-builder',
-
+    
     // Predictive & optimization agents
     PLOT_PREDICTOR = 'plot-predictor',
     TENSION_OPTIMIZER = 'tension-optimizer',
     AUDIENCE_RESONANCE = 'audience-resonance',
     PLATFORM_ADAPTER = 'platform-adapter',
-
+    
     // Advanced specialized modules
     CHARACTER_DEEP_ANALYZER = 'character-deep-analyzer',
     DIALOGUE_ADVANCED_ANALYZER = 'dialogue-advanced-analyzer',
@@ -45,7 +45,7 @@ export const enum TaskType {
     TARGET_AUDIENCE_ANALYZER = 'target-audience-analyzer',
     LITERARY_QUALITY_ANALYZER = 'literary-quality-analyzer',
     RECOMMENDATIONS_GENERATOR = 'recommendations-generator',
-
+    
     // Additional task types for compatibility
     SUMMARIZE = 'summarize',
     ANALYZE_CHARACTERS = 'analyze-characters',
@@ -60,7 +60,7 @@ export const enum TaskType {
     VISUAL_ANALYSIS = 'visual-analysis',
     THEME_MESSAGE_ANALYSIS = 'theme-message-analysis',
     RECOMMENDATION = 'recommendation',
-
+    
     // Additional missing task types
     AUDIENCE_ANALYSIS = 'audience-analysis',
     TEXT_COMPLETION = 'text-completion',

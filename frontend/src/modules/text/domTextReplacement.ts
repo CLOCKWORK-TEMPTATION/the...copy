@@ -8,68 +8,68 @@
  * collaborative clients).
  */
 export function applyRegexReplacementToTextNodes(
-    root: HTMLElement,
-    patternSource: string,
-    patternFlags: string,
-    replacement: string,
-    replaceAll: boolean
+  root: HTMLElement,
+  patternSource: string,
+  patternFlags: string,
+  replacement: string,
+  replaceAll: boolean
 ): number {
-    const combinedFlags = Array.from(new Set((patternFlags + 'g').split(''))).join('');
-    const maxReplacements = replaceAll ? Number.POSITIVE_INFINITY : 1;
-    const TEXT_NODE = 3;
+  const combinedFlags = Array.from(new Set((patternFlags + 'g').split(''))).join('');
+  const maxReplacements = replaceAll ? Number.POSITIVE_INFINITY : 1;
+  const TEXT_NODE = 3;
 
-    let remaining = maxReplacements;
-    let replacementsApplied = 0;
+  let remaining = maxReplacements;
+  let replacementsApplied = 0;
 
-    const traverse = (node: any) => {
-        if (!node || remaining === 0) return;
+  const traverse = (node: any) => {
+    if (!node || remaining === 0) return;
 
-        if (typeof node.nodeType === 'number' && node.nodeType === TEXT_NODE) {
-            const originalText = node.nodeValue ?? node.textContent ?? '';
-            if (!originalText) {
-                return;
-            }
+    if (typeof node.nodeType === 'number' && node.nodeType === TEXT_NODE) {
+      const originalText = node.nodeValue ?? node.textContent ?? '';
+      if (!originalText) {
+        return;
+      }
 
-            const regex = new RegExp(patternSource, combinedFlags);
-            let nodeChanged = false;
+      const regex = new RegExp(patternSource, combinedFlags);
+      let nodeChanged = false;
 
-            const updatedText = originalText.replace(regex, (match: string) => {
-                if (remaining === 0) {
-                    return match;
-                }
-
-                nodeChanged = true;
-                replacementsApplied += 1;
-
-                if (remaining !== Number.POSITIVE_INFINITY) {
-                    remaining -= 1;
-                }
-
-                return replacement;
-            });
-
-            if (nodeChanged) {
-                if ('nodeValue' in node) {
-                    node.nodeValue = updatedText;
-                } else if ('textContent' in node) {
-                    node.textContent = updatedText;
-                }
-            }
-
-            return;
+      const updatedText = originalText.replace(regex, (match: string) => {
+        if (remaining === 0) {
+          return match;
         }
 
-        const children: any[] = Array.isArray(node?.childNodes)
-            ? node.childNodes
-            : Array.from(node?.childNodes ?? []);
+        nodeChanged = true;
+        replacementsApplied += 1;
 
-        for (const child of children) {
-            if (remaining === 0) break;
-            traverse(child);
+        if (remaining !== Number.POSITIVE_INFINITY) {
+          remaining -= 1;
         }
-    };
 
-    traverse(root);
+        return replacement;
+      });
 
-    return replacementsApplied;
+      if (nodeChanged) {
+        if ('nodeValue' in node) {
+          node.nodeValue = updatedText;
+        } else if ('textContent' in node) {
+          node.textContent = updatedText;
+        }
+      }
+
+      return;
+    }
+
+    const children: any[] = Array.isArray(node?.childNodes)
+      ? node.childNodes
+      : Array.from(node?.childNodes ?? []);
+
+    for (const child of children) {
+      if (remaining === 0) break;
+      traverse(child);
+    }
+  };
+
+  traverse(root);
+
+  return replacementsApplied;
 }
