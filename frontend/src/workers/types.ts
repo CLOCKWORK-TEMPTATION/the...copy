@@ -114,3 +114,6 @@ export interface ParticleData {
   phases: Float32Array;
   count: number;
 }
+
+// Re-export pipeline agent types
+export * from "./pipeline-agent-types";

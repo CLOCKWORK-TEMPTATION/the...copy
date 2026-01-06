@@ -7,6 +7,7 @@ import {
   type PipelineExecution,
 } from "./executor";
 import type { AnalysisType } from "@/types/enums";
+import { pipelineAgentManager } from "@/workers/pipeline-agent-manager";
 
 // Station interface for pipeline execution
 interface Station {
@@ -89,6 +90,7 @@ export interface SevenStationsExecution {
 // Seven Stations Orchestrator
 export class SevenStationsOrchestrator {
   private activeExecutions = new Map<string, SevenStationsExecution>();
+  private useBackgroundAgent = true; // Flag to enable/disable background processing
 
   // Execute Seven Stations analysis pipeline
   async runSevenStationsPipeline(
@@ -98,6 +100,7 @@ export class SevenStationsOrchestrator {
       skipStations?: string[];
       priorityStations?: string[];
       timeout?: number;
+      useBackgroundAgent?: boolean;
     } = {}
   ): Promise<SevenStationsExecution> {
     const executionId = `seven-stations-${scriptId}-${Date.now()}`;
@@ -148,37 +151,29 @@ export class SevenStationsOrchestrator {
         retries: 2,
       }));
 
-      // Execute pipeline
-      const pipelineResult = await pipelineExecutor.executePipeline(
-        executionId,
-        steps,
-        { scriptContent, scriptId }
-      );
+      // Determine if we should use background agent
+      const shouldUseBackgroundAgent = 
+        options.useBackgroundAgent ?? this.useBackgroundAgent;
 
-      // Convert results to Seven Stations format
-      execution.stations = Array.from(pipelineResult.results.entries()).map(
-        ([stepId, result]) => {
-          const station = availableStations.find(
-            (s: Station) => s.id === stepId
-          )!;
-          return {
-            stationId: stepId,
-            stationName: station.name,
-            result: result.data,
-            success: result.success,
-            duration: result.duration,
-          };
-        }
-      );
-
-      execution.overallSuccess = pipelineResult.status === "completed";
-      execution.totalDuration = pipelineResult.endTime
-        ? pipelineResult.endTime.getTime() - pipelineResult.startTime.getTime()
-        : Date.now() - execution.startTime.getTime();
-      if (pipelineResult.endTime) {
-        execution.endTime = pipelineResult.endTime;
+      if (shouldUseBackgroundAgent && pipelineAgentManager.isInitialized()) {
+        // Delegate to background agent worker
+        await this.executeInBackgroundAgent(
+          executionId,
+          steps,
+          { scriptContent, scriptId },
+          execution,
+          availableStations
+        );
+      } else {
+        // Execute in main thread (fallback)
+        await this.executeInMainThread(
+          executionId,
+          steps,
+          { scriptContent, scriptId },
+          execution,
+          availableStations
+        );
       }
-      execution.progress = 100;
     } catch (error) {
       execution.overallSuccess = false;
       execution.endTime = new Date();
@@ -187,6 +182,102 @@ export class SevenStationsOrchestrator {
     }
 
     return execution;
+  }
+
+  /**
+   * Execute pipeline in background agent worker
+   */
+  private async executeInBackgroundAgent(
+    executionId: string,
+    steps: PipelineStep[],
+    inputData: Record<string, any>,
+    execution: SevenStationsExecution,
+    availableStations: Station[]
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      pipelineAgentManager.executePipeline(
+        executionId,
+        steps,
+        inputData,
+        {
+          onProgress: (progress, completedSteps, status) => {
+            execution.progress = progress;
+          },
+          onComplete: (results) => {
+            // Convert worker results to Seven Stations format
+            execution.stations = Object.entries(results).map(([stepId, result]: [string, any]) => {
+              const station = availableStations.find((s: Station) => s.id === stepId)!;
+              return {
+                stationId: stepId,
+                stationName: station.name,
+                result: result.data,
+                success: true,
+                duration: result.duration || 0,
+              };
+            });
+
+            execution.overallSuccess = true;
+            execution.totalDuration = Date.now() - execution.startTime.getTime();
+            execution.endTime = new Date();
+            execution.progress = 100;
+            resolve();
+          },
+          onError: (error) => {
+            execution.overallSuccess = false;
+            execution.endTime = new Date();
+            execution.totalDuration = Date.now() - execution.startTime.getTime();
+            console.error("Background agent execution failed:", error);
+            reject(new Error(error));
+          },
+          onCancel: () => {
+            execution.overallSuccess = false;
+            execution.endTime = new Date();
+            execution.totalDuration = Date.now() - execution.startTime.getTime();
+            reject(new Error("Execution cancelled"));
+          },
+        }
+      );
+    });
+  }
+
+  /**
+   * Execute pipeline in main thread (fallback)
+   */
+  private async executeInMainThread(
+    executionId: string,
+    steps: PipelineStep[],
+    inputData: Record<string, any>,
+    execution: SevenStationsExecution,
+    availableStations: Station[]
+  ): Promise<void> {
+    const pipelineResult = await pipelineExecutor.executePipeline(
+      executionId,
+      steps,
+      inputData
+    );
+
+    // Convert results to Seven Stations format
+    execution.stations = Array.from(pipelineResult.results.entries()).map(
+      ([stepId, result]) => {
+        const station = availableStations.find((s: Station) => s.id === stepId)!;
+        return {
+          stationId: stepId,
+          stationName: station.name,
+          result: result.data,
+          success: result.success,
+          duration: result.duration,
+        };
+      }
+    );
+
+    execution.overallSuccess = pipelineResult.status === "completed";
+    execution.totalDuration = pipelineResult.endTime
+      ? pipelineResult.endTime.getTime() - pipelineResult.startTime.getTime()
+      : Date.now() - execution.startTime.getTime();
+    if (pipelineResult.endTime) {
+      execution.endTime = pipelineResult.endTime;
+    }
+    execution.progress = 100;
   }
 
   // Get station details
@@ -214,7 +305,12 @@ export class SevenStationsOrchestrator {
       execution.endTime = new Date();
       execution.totalDuration = Date.now() - execution.startTime.getTime();
 
-      // Cancel underlying pipeline
+      // Cancel in background agent if initialized
+      if (pipelineAgentManager.isInitialized()) {
+        pipelineAgentManager.cancelExecution(executionId);
+      }
+
+      // Cancel underlying pipeline executor
       return pipelineExecutor.cancelExecution(executionId);
     }
     return false;
