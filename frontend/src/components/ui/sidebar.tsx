@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
+const SidebarProvider = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex min-h-screen w-full">{children}</div>
+)
+
 const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
   ({ className, children, ...props }, ref) => (
     <div ref={ref} className={cn("flex h-full w-64 flex-col border-l bg-background", className)} {...props}>
@@ -119,6 +123,7 @@ const SidebarMenuItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 export {
+  SidebarProvider,
   Sidebar,
   SidebarTrigger,
   SidebarContent,
