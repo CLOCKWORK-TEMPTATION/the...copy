@@ -102,7 +102,14 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
         sceneId,
         shotType,
       });
-      if ("data" in result && result.data && result.data.suggestions?.[0]) {
+      if (
+        result &&
+        "data" in result &&
+        result.data &&
+        "suggestions" in result.data &&
+        Array.isArray(result.data.suggestions) &&
+        result.data.suggestions.length > 0
+      ) {
         const firstSuggestion = result.data.suggestions[0];
         setAiSuggestion({
           suggestion: firstSuggestion.description,

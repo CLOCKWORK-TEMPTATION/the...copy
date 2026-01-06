@@ -48,6 +48,20 @@ export interface Shot {
   aiSuggestion?: string | null;
 }
 
+export interface ShotSuggestion {
+  description: string;
+  reasoning?: string;
+  confidence?: number;
+  shotType?: string;
+  cameraAngle?: string;
+  cameraMovement?: string;
+  lighting?: string;
+}
+
+export interface ShotSuggestionResponse {
+  suggestions: ShotSuggestion[];
+}
+
 export interface CreateProjectRequest {
   title: string;
   scriptContent?: string;

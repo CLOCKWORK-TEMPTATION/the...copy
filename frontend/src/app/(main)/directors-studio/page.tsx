@@ -8,6 +8,7 @@ import {
   useProjectCharacters,
 } from "@/app/(main)/directors-studio/hooks/useProject";
 import { getCurrentProject } from "@/lib/projectStore";
+import type { Project } from "@/types/api";
 import {
   hasActiveProject,
   prepareCharacterList,
@@ -37,7 +38,7 @@ const ProjectContent = dynamic(
 );
 
 export default function DirectorsStudioPage() {
-  const currentProject = getCurrentProject();
+  const currentProject = getCurrentProject<Project>();
   const activeProjectKey = currentProject?.id ?? undefined;
   const { data: scenes, isLoading: scenesLoading } =
     useProjectScenes(activeProjectKey);

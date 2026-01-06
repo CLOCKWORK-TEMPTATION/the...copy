@@ -4,6 +4,7 @@ import type {
   Scene,
   Character,
   Shot,
+  ShotSuggestionResponse,
   CreateProjectRequest,
   UpdateProjectRequest,
   CreateSceneRequest,
@@ -188,12 +189,12 @@ export async function analyzeScript(
 export async function getShotSuggestion(
   projectId: string,
   sceneId: string,
-  sceneDescription: string
-): Promise<ApiResponse<unknown>> {
-  return post<unknown>("/api/ai/shot-suggestion", {
+  shotType: string
+): Promise<ApiResponse<ShotSuggestionResponse>> {
+  return post<ShotSuggestionResponse>("/api/ai/shot-suggestion", {
     projectId,
     sceneId,
-    sceneDescription,
+    shotType,
   });
 }
 
