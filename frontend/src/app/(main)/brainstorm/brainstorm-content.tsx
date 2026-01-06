@@ -529,15 +529,18 @@ export default function BrainstormContent() {
   };
 
   // مراحل العصف الذهني
-  const phases = BRAINSTORM_PHASES.map((phase) => ({
-    id: phase.id,
-    name: phase.name,
-    nameEn: phase.nameEn,
-    description: phase.description,
-    icon: getPhaseIcon(phase.id),
-    color: getPhaseColor(phase.id),
-    agentCount: getAgentsForPhase(phase.id).length,
-  }));
+  const phases = Object.entries(BRAINSTORM_PHASES).map(([id, phase]) => {
+    const phaseId = Number(id) as BrainstormPhase;
+    return {
+      id: phaseId,
+      name: phase.name,
+      nameEn: phase.name,
+      description: phase.description,
+      icon: getPhaseIcon(phaseId),
+      color: getPhaseColor(phaseId),
+      agentCount: getAgentsForPhase(phaseId).length,
+    };
+  });
 
   function getPhaseIcon(phaseId: BrainstormPhase) {
     const icons = {

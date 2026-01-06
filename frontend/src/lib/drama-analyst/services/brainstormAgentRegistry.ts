@@ -54,6 +54,11 @@ export interface BrainstormAgentDefinition {
   phaseRelevance: BrainstormPhase[]
 }
 
+export interface CollaboratorInfo {
+  id: string
+  nameAr: string
+}
+
 export const BRAINSTORM_PHASES = {
   1: { name: "الملخص الإبداعي", description: "فهم الفكرة" },
   2: { name: "توليد الأفكار", description: "إنتاج أفكار جديدة" },
@@ -81,7 +86,7 @@ export function getAgentStats() {
   }
 }
 
-export function getCollaborators(agentId: string): string[] {
+export function getCollaborators(agentId: string): CollaboratorInfo[] {
   return []
 }
 

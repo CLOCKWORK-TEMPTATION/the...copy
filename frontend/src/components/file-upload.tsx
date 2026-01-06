@@ -8,15 +8,17 @@ import { Upload } from "lucide-react"
  * Handles file uploads (PDF, DOCX, TXT)
  */
 interface FileUploadProps {
-  onFileContent: (content: string, filename: string) => void
+  onFileContent: (content: string, filename?: string) => void
   accept?: string
   maxSize?: number
+  className?: string
 }
 
 export function FileUpload({
   onFileContent,
   accept = ".pdf,.docx,.txt",
-  maxSize = 10 * 1024 * 1024 // 10MB
+  maxSize = 10 * 1024 * 1024, // 10MB
+  className,
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -85,7 +87,7 @@ export function FileUpload({
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+      className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${className ?? ""} ${
         isDragging
           ? "border-[#FFD700] bg-[#FFD700]/10"
           : "border-gray-600 hover:border-gray-500"
