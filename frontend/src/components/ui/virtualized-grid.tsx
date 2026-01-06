@@ -11,6 +11,7 @@ interface VirtualizedGridProps<T> {
   columnCount: number
   itemHeight: number
   itemWidth: number
+  getItemKey?: (item: T, index: number) => string | number
 }
 
 export function VirtualizedGrid<T>({
@@ -19,6 +20,7 @@ export function VirtualizedGrid<T>({
   columnCount,
   itemHeight,
   itemWidth,
+  getItemKey,
 }: VirtualizedGridProps<T>) {
   // For now, render all items in a simple grid
   // TODO: Add actual virtualization for performance with large lists
@@ -29,17 +31,20 @@ export function VirtualizedGrid<T>({
         gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
       }}
     >
-      {items.map((item, index) => (
-        <div
-          key={index}
-          style={{
-            minHeight: `${itemHeight}px`,
-            minWidth: `${itemWidth}px`,
-          }}
-        >
-          {renderItem(item)}
-        </div>
-      ))}
+      {items.map((item, index) => {
+        const key = getItemKey ? getItemKey(item, index) : index
+        return (
+          <div
+            key={key}
+            style={{
+              minHeight: `${itemHeight}px`,
+              minWidth: `${itemWidth}px`,
+            }}
+          >
+            {renderItem(item)}
+          </div>
+        )
+      })}
     </div>
   )
 }
