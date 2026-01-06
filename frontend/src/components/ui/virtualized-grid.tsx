@@ -1,50 +1,39 @@
-/**
- * Virtualized Grid component
- * Renders items in a grid layout with optional virtualization for large lists
- */
+import type { CSSProperties, ReactNode } from "react"
 
-import React from "react"
-
-interface VirtualizedGridProps<T> {
+export interface VirtualizedGridProps<T> {
   items: T[]
-  renderItem: (item: T) => React.ReactElement
-  columnCount: number
-  itemHeight: number
-  itemWidth: number
-  getItemKey?: (item: T, index: number) => string | number
+  renderItem: (item: T, index: number) => ReactNode
+  columnCount?: number
+  itemHeight?: number
+  itemWidth?: number
+  className?: string
 }
 
 export function VirtualizedGrid<T>({
   items,
   renderItem,
-  columnCount,
+  columnCount = 1,
   itemHeight,
   itemWidth,
-  getItemKey,
+  className,
 }: VirtualizedGridProps<T>) {
-  // For now, render all items in a simple grid
-  // TODO: Add actual virtualization for performance with large lists
+  const gridStyle: CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+    gap: "1.5rem",
+  }
+
+  const itemStyle: CSSProperties = {}
+  if (itemHeight !== undefined) itemStyle.minHeight = itemHeight
+  if (itemWidth !== undefined) itemStyle.minWidth = itemWidth
+
   return (
-    <div
-      className="grid gap-4"
-      style={{
-        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-      }}
-    >
-      {items.map((item, index) => {
-        const key = getItemKey ? getItemKey(item, index) : index
-        return (
-          <div
-            key={key}
-            style={{
-              minHeight: `${itemHeight}px`,
-              minWidth: `${itemWidth}px`,
-            }}
-          >
-            {renderItem(item)}
-          </div>
-        )
-      })}
+    <div className={className} style={gridStyle}>
+      {items.map((item, index) => (
+        <div key={index} style={itemStyle}>
+          {renderItem(item, index)}
+        </div>
+      ))}
     </div>
   )
 }

@@ -385,14 +385,17 @@ export default function BrainStormContent() {
     await executeAgentDebate(nextPhaseAgents, updatedSession);
   };
 
-  const phases = BRAINSTORM_PHASES.map((phase) => ({
-    id: phase.id,
-    name: phase.name,
-    nameEn: phase.nameEn,
-    description: phase.description,
-    icon: [<BookOpen />, <Sparkles />, <Shield />, <Trophy />, <Target />][phase.id - 1],
-    agentCount: getAgentsForPhase(phase.id).length,
-  }));
+  const phases = Object.entries(BRAINSTORM_PHASES).map(([id, phase]) => {
+    const phaseId = Number(id) as BrainstormPhase;
+    return {
+      id: phaseId,
+      name: phase.name,
+      nameEn: phase.name,
+      description: phase.description,
+      icon: [<BookOpen />, <Sparkles />, <Shield />, <Trophy />, <Target />][phaseId - 1],
+      agentCount: getAgentsForPhase(phaseId).length,
+    };
+  });
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">

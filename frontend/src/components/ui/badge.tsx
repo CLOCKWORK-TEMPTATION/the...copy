@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode } from "react"
+import type { HTMLAttributes, ReactNode } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
@@ -29,7 +29,9 @@ const badgeVariants = cva(
   }
 )
 
-export interface BadgeProps extends VariantProps<typeof badgeVariants> {
+export interface BadgeProps
+  extends HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {
   className?: string
   children: ReactNode
 }
