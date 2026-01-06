@@ -201,8 +201,18 @@ export async function chatWithAI(
   message: string,
   _model?: string,
   context?: Record<string, unknown>
-): Promise<ApiResponse<{ response?: unknown }>> {
-  return post<{ response?: unknown }>("/api/ai/chat", { message, context });
+): Promise<
+  ApiResponse<{
+    response?: { message?: string; content?: string } | string;
+    message?: string;
+    content?: string;
+  }>
+> {
+  return post<{
+    response?: { message?: string; content?: string } | string;
+    message?: string;
+    content?: string;
+  }>("/api/ai/chat", { message, context });
 }
 
 export default {
