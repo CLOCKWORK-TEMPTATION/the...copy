@@ -2,7 +2,6 @@
  * Multi-Agent Orchestrator - Backend
  * Orchestrates multiple agents to work together on complex analysis tasks
  * Includes multi-agent debate system (المرحلة 3)
- * Enhanced with workflow system support
  */
 
 import { TaskType } from './core/enums';
@@ -12,9 +11,6 @@ import { logger } from '@/utils/logger';
 import { startDebate } from './debate';
 import { DebateConfig } from './debate/types';
 import { BaseAgent } from './shared/BaseAgent';
-import { workflowExecutor } from './core/workflow-executor';
-import { WorkflowConfig, WorkflowStatus } from './core/workflow-types';
-import { getPresetWorkflow, PresetWorkflowName } from './core/workflow-presets';
 
 export interface OrchestrationInput {
   fullText: string;
@@ -403,43 +399,6 @@ export class MultiAgentOrchestrator {
     }
 
     return result;
-  }
-
-  /**
-   * Execute a preset workflow
-   * @param workflowName - Name of preset workflow
-   * @param input - Standard agent input
-   */
-  async executeWorkflow(
-    workflowName: PresetWorkflowName,
-    input: StandardAgentInput
-  ): Promise<{
-    status: WorkflowStatus;
-    results: Map<string, any>;
-    metrics: any;
-  }> {
-    logger.info(`[Orchestrator] Executing preset workflow: ${workflowName}`);
-    
-    const workflow = getPresetWorkflow(workflowName);
-    return await workflowExecutor.execute(workflow, input);
-  }
-
-  /**
-   * Execute a custom workflow configuration
-   * @param config - Custom workflow configuration
-   * @param input - Standard agent input
-   */
-  async executeCustomWorkflow(
-    config: WorkflowConfig,
-    input: StandardAgentInput
-  ): Promise<{
-    status: WorkflowStatus;
-    results: Map<string, any>;
-    metrics: any;
-  }> {
-    logger.info(`[Orchestrator] Executing custom workflow: ${config.name}`);
-    
-    return await workflowExecutor.execute(config, input);
   }
 }
 

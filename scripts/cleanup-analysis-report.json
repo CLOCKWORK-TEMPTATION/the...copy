@@ -1,0 +1,27 @@
+﻿{
+    "unused_dependencies":  [
+                                "[frontend-depcheck] @mistralai/mistralai",
+                                "[frontend-depcheck] @sentry/nextjs",
+                                "[frontend-depcheck] gsap",
+                                "[frontend-depcheck] stylelint-config-standard",
+                                "[frontend-depcheck] tailwindcss",
+                                "[frontend-depcheck] tailwindcss-animate",
+                                "[frontend-depcheck] cypress",
+                                "[frontend-depcheck] sharp",
+                                "[frontend-depcheck] vitest"
+                            ],
+    "unused_exports":  [
+
+                       ],
+    "timestamp":  "2026-01-07T23:03:23.2857023+02:00",
+    "circular_dependencies":  [
+
+                              ],
+    "unused_files":  [
+
+                     ],
+    "issues":  [
+                   "[depcruise]   WARNING: You\u0027re running a globally installed dependency-cruiser.",
+                   "[depcruise]   ERROR: Can\u0027t open \u0027src\u0027 for reading. Does it exist?"
+               ]
+}
