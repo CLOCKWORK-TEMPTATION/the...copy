@@ -121,11 +121,19 @@ export async function streamFlash(
   const response = await geminiCore.chatWithAI(prompt);
 
   if (response && onChunk) {
-    const text = response.message || response.content || "";
+    const nested =
+      typeof response.response === "string"
+        ? response.response
+        : response.response?.message || response.response?.content;
+    const text = nested || response.message || response.content || "";
     onChunk(text);
   }
 
-  return response?.message || response?.content || "";
+  const nested =
+    typeof response?.response === "string"
+      ? response?.response
+      : response?.response?.message || response?.response?.content;
+  return nested || response?.message || response?.content || "";
 }
 
 export default geminiCore;

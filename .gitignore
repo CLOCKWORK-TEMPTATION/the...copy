@@ -152,6 +152,7 @@ CONFLICTS_RESOLVED.txt
 current_settings.txt
 technical-reality-report.json
 المحرر/
+اعتمد ده/
 
 # Sentry
 .env.sentry-build-plugin
