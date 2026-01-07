@@ -176,3 +176,6 @@ nul
 
 # Security
 .securityignore
+
+# Controllers (backup/temporary)
+backend/src/controllers/

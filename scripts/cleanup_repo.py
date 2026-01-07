@@ -270,11 +270,15 @@ def collect_all_files(repo_path: Path, ignore_patterns: List[str], config: Dict)
     """
     جمع كل الملفات مع معلومات أساسية
     """
+    import fnmatch
     all_files = {}
 
     for root, dirs, files in os.walk(repo_path):
-        # تصفية المجلدات المستثناة
-        dirs[:] = [d for d in dirs if d not in ignore_patterns and not d.startswith('.')]
+        # تصفية المجلدات المستثناة - استخدام pattern matching
+        dirs[:] = [d for d in dirs if not any(
+            fnmatch.fnmatch(d, pattern) or d == pattern
+            for pattern in ignore_patterns
+        ) and not d.startswith('.')]
 
         for file in files:
             file_path = Path(root) / file
@@ -446,29 +450,30 @@ def generate_repo_map(repo_path: Path, ignore_patterns: List[str]) -> Dict[str, 
 
 def initialize_gemini():
     """
-    تهيئة نموذج Gemini للتحليل
+    تهيئة نموذج Gemini للتحليل باستخدام المكتبة الجديدة google-genai
     """
     try:
-        import google.generativeai as genai
+        from google import genai
+        from google.genai import types
         from dotenv import load_dotenv
 
         load_dotenv()
 
-        api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_GENAI_API_KEY')
+        api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_GENAI_API_KEY') or os.getenv('GOOGLE_API_KEY')
         if not api_key:
             print("⚠️  لم يتم العثور على GEMINI_API_KEY - سيتم استخدام التحليل التقني فقط")
+            print("   أضف في ملف .env: GEMINI_API_KEY=your_key_here")
             return None
 
-        genai.configure(api_key=api_key)
+        # تهيئة العميل
+        client = genai.Client(api_key=api_key)
 
-        # استخدام النموذج الأقوى للتحليل الدقيق
-        model = genai.GenerativeModel('gemini-2.5-pro-preview-03-25')
-
-        print("✅ تم تهيئة Gemini 2.5 Pro")
-        return model
+        print("✅ تم تهيئة Google Gen AI SDK")
+        return client
 
     except ImportError:
-        print("⚠️  لم يتم تثبيت google-generativeai - سيتم استخدام التحليل التقني فقط")
+        print("⚠️  لم يتم تثبيت google-genai - سيتم استخدام التحليل التقني فقط")
+        print("   ثبته: pip install google-genai")
         return None
     except Exception as e:
         print(f"⚠️  فشل تهيئة Gemini: {e} - سيتم استخدام التحليل التقني فقط")
@@ -529,15 +534,15 @@ def build_ai_analysis_prompt(file_path: str, file_info: Dict, dependency_map: Di
     return prompt
 
 
-def analyze_files_with_ai(all_files: Dict, dependency_map: Dict, entry_points: List[str], model, config: Dict) -> Dict[str, Dict]:
+def analyze_files_with_ai(all_files: Dict, dependency_map: Dict, entry_points: List[str], client, config: Dict) -> Dict[str, Dict]:
     """
-    تحليل جميع الملفات باستخدام Gemini AI
+    تحليل جميع الملفات باستخدام Google Gen AI (المكتبة الجديدة)
     """
-    if model is None:
+    if client is None:
         print("⚠️  لم يتم تهيئة AI - سيتم استخدام التحليل التقني فقط")
         return analyze_files_technically(all_files, dependency_map, entry_points)
 
-    print(f"\n🤖 جاري تحليل الملفات باستخدام Gemini AI...")
+    print(f"\n🤖 جاري تحليل الملفات باستخدام Google Gen AI...")
     ai_analysis_results = {}
 
     total = len(all_files)
@@ -549,13 +554,14 @@ def analyze_files_with_ai(all_files: Dict, dependency_map: Dict, entry_points: L
             # بناء الـ prompt
             prompt = build_ai_analysis_prompt(file_path, file_info, dependency_map, entry_points)
 
-            # إرسال للنموذج
-            response = model.generate_content(
-                prompt,
-                generation_config={
-                    'temperature': 0.1,
-                    'response_mime_type': 'application/json'
-                }
+            # إرسال للنموذج باستخدام المكتبة الجديدة
+            response = client.models.generate_content(
+                model='gemini-2.5-flash-latest',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.1,
+                    response_mime_type='application/json'
+                )
             )
 
             # استخراج النتيجة
