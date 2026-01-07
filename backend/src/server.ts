@@ -282,6 +282,15 @@ app.post('/api/shots/suggestion', authMiddleware, csrfProtection, shotsControlle
 app.post('/api/ai/chat', authMiddleware, csrfProtection, aiController.chat.bind(aiController));
 app.post('/api/ai/shot-suggestion', authMiddleware, csrfProtection, aiController.getShotSuggestion.bind(aiController));
 
+// Workflow Management endpoints (protected)
+import * as workflowController from '@/controllers/workflow.controller';
+app.post('/api/workflow/execute', authMiddleware, csrfProtection, workflowController.executeWorkflow);
+app.post('/api/workflow/execute-custom', authMiddleware, csrfProtection, workflowController.executeCustomWorkflow);
+app.get('/api/workflow/presets', authMiddleware, workflowController.getWorkflowPresets);
+app.get('/api/workflow/progress/:workflowId', authMiddleware, workflowController.getWorkflowProgress);
+app.get('/api/workflow/history', authMiddleware, workflowController.getWorkflowHistory);
+app.get('/api/workflow/details/:preset', authMiddleware, workflowController.getWorkflowDetails);
+
 // Queue Management endpoints (protected)
 app.get('/api/queue/jobs/:jobId', authMiddleware, queueController.getJobStatus.bind(queueController));
 app.get('/api/queue/stats', authMiddleware, queueController.getQueueStats.bind(queueController));
