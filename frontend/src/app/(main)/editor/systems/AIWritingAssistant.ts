@@ -16,13 +16,13 @@ export class AIWritingAssistant {
    * @description Generates text based on a prompt and context.
    * @param {string} prompt - The prompt to generate text from.
    * @param {string} context - The context for the generation.
-   * @param {any} options - The generation options.
+   * @param {Record<string, unknown>} options - The generation options.
    * @returns {Promise<{ text?: string; error?: string }>} - The generated text and suggestions.
    */
   async generateText(
     prompt: string,
     context: string,
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<{ text?: string; error?: string }> {
     // In a real implementation, this would call an AI service like Gemini
     // For now, we'll simulate the response

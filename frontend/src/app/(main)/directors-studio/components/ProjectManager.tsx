@@ -42,7 +42,7 @@ export default function ProjectManager() {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
   const { toast } = useToast();
-  const currentProject = getCurrentProject<Project>();
+  const currentProject = getCurrentProject();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");

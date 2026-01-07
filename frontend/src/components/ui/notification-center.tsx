@@ -41,7 +41,7 @@ export interface Notification {
   onDismiss?: () => void;
 }
 
-interface NotificationCenterProps {
+export interface NotificationCenterProps {
   notifications: Notification[];
   onDismiss: (id: string) => void;
   position?: "top-right" | "top-left" | "bottom-right" | "bottom-left" | "top-center" | "bottom-center";
@@ -207,10 +207,14 @@ function NotificationItem({ notification, onDismiss, index }: NotificationItemPr
                     ease: "easeInOut",
                   }}
                 >
+                  {/* @ts-expect-error - dynamic icon component */}
                   <Icon className={cn("h-5 w-5", iconColorMap[notification.type])} />
                 </motion.div>
               ) : (
-                <Icon className={cn("h-5 w-5", iconColorMap[notification.type])} />
+                <>
+                  {/* @ts-expect-error - dynamic icon component */}
+                  <Icon className={cn("h-5 w-5", iconColorMap[notification.type])} />
+                </>
               )}
             </div>
 

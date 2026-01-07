@@ -59,9 +59,9 @@ const WardrobeModal: React.FC<WardrobeModalProps> = ({ isOpen, onClose, onGarmen
         setIsGenerating(true);
         setError(null);
         try {
-            const url = await generateGarmentAsset(prompt, imageSize);
-            setGeneratedItem({ id: `gen-${Date.now()}`, name: prompt, url: url });
-        } catch (err) { setError('Failed to generate.'); } 
+            const result = await generateGarmentAsset(prompt, imageSize);
+            setGeneratedItem({ id: `gen-${Date.now()}`, name: result.name, url: result.url });
+        } catch (err) { setError('Failed to generate.'); }
         finally { setIsGenerating(false); }
     };
     
@@ -78,10 +78,10 @@ const WardrobeModal: React.FC<WardrobeModalProps> = ({ isOpen, onClose, onGarmen
         setIsGenerating(true);
         try {
             const file = await urlToFile(editingItem.url, "source.png");
-            const newUrl = await editGarmentImage(file, editPrompt);
-            setGeneratedItem({ id: `edit-${Date.now()}`, name: `${editingItem.name} (Edited)`, url: newUrl });
+            const result = await editGarmentImage(file, editPrompt);
+            setGeneratedItem({ id: `edit-${Date.now()}`, name: result.name, url: result.url });
             setEditingItem(null);
-        } catch (err) { setError("Failed to edit."); } 
+        } catch (err) { setError("Failed to edit."); }
         finally { setIsGenerating(false); }
     };
 

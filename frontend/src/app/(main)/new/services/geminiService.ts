@@ -30,7 +30,7 @@ async function callGeminiAPI(action: string, data: any): Promise<any> {
  */
 export const generateProfessionalDesign = async (brief: DesignBrief): Promise<ProfessionalDesignResult> => {
   const result = await callGeminiAPI('generateDesign', { brief });
-  
+
   return {
     lookTitle: result.lookTitle || 'تصميم مخصص',
     dramaticDescription: result.dramaticDescription || '',
@@ -43,16 +43,24 @@ export const generateProfessionalDesign = async (brief: DesignBrief): Promise<Pr
       colorPalette: ''
     },
     rationale: result.rationale || [],
-    realWeather: result.realWeather || { temp: 72, condition: 'Default' },
-    conceptArtUrl: result.conceptArtUrl || 'https://placehold.co/512x512/1a1a1a/d4b483?text=Design+Concept'
+    productionNotes: result.productionNotes || {
+      copies: '1',
+      distressing: 'لا يوجد',
+      cameraWarnings: 'لا يوجد',
+      weatherAlt: 'لا يوجد',
+      budgetAlt: 'لا يوجد'
+    },
+    imagePrompt: result.imagePrompt || '',
+    conceptArtUrl: result.conceptArtUrl || 'https://placehold.co/512x512/1a1a1a/d4b483?text=Design+Concept',
+    realWeather: result.realWeather || { temp: 72, condition: 'Default', location: '' }
   };
 };
 
 /**
  * Transcribe audio using Gemini.
  */
-export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
-  const base64 = await fileToBase64(audioBlob);
+export const transcribeAudio = async (audioBlob: Blob | File): Promise<string> => {
+  const base64 = await fileToBase64(audioBlob as File);
   const result = await callGeminiAPI('transcribeAudio', {
     audioBase64: base64,
     mimeType: audioBlob.type || 'audio/webm'
@@ -77,7 +85,7 @@ export const analyzeVideoContent = async (videoFile: File): Promise<string> => {
  */
 export const generateGarmentAsset = async (
   prompt: string,
-  size: ImageGenerationSize = '1:1'
+  size: ImageGenerationSize = '1K'
 ): Promise<{ url: string; name: string }> => {
   const result = await callGeminiAPI('generateGarment', { prompt, size });
   return {
@@ -99,12 +107,12 @@ export const generateVirtualFit = async (
     personUrl: personImageUrl,
     config
   });
-  
+
   return {
-    resultUrl: result.resultUrl || garmentUrl,
-    physicsNotes: result.fitDescription || 'تحليل التناسب',
-    fitScore: 85,
-    issues: []
+    compatibilityScore: result.compatibilityScore || 85,
+    safetyIssues: result.safetyIssues || [],
+    fabricNotes: result.fabricNotes || result.fitDescription || 'تحليل التناسب',
+    movementPrediction: result.movementPrediction || 'متوقع'
   };
 };
 
@@ -125,9 +133,12 @@ export const generateStressTestVideo = async (
  * Edit a garment image with AI.
  */
 export const editGarmentImage = async (
-  imageUrl: string,
+  imageFileOrUrl: File | string,
   editPrompt: string
 ): Promise<{ url: string; name: string }> => {
+  const imageUrl = typeof imageFileOrUrl === 'string'
+    ? imageFileOrUrl
+    : await fileToBase64(imageFileOrUrl);
   const result = await callGeminiAPI('editGarment', { imageUrl, editPrompt });
   return {
     url: result.imageUrl || imageUrl,

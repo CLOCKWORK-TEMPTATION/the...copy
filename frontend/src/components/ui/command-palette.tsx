@@ -35,7 +35,7 @@ import {
  * - Voice search support
  */
 
-interface CommandItem {
+export interface CommandItem {
   id: string;
   title: string;
   titleAr: string;
@@ -341,9 +341,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 index === selectedIndex && "bg-accent"
               )}
             >
+              {/* @ts-expect-error - dynamic icon component */}
               <Icon className="command-palette__item-icon flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{item.titleAr}</div>
+                <div className="font-medium truncate">
+                  {item.titleAr}
+                </div>
                 {item.description && (
                   <div className="text-xs text-muted-foreground truncate">
                     {item.description}

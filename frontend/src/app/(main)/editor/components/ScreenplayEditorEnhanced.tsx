@@ -45,7 +45,8 @@ import {
   AIWritingAssistant,
   ProjectManager,
   VisualPlanningSystem,
-  createSystems
+  createSystems,
+  type SystemConfig
 } from '../systems';
 
 // ==================== SCREENPLAY CLASSIFIER ====================
@@ -263,13 +264,13 @@ class ScreenplayClassifier {
  * @function SceneHeaderAgent
  * @description Advanced scene header processing for complex Arabic scene headers.
  * @param {string} line - The line to process.
- * @param {any} ctx - The context object.
+ * @param {{ inDialogue: boolean }} ctx - The context object.
  * @param {(formatType: string) => React.CSSProperties} getFormatStylesFn - The function to get format styles.
  * @returns {{ html: string; processed: boolean } | null} - The processed scene header or null.
  */
 const SceneHeaderAgent = (
   line: string,
-  ctx: any,
+  ctx: { inDialogue: boolean },
   getFormatStylesFn: (formatType: string) => React.CSSProperties
 ) => {
   const classifier = new ScreenplayClassifier();
@@ -420,7 +421,7 @@ export default function ScreenplayEditorEnhanced({ onBack }: ScreenplayEditorEnh
   // System instances (created with refs to maintain stability)
   const systemsRef = useRef(createSystems({
     autoSaveInterval: 30000
-  }));
+  } as SystemConfig));
 
   // Get format styles
   const getFormatStyles = (formatType: string): React.CSSProperties => {
@@ -939,7 +940,7 @@ export default function ScreenplayEditorEnhanced({ onBack }: ScreenplayEditorEnh
     }
 
     // Set up auto-save
-    systemsRef.current.autoSaveManager.setSaveCallback(async (content) => {
+    systemsRef.current.autoSaveManager.setSaveCallback(async (content: string) => {
       console.log('Auto-saved content:', content);
       // In real implementation, save to database or file
     });

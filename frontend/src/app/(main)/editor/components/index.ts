@@ -7,8 +7,8 @@
 export { default as ScreenplayEditorEnhanced } from './ScreenplayEditorEnhanced';
 
 // Legacy editors (kept for backward compatibility)
-export { default as CleanIntegratedScreenplayEditor } from '../../../components/editor/CleanIntegratedScreenplayEditor';
-export { default as ScreenplayEditor } from '../../../components/editor/ScreenplayEditor';
+export { default as CleanIntegratedScreenplayEditor } from '../../../../components/editor/CleanIntegratedScreenplayEditor';
+export { default as ScreenplayEditor } from '../../../../components/editor/ScreenplayEditor';
 
 // Utility components
-export { default as AdvancedAgentsPopup } from '../../../components/editor/AdvancedAgentsPopup';
+export { default as AdvancedAgentsPopup } from '../../../../components/editor/AdvancedAgentsPopup';

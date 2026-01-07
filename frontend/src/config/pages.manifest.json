@@ -21,9 +21,19 @@
       "title": "استوديو هندسة التوجيهات"
     },
     {
+      "slug": "art-director",
+      "path": "/art-director",
+      "title": "art-director"
+    },
+    {
       "slug": "brain-storm-ai",
       "path": "/brain-storm-ai",
       "title": "brain-storm-ai"
+    },
+    {
+      "slug": "brainstorm",
+      "path": "/brainstorm",
+      "title": "الورشة"
     },
     {
       "slug": "breakdown",

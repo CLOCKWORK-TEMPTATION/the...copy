@@ -62,7 +62,6 @@ import {
   type AgentIcon,
   type AgentCategory,
 } from "@/lib/drama-analyst/services/brainstormAgentRegistry";
-import { multiAgentDebate } from "@/lib/drama-analyst/orchestration/multiAgentDebate";
 
 // ============================================
 // ===== أنواع الواجهة =====
@@ -385,16 +384,26 @@ export default function BrainstormContent() {
     });
 
     try {
-      // استدعاء نظام النقاش الحقيقي
-      const debateResult = await multiAgentDebate.conductDebate(
-        debateTask,
-        {
-          brief: session.brief,
-          phase: session.phase,
-          sessionId: session.id,
-        },
-        agentIds
-      );
+      const response = await fetch("/api/brainstorm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: debateTask,
+          context: {
+            brief: session.brief,
+            phase: session.phase,
+            sessionId: session.id,
+          },
+          agentIds,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const debateResult = data?.result;
 
       // تحويل مقترحات النقاش إلى رسائل
       for (const proposal of debateResult.proposals) {

@@ -2,8 +2,8 @@
  * @class CollaborationSystem
  * @description Manages collaboration and comments for the screenplay editor.
  * @property {Array<{ id: string; name: string; color: string }>} collaborators - The list of collaborators.
- * @property {Array<{ id: string; content: string; author: string; timestamp: Date; position: any }>} comments - The list of comments.
- * @property {Array<(data: any) => void>} changeCallbacks - The list of callbacks to execute on change.
+ * @property {Array<{ id: string; content: string; author: string; timestamp: Date; position: { x: number; y: number } }>} comments - The list of comments.
+ * @property {Array<(data: { type: string; data: unknown }) => void>} changeCallbacks - The list of callbacks to execute on change.
  */
 export class CollaborationSystem {
   private collaborators: Array<{
@@ -16,9 +16,9 @@ export class CollaborationSystem {
     content: string;
     author: string;
     timestamp: Date;
-    position: any;
+    position: { x: number; y: number };
   }> = [];
-  private changeCallbacks: Array<(data: any) => void> = [];
+  private changeCallbacks: Array<(data: { type: string; data: unknown }) => void> = [];
 
   /**
    * @method addCollaborator

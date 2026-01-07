@@ -52,7 +52,7 @@ export interface SearchResult {
   onClick?: () => void;
 }
 
-interface UniversalSearchProps {
+export interface UniversalSearchProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onSearch?: (query: string, category: SearchCategory) => Promise<SearchResult[]>;
@@ -238,6 +238,7 @@ export function UniversalSearch({
                       value={key}
                       className="gap-2"
                     >
+                      {/* @ts-expect-error - dynamic icon component */}
                       <Icon className="h-4 w-4" />
                       {label}
                     </TabsTrigger>
@@ -384,6 +385,7 @@ function SearchResultItem({ result, isSelected, onClick }: SearchResultItemProps
     >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 p-2 rounded-md bg-primary/10">
+          {/* @ts-expect-error - dynamic icon component */}
           <Icon className="h-5 w-5 text-primary" />
         </div>
         

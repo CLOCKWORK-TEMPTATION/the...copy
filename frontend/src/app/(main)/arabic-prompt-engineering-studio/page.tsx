@@ -60,13 +60,14 @@ import {
   Languages,
   ListFilter,
   Maximize2,
+  type LucideIcon,
 } from "lucide-react";
 import { analyzePrompt, comparePrompts, generateEnhancementSuggestions } from "./lib/prompt-analyzer";
 import { defaultPromptTemplates, renderTemplate, validateTemplateVariables } from "./lib/prompt-data";
 import type { PromptAnalysis, PromptTemplate, PromptCategory } from "./types";
 
 // Category icons mapping
-const CATEGORY_ICONS: Record<PromptCategory, React.ElementType> = {
+const CATEGORY_ICONS: Record<PromptCategory, LucideIcon> = {
   creative_writing: PenTool,
   analysis: BarChart3,
   translation: Languages,

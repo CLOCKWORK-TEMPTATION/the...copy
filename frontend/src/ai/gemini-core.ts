@@ -120,20 +120,38 @@ export async function streamFlash(
   // For now, use regular chat - streaming can be implemented later
   const response = await geminiCore.chatWithAI(prompt);
 
-  if (response && onChunk) {
-    const nested =
-      typeof response.response === "string"
-        ? response.response
-        : response.response?.message || response.response?.content;
-    const text = nested || response.message || response.content || "";
+  const text = (() => {
+    if (!response) return "";
+    if (typeof response === "string") return response;
+
+    const r = (response as unknown) as {
+      text?: unknown;
+      message?: unknown;
+      content?: unknown;
+      data?: unknown;
+    };
+
+    if (typeof r.text === "string") return r.text;
+    if (typeof r.message === "string") return r.message;
+    if (typeof r.content === "string") return r.content;
+
+    const data = r.data as
+      | { text?: unknown; message?: unknown; content?: unknown }
+      | undefined;
+    if (data) {
+      if (typeof data.text === "string") return data.text;
+      if (typeof data.message === "string") return data.message;
+      if (typeof data.content === "string") return data.content;
+    }
+
+    return "";
+  })();
+
+  if (onChunk && text) {
     onChunk(text);
   }
 
-  const nested =
-    typeof response?.response === "string"
-      ? response?.response
-      : response?.response?.message || response?.response?.content;
-  return nested || response?.message || response?.content || "";
+  return text;
 }
 
 export default geminiCore;

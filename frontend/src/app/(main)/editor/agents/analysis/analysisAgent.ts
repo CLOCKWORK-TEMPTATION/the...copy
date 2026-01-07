@@ -50,7 +50,7 @@ export class AnalysisAgent extends IntegratedAgent {
     super(ANALYSIS_AGENT_CONFIG, apiKey);
   }
 
-  public async execute(
+  public override async execute(
     files: ProcessedFile[],
     specialRequirements: string,
     additionalInfo: string

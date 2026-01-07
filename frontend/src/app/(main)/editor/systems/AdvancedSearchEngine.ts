@@ -8,13 +8,13 @@ export class AdvancedSearchEngine {
    * @description Searches for a query in the content.
    * @param {string} content - The content to search in.
    * @param {string} query - The query to search for.
-   * @param {any} options - The search options.
-   * @returns {Promise<any>} - The search results.
+   * @param {Record<string, unknown>} options - The search options.
+   * @returns {Promise<SearchResults>} - The search results.
    */
   async searchInContent(
     content: string,
     query: string,
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<{
     success: boolean;
     query: string;

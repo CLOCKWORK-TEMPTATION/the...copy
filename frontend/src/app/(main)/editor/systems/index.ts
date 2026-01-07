@@ -3,6 +3,14 @@
  * Exports all system classes for the screenplay editor.
  */
 
+import { StateManager } from "./StateManager";
+import { AutoSaveManager } from "./AutoSaveManager";
+import { AdvancedSearchEngine } from "./AdvancedSearchEngine";
+import { CollaborationSystem } from "./CollaborationSystem";
+import { AIWritingAssistant } from "./AIWritingAssistant";
+import { ProjectManager } from "./ProjectManager";
+import { VisualPlanningSystem } from "./VisualPlanningSystem";
+
 export { StateManager } from './StateManager';
 export { AutoSaveManager } from './AutoSaveManager';
 export { AdvancedSearchEngine } from './AdvancedSearchEngine';

@@ -68,26 +68,26 @@ const FileUpload = dynamic(() => import("@/components/file-upload"), {
 
 // --- Types Definitions ---
 
-interface CrossStationAlert {
+export interface CrossStationAlert {
   sourceStation: string;
   targetStation: string;
   issue: string;
   severity: "low" | "medium" | "high";
 }
 
-interface StationMetric {
+export interface StationMetric {
   label: string;
-  value: number; // 0-100
+  value: number;
   trend: "up" | "down" | "stable";
 }
 
-interface DebateSession {
+export interface DebateSession {
   isOpen: boolean;
   topic: string;
   history: { speaker: "user" | "ai"; text: string }[];
 }
 
-interface StationResult {
+export interface StationResult {
   id: string;
   name: string;
   icon: React.ElementType;
@@ -547,6 +547,7 @@ function StationCard({
     return (
       <div className="relative">
         <ProgressRing progress={0} size={40} strokeWidth={3} />
+        {/* @ts-expect-error - dynamic icon component */}
         <station.icon className="absolute inset-0 m-auto h-4 w-4 text-muted-foreground" />
       </div>
     );

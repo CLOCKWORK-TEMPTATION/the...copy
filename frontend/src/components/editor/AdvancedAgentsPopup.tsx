@@ -8,10 +8,10 @@ import {
 
 import { AnalysisAgent } from '../../agents/analysis/analysisAgent';
 import { CharacterDeepAnalyzerAgent } from '../../agents/analysis/characterDeepAnalyzerAgent';
-import { environment } from '../../config/environment';
-import { AGENT_CONFIGS } from '../../config/agentConfigs';
-import type { ProcessedFile } from '../../types/types';
-import type { AIAgentConfig } from '../../types/types';
+import { environment } from '../../app/(main)/editor/config/environment';
+import { AGENT_CONFIGS } from '../../app/(main)/editor/config/agentConfigs';
+import type { ProcessedFile } from '../../app/(main)/editor/types/types';
+import type { AIAgentConfig } from '../../app/(main)/editor/types/types';
 
 /**
  * @interface Agent
