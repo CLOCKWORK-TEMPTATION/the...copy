@@ -31,6 +31,7 @@ yarn-error.log*
 .npm/
 .eslintcache
 .stylelintcache
+screenplay_formatting_backup/
 
 # Build outputs
 .next/
@@ -39,7 +40,6 @@ dist/
 build/
 .cache/
 .parcel-cache/
-C:\Users\Mohmed Aimen Raed\.pochi\config.jsonc
 
 # Package manager files
 package-lock.json

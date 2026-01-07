@@ -1,6 +1,8 @@
 const typescriptParser = require("@typescript-eslint/parser");
 const typescriptPlugin = require("@typescript-eslint/eslint-plugin");
 const importPlugin = require("eslint-plugin-import");
+const reactPlugin = require("eslint-plugin-react");
+const reactHooksPlugin = require("eslint-plugin-react-hooks");
 
 module.exports = [
   // Ignore patterns
@@ -38,12 +40,12 @@ module.exports = [
         },
       },
     },
-  },
-
-  // No custom rules - using defaults from TypeScript plugin
-  {
-    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
-    plugins: ["@typescript-eslint", "import", "react", "react-hooks"],
+    plugins: {
+      "@typescript-eslint": typescriptPlugin,
+      "import": importPlugin,
+      "react": reactPlugin,
+      "react-hooks": reactHooksPlugin,
+    },
     rules: {
       "react/no-unescaped-entities": "off",
       "react/no-direct-mutation-state": "off",

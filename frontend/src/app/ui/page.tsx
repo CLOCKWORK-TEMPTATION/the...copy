@@ -21,8 +21,8 @@ const APP_MAPPING: Record<number, { route: string; label: string; ready: boolean
   11: { route: "/metrics-dashboard", label: "لوحة التحليلات", ready: true },
   12: { route: "/analysis", label: "التحليل الدرامي", ready: true },
   13: { route: "/new", label: "مشروع جديد", ready: true },
-  14: { route: "/brainstorm", label: "منصة Jules", ready: true },
-  15: { route: "/development", label: "التطوير", ready: true },
+  14: { route: "/editor", label: "المحرر", ready: true },
+  15: { route: "/art-director", label: "مهندس الديكور", ready: true },
 }
 
 const getImage = (index: number) => {

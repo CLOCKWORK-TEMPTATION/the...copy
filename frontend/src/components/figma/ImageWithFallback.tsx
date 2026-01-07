@@ -1,42 +1,43 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import Image, { ImageProps } from "next/image"
+import type React from "react"
+import { useState } from "react"
 
-/**
- * ImageWithFallback Component
- * Displays an image with a fallback placeholder on error
- */
-interface ImageWithFallbackProps extends Omit<ImageProps, "onError"> {
-  fallback?: string
-  fallbackClassName?: string
-}
+const ERROR_IMG_SRC =
+  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg=="
 
-export function ImageWithFallback({
-  src,
-  alt,
-  fallback = "/placeholder.svg",
-  fallbackClassName = "",
-  className = "",
-  ...props
-}: ImageWithFallbackProps) {
-  const [imgSrc, setImgSrc] = useState(src)
-  const [hasError, setHasError] = useState(false)
+export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElement>) {
+  const [didError, setDidError] = useState(false)
 
-  const handleError = useCallback(() => {
-    if (!hasError) {
-      setHasError(true)
-      setImgSrc(fallback)
-    }
-  }, [fallback, hasError])
+  const handleError = () => {
+    setDidError(true)
+  }
+
+  const { src, alt, style, className, ...rest } = props
+
+  if (didError) {
+    return (
+      <div className={`inline-block bg-muted text-center align-middle ${className ?? ""}`} style={style}>
+        <div className="flex items-center justify-center w-full h-full">
+          <img
+            src={ERROR_IMG_SRC || "/placeholder.svg"}
+            alt="Error loading image"
+            {...rest}
+            data-original-url={src}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <Image
-      src={imgSrc}
+    <img
+      src={src || "/placeholder.svg"}
       alt={alt}
+      className={className}
+      style={style}
+      {...rest}
       onError={handleError}
-      className={`${hasError ? fallbackClassName : className}`}
-      {...props}
     />
   )
 }

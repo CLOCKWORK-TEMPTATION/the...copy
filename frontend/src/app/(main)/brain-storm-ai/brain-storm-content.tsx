@@ -61,7 +61,6 @@ import {
   type AgentIcon,
   type AgentCategory,
 } from "@/lib/drama-analyst/services/brainstormAgentRegistry";
-import { multiAgentDebate } from "@/lib/drama-analyst/orchestration/multiAgentDebate";
 
 // الأنواع
 interface AgentState {
@@ -307,9 +306,11 @@ export default function BrainStormContent() {
 
   const executeAgentDebate = async (
     agents: readonly BrainstormAgentDefinition[],
-    session: Session
+    session: Session,
+    task?: string
   ) => {
     const agentIds = agents.map((a) => a.id);
+    const debateTask = task || `تحليل الفكرة: ${session.brief}`;
 
     agents.forEach((agent) => {
       updateAgentState(agent.id, {
@@ -319,11 +320,21 @@ export default function BrainStormContent() {
     });
 
     try {
-      const debateResult = await multiAgentDebate.conductDebate(
-        `تحليل الفكرة: ${session.brief}`,
-        { brief: session.brief, phase: session.phase, sessionId: session.id },
-        agentIds
-      );
+      const response = await fetch("/api/brainstorm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: debateTask,
+          context: { brief: session.brief, phase: session.phase, sessionId: session.id },
+          agentIds,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const { result: debateResult } = await response.json();
 
       for (const proposal of debateResult.proposals) {
         const agent = agents.find((a) => a.id === proposal.agentId);
@@ -382,7 +393,43 @@ export default function BrainStormContent() {
     const updatedSession = { ...currentSession, phase: nextPhase };
     setCurrentSession(updatedSession);
     const nextPhaseAgents = getAgentsForPhase(nextPhase);
-    await executeAgentDebate(nextPhaseAgents, updatedSession);
+    
+    const phaseTasks: Record<BrainstormPhase, string> = {
+      1: `التحليل الأولي للبريف: ${currentSession.brief}`,
+      2: `التوسع الإبداعي: ${currentSession.brief}`,
+      3: `التحقق والتدقيق: ${currentSession.brief}`,
+      4: `النقاش والتوافق: ${currentSession.brief}`,
+      5: `التقييم النهائي: ${currentSession.brief}`,
+    };
+    
+    try {
+      await executeAgentDebate(nextPhaseAgents, updatedSession, phaseTasks[nextPhase]);
+    } catch (error) {
+      console.error(`[Brainstorm] Phase ${nextPhase} error:`, error);
+      setError(`فشل في إتمام المرحلة ${nextPhase}`);
+    }
+  };
+
+  const getPhaseIcon = (phaseId: BrainstormPhase) => {
+    const icons = {
+      1: <BookOpen className="w-5 h-5" />,
+      2: <Sparkles className="w-5 h-5" />,
+      3: <Shield className="w-5 h-5" />,
+      4: <Trophy className="w-5 h-5" />,
+      5: <Target className="w-5 h-5" />,
+    };
+    return icons[phaseId];
+  };
+
+  const getPhaseColor = (phaseId: BrainstormPhase) => {
+    const colors = {
+      1: "bg-blue-500 hover:bg-blue-600",
+      2: "bg-purple-500 hover:bg-purple-600",
+      3: "bg-green-500 hover:bg-green-600",
+      4: "bg-yellow-500 hover:bg-yellow-600",
+      5: "bg-red-500 hover:bg-red-600",
+    };
+    return colors[phaseId];
   };
 
   const phases = BRAINSTORM_PHASES.map((phase) => ({
@@ -390,7 +437,8 @@ export default function BrainStormContent() {
     name: phase.name,
     nameEn: phase.nameEn,
     description: phase.description,
-    icon: [<BookOpen />, <Sparkles />, <Shield />, <Trophy />, <Target />][phase.id - 1],
+    icon: getPhaseIcon(phase.id),
+    color: getPhaseColor(phase.id),
     agentCount: getAgentsForPhase(phase.id).length,
   }));
 

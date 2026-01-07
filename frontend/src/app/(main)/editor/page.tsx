@@ -2,21 +2,30 @@
 
 import dynamic from "next/dynamic";
 
-const ScreenplayEditor = dynamic(
-  () => import("@/components/screenplay-editor"),
+// ⚡ ENHANCED VERSION - Combines best features from all editors
+// Features:
+// ✅ SceneHeaderAgent - معالجة متقدمة لرؤوس المشاهد العربية المعقدة
+// ✅ postProcessFormatting - تصحيح ذكي للنصوص بعد اللصق
+// ✅ Advanced paste handling - معالجة لصق متطورة مع تتبع السياق
+// ✅ All 7 System Classes - كل فئات النظام (StateManager, AutoSaveManager, AdvancedSearchEngine, etc.)
+// ✅ AdvancedAgentsPopup - تكامل مع الوكلاء المتقدمة
+// ✅ Full Sidebar - شريط جانبي كامل مع الإحصائيات
+// ✅ Status Bar - شريط حالة مباشر
+// ✅ AI Writing Assistant - مساعد كتابة بالذكاء الاصطناعي
+// ✅ Character Rename - إعادة تسمية الشخصيات
+// ✅ Dark/Light mode - الوضع الليلي/النهاري
+const ScreenplayEditorEnhanced = dynamic(
+  () => import("./components/ScreenplayEditorEnhanced"),
   {
+    ssr: false,
     loading: () => (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">جاري تحميل محرر السيناريو العربي...</p>
-        </div>
+      <div className="min-h-screen bg-black flex items-center justify-center" dir="rtl">
+        <div className="text-white text-xl">جاري تحميل المحرر المحسّن...</div>
       </div>
     ),
-    ssr: false,
   }
 );
 
 export default function EditorPage() {
-  return <ScreenplayEditor />;
+  return <ScreenplayEditorEnhanced />;
 }

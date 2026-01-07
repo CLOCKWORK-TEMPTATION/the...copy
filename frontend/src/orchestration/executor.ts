@@ -4,8 +4,6 @@
 import { geminiService, type GeminiConfig } from "@/ai/gemini-service";
 import { cachedGeminiCall, generateGeminiCacheKey } from "@/lib/redis";
 import { AnalysisType } from "@/types/enums";
-import { logger } from "@/services/LoggerService";
-import { pipelineAgentManager } from "@/workers/pipeline-agent-manager";
 
 export interface PipelineStep {
   id: string;
@@ -40,21 +38,12 @@ export interface PipelineExecution {
 // Orchestrator class
 export class PipelineOrchestrator {
   private activeExecutions = new Map<string, PipelineExecution>();
-  private useBackgroundAgent = false; // Disabled by default for executor
-
-  /**
-   * Set whether to use background agent for execution
-   */
-  setUseBackgroundAgent(use: boolean): void {
-    this.useBackgroundAgent = use;
-  }
 
   // Execute a pipeline with dependency management
   async executePipeline(
     pipelineId: string,
     steps: PipelineStep[],
-    inputData: Record<string, any>,
-    options?: { useBackgroundAgent?: boolean }
+    inputData: Record<string, any>
   ): Promise<PipelineExecution> {
     const execution: PipelineExecution = {
       id: pipelineId,
@@ -67,107 +56,40 @@ export class PipelineOrchestrator {
 
     this.activeExecutions.set(pipelineId, execution);
 
-    // Determine if we should use background agent
-    const shouldUseBackgroundAgent = 
-      options?.useBackgroundAgent ?? this.useBackgroundAgent;
+    try {
+      // Build dependency graph
+      const dependencyGraph = this.buildDependencyGraph(steps);
 
-    if (shouldUseBackgroundAgent && pipelineAgentManager.isInitialized()) {
-      try {
-        await this.executeInBackgroundAgent(pipelineId, steps, inputData, execution);
-        execution.status = "completed";
-        execution.endTime = new Date();
-      } catch (error) {
-        execution.status = "failed";
-        execution.endTime = new Date();
-        logger.error("Background agent pipeline execution failed");
+      // Execute steps in order
+      const executedSteps = new Set<string>();
+
+      for (const step of steps) {
+        if (this.canExecuteStep(step, executedSteps)) {
+          const result = await this.executeStep(step, inputData);
+          execution.results.set(step.id, result);
+          executedSteps.add(step.id);
+
+          // Update progress
+          execution.progress = (executedSteps.size / steps.length) * 100;
+        } else {
+          // Wait for dependencies
+          await this.waitForDependencies(step, execution);
+          const result = await this.executeStep(step, inputData);
+          execution.results.set(step.id, result);
+          executedSteps.add(step.id);
+          execution.progress = (executedSteps.size / steps.length) * 100;
+        }
       }
-    } else {
-      try {
-        await this.executeInMainThread(pipelineId, steps, inputData, execution);
-        execution.status = "completed";
-        execution.endTime = new Date();
-      } catch (error) {
-        execution.status = "failed";
-        execution.endTime = new Date();
-        logger.error("Pipeline execution failed");
-      }
+
+      execution.status = "completed";
+      execution.endTime = new Date();
+    } catch (error) {
+      execution.status = "failed";
+      execution.endTime = new Date();
+      console.error("Pipeline execution failed");
     }
 
     return execution;
-  }
-
-  /**
-   * Execute pipeline in background agent
-   */
-  private async executeInBackgroundAgent(
-    pipelineId: string,
-    steps: PipelineStep[],
-    inputData: Record<string, any>,
-    execution: PipelineExecution
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      pipelineAgentManager.executePipeline(
-        pipelineId,
-        steps,
-        inputData,
-        {
-          onProgress: (progress) => {
-            execution.progress = progress;
-          },
-          onStepComplete: (stepId, result) => {
-            execution.results.set(stepId, {
-              stepId,
-              success: true,
-              data: result.data,
-              duration: result.duration || 0,
-              cached: false,
-            });
-          },
-          onComplete: () => {
-            execution.progress = 100;
-            resolve();
-          },
-          onError: (error) => {
-            logger.error("Background agent error:", error);
-            reject(new Error(error));
-          },
-        }
-      );
-    });
-  }
-
-  /**
-   * Execute pipeline in main thread
-   */
-  private async executeInMainThread(
-    pipelineId: string,
-    steps: PipelineStep[],
-    inputData: Record<string, any>,
-    execution: PipelineExecution
-  ): Promise<void> {
-    // Build dependency graph
-    const dependencyGraph = this.buildDependencyGraph(steps);
-
-    // Execute steps in order
-    const executedSteps = new Set<string>();
-
-    for (const step of steps) {
-      if (this.canExecuteStep(step, executedSteps)) {
-        const result = await this.executeStep(step, inputData);
-        execution.results.set(step.id, result);
-        executedSteps.add(step.id);
-
-        // Update progress
-        execution.progress = (executedSteps.size / steps.length) * 100;
-      } else {
-        // Wait for dependencies
-        await this.waitForDependencies(step, execution);
-        const result = await this.executeStep(step, inputData);
-        execution.results.set(step.id, result);
-        executedSteps.add(step.id);
-        execution.progress = (executedSteps.size / steps.length) * 100;
-      }
-    }
   }
 
   // Execute individual step with caching and error handling
@@ -300,12 +222,6 @@ export class PipelineOrchestrator {
     if (execution && execution.status === "running") {
       execution.status = "failed";
       execution.endTime = new Date();
-
-      // Cancel in background agent if initialized
-      if (pipelineAgentManager.isInitialized()) {
-        pipelineAgentManager.cancelExecution(pipelineId);
-      }
-
       return true;
     }
     return false;
@@ -327,7 +243,7 @@ export class PipelineOrchestrator {
 export async function submitTask(taskRequest: any): Promise<any> {
   // Development mode: return mock response
   if (process.env.NODE_ENV !== "production") {
-    logger.warn("[DEV STUB] submitTask: returning mock response");
+    console.warn("[DEV STUB] submitTask: returning mock response");
   }
 
   // TODO PRODUCTION: Implement actual task submission

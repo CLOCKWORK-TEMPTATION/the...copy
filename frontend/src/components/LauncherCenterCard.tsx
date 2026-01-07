@@ -1,88 +1,172 @@
-"use client"
+"use client";
 
-import { useEffect, useRef } from "react"
-import gsap from "gsap"
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
+import images from "@/lib/images";
 
-/**
- * LauncherCenterCard Component
- * Central hero card for the UI launcher grid
- * Features V-shape animation with GSAP
- */
 interface LauncherCenterCardProps {
-  className?: string
+  className?: string;
 }
 
-export default function LauncherCenterCard({ className = "" }: LauncherCenterCardProps) {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const textRef = useRef<HTMLDivElement>(null)
+/**
+ * Layout normalized حول مركز الكارت:
+ * x,y كنسبة من عرض/ارتفاع المشهد (0 = المركز)
+ * s = scale multiplier لحجم الكارت
+ * r = rotation ش
+ * z = zIndex
+ */
+const CARD_SCALE = 0.82;
+const V_LAYOUT = [
+  { x: -0.19, y: -0.01, s: CARD_SCALE, r: -7,  z: 1 }, // أعلى يسار
+  { x: -0.11, y:  0.07, s: CARD_SCALE, r: -4,  z: 2 }, // وسط يسار
+  { x: -0.03, y:  0.15, s: CARD_SCALE, r: -1,  z: 3 }, // أسفل يسار
+  { x:  0.05, y:  0.23, s: CARD_SCALE, r:  0,  z: 6 }, // المركز
+  { x:  0.13, y:  0.15, s: CARD_SCALE, r:  1,  z: 3 }, // أسفل يمين
+  { x:  0.21, y:  0.07, s: CARD_SCALE, r:  4,  z: 2 }, // وسط يمين
+  { x:  0.28, y: -0.01, s: CARD_SCALE, r:  7,  z: 1 }, // أعلى يمين
+];
+
+function useElementSize<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
 
   useEffect(() => {
-    if (!cardRef.current) return
+    if (!ref.current) return;
 
-    // Animate card entrance
-    const tl = gsap.timeline({ defaults: { ease: "power3.out" } })
+    const el = ref.current;
+    const ro = new ResizeObserver(() => {
+      const rect = el.getBoundingClientRect();
+      setSize({ w: rect.width, h: rect.height });
+    });
 
-    tl.fromTo(
-      cardRef.current,
-      { scale: 0.8, opacity: 0, rotation: -5 },
-      { scale: 1, opacity: 1, rotation: 0, duration: 0.8 }
-    )
-      .fromTo(
-        textRef.current,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6 },
-        "-=0.4"
-      )
+    ro.observe(el);
+    // init
+    const rect = el.getBoundingClientRect();
+    setSize({ w: rect.width, h: rect.height });
 
-    return () => {
-      tl.kill()
-    }
-  }, [])
+    return () => ro.disconnect();
+  }, []);
+
+  return { ref, size };
+}
+
+export default function LauncherCenterCard({ className }: { className?: string }) {
+  const [mounted, setMounted] = useState(false);
+  const { ref: sceneRef, size } = useElementSize<HTMLDivElement>();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const router = useRouter();
+
+  const heroImages = useMemo(() => {
+    const arr = Array.isArray(images) ? images : [];
+    return arr.slice(0, 7);
+  }, []);
+
+  const goEditor = () => router.push("/editor");
+
+  // قاعدة حجم الكارت (يتناسب مع مساحة الكارت نفسها)
+  const baseW = useMemo(() => {
+    const w = size.w || 0;
+    const h = size.h || 0;
+    if (!w || !h) return 120; // fallback
+    // اختر حجمًا مريحًا: نسبة من أصغر بعد
+    const m = Math.min(w, h);
+    // اجعل القاعدة كبيرة بما يكفي لإظهار الـ V-Shape
+    return Math.max(110, Math.min(170, m * 0.22));
+  }, [size]);
+
+  // aspect 3/4 => height = width * 4/3
+  const aspectH = (w: number) => w * (4 / 3);
 
   return (
-    <div
-      ref={cardRef}
-      className={`relative rounded-lg overflow-hidden bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] border-2 border-[#FFD700]/30 ${className}`}
+    <button
+      type="button"
+      onClick={goEditor}
+      aria-label="افتح المحرر"
+      className={[
+        "relative w-full h-full overflow-hidden rounded-2xl",
+        "border border-white/15 bg-black",
+        "outline-none focus-visible:ring-2 focus-visible:ring-[#FFD700]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
+        "transition-all duration-300 hover:scale-[1.01] hover:border-[#FFD700]/40",
+        "cursor-pointer",
+        className ?? "",
+      ].join(" ")}
     >
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700]/10 to-transparent" />
+      {/* خلفية Vignette مثل الهيرو */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.08),rgba(0,0,0,0.92)_62%)]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-black/90" />
 
-      {/* V-Shape decoration */}
-      <svg
-        className="absolute inset-0 w-full h-full"
-        viewBox="0 0 400 400"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id="vGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FFD700" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#FFD700" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M 0 0 L 200 200 L 400 0 Z"
-          fill="url(#vGradient)"
-          className="animate-pulse"
-        />
-      </svg>
+      {/* مشهد السبع كروت: طبقة خلفية كاملة */}
+      <div ref={sceneRef} className="absolute inset-0 pointer-events-none">
+        {/* طبقة لمعة خفيفة */}
+        <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_50%_45%,rgba(255,215,0,0.08),transparent_55%)]" />
+        {mounted && heroImages.map((src, i) => {
+          const p = V_LAYOUT[i];
+          if (!p) return null;
 
-      {/* Content */}
-      <div
-        ref={textRef}
-        className="relative z-10 flex flex-col items-center justify-center h-full p-6 text-center"
-      >
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2" style={{ fontFamily: "Cairo, sans-serif" }}>
-          النسخة
-        </h1>
-        <p className="text-lg text-[#FFD700] mb-4" style={{ fontFamily: "Cairo, sans-serif" }}>
-          منصة الإبداع السينمائي
-        </p>
-        <div className="w-16 h-1 bg-[#FFD700] rounded-full" />
+          const w = baseW * p.s;
+          const h = aspectH(w);
+
+          const left = `calc(50% + ${p.x * 100}%)`;
+          const top = `calc(58% + ${p.y * 100}%)`;
+
+          return (
+            <div
+              key={`vcard-${i}`}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{
+                left,
+                top,
+                width: w,
+                height: h,
+                transform: `translate(-50%, -50%) rotate(${p.r}deg)`,
+                zIndex: p.z,
+              }}
+            >
+              <div className="relative w-full h-full overflow-hidden rounded-xl">
+                {/* Glow ذهبي */}
+                <div className="absolute inset-0 rounded-xl ring-2 ring-[#FFD700]/55 shadow-[0_0_20px_rgba(255,215,0,0.25)]" />
+                <ImageWithFallback
+                  src={src}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Corner accents */}
-      <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-[#FFD700]/50 rounded-tr-lg" />
-      <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-[#FFD700]/50 rounded-bl-lg" />
-    </div>
-  )
+      {/* نصوص مثل “الصورة الثانية” */}
+      <div className="relative z-10 h-full w-full">
+        {mounted && (
+          <div className="absolute top-[clamp(18px,9%,54px)] left-1/2 -translate-x-1/2 text-center px-4">
+            <div className="text-[clamp(34px,6vw,92px)] font-black tracking-tighter text-white drop-shadow-[0_12px_30px_rgba(0,0,0,0.75)] leading-none">
+              النسخة
+            </div>
+            <div className="mt-2 md:mt-3 text-[clamp(12px,1.6vw,18px)] text-white/55 font-medium">
+              بس اصلي
+            </div>
+          </div>
+        )}
+
+        {/* CTA داخل الكارت */}
+        {mounted && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-center">
+            <span className="inline-flex items-center justify-center rounded-full border border-[#FFD700]/45 bg-white/10 px-6 py-3 text-sm md:text-base font-semibold text-white shadow-[0_10px_25px_rgba(0,0,0,0.55)]">
+              افتح المحرر
+            </span>
+            <div className="mt-2 text-[11px] md:text-xs text-white/45">
+              اضغط للدخول مباشرة
+            </div>
+          </div>
+        )}
+      </div>
+    </button>
+  );
 }

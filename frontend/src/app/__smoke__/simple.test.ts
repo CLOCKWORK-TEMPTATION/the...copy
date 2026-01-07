@@ -18,7 +18,7 @@ describe("اختبار بسيط للبيئة", () => {
       "/directors-studio",
       "/cinematography-studio",
       "/actorai-arabic",
-      "/brainstorm",
+      "/brain-storm-ai",
       "/analysis/seven-stations",
       "/development",
       "/editor",

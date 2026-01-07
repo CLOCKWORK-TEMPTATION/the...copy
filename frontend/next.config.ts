@@ -61,6 +61,11 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   
+  allowedDevOrigins: ['*'],
+  
+  // Force @google/genai to only be loaded server-side
+  serverExternalPackages: ['@google/genai'],
+  
   // Enable production browser sourcemaps
   productionBrowserSourceMaps: true,
 

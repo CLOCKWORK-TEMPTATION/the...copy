@@ -1,40 +1,79 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Logo } from "./logo"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  BrainCircuit,
+  Layers,
+  Pen,
+  PenSquare,
+  Sparkles,
+  Rocket,
+  Film,
+} from "lucide-react";
+import {
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar";
 
-/**
- * Main Navigation Component
- */
-export function MainNav({ className = "" }: { className?: string }) {
-  const pathname = usePathname()
+const menuItems = [
+  {
+    href: "/editor",
+    label: "كتابة",
+    icon: PenSquare,
+  },
+  {
+    href: "/arabic-creative-writing-studio",
+    label: "استوديو الكتابة",
+    icon: Pen,
+  },
+  {
+    href: "/directors-studio",
+    label: "استوديو الإخراج",
+    icon: Film,
+  },
+  {
+    href: "/analysis",
+    label: "تحليل",
+    icon: Layers,
+  },
+  {
+    href: "/development",
+    label: "تطوير",
+    icon: Sparkles,
+  },
+  {
+    href: "/brain-storm-ai",
+    label: "الورشة",
+    icon: BrainCircuit,
+  },
+  {
+    href: "/new",
+    label: "جديد",
+    icon: Rocket,
+  },
+];
 
-  const navItems = [
-    { href: "/", label: "الرئيسية" },
-    { href: "/ui", label: "التطبيقات" },
-    { href: "/directors-studio", label: "استوديو المخرج" },
-  ]
+export function MainNav() {
+  const pathname = usePathname();
 
   return (
-    <nav className={cn("flex items-center gap-6", className)}>
-      <Logo />
-      <ul className="flex items-center gap-4">
-        {navItems.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-[#FFD700]",
-                pathname === item.href ? "text-[#FFD700]" : "text-white/70"
-              )}
-            >
-              {item.label}
+    <SidebarMenu>
+      {menuItems.map((item) => (
+        <SidebarMenuItem key={item.href}>
+          <SidebarMenuButton
+            asChild
+            isActive={pathname.startsWith(item.href)}
+            tooltip={item.label}
+          >
+            <Link href={item.href}>
+              <item.icon />
+              <span>{item.label}</span>
             </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  )
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
 }

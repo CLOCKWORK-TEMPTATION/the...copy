@@ -36,7 +36,7 @@ const CRITICAL_ROUTES = [
     elements: ["actor", "ai", "arabic"],
   },
   {
-    path: "/brainstorm",
+    path: "/brain-storm-ai",
     name: "صفحة العصف الذهني",
     elements: ["brainstorm", "ideas", "creative"],
   },
@@ -94,8 +94,8 @@ describe("الاختبارات الحرجة للصفحات الرئيسية", ()
                 PageComponent = (await import("../(main)/actorai-arabic/page"))
                   .default;
                 break;
-              case "/brainstorm":
-                PageComponent = (await import("../(main)/brainstorm/page"))
+              case "/brain-storm-ai":
+                PageComponent = (await import("../(main)/brain-storm-ai/page"))
                   .default;
                 break;
               case "/analysis/seven-stations":
@@ -183,8 +183,8 @@ describe("الاختبارات الحرجة للصفحات الرئيسية", ()
                 PageComponent = (await import("../(main)/actorai-arabic/page"))
                   .default;
                 break;
-              case "/brainstorm":
-                PageComponent = (await import("../(main)/brainstorm/page"))
+              case "/brain-storm-ai":
+                PageComponent = (await import("../(main)/brain-storm-ai/page"))
                   .default;
                 break;
               case "/analysis/seven-stations":
@@ -282,8 +282,8 @@ describe("الاختبارات الحرجة للصفحات الرئيسية", ()
                 PageComponent = (await import("../(main)/actorai-arabic/page"))
                   .default;
                 break;
-              case "/brainstorm":
-                PageComponent = (await import("../(main)/brainstorm/page"))
+              case "/brain-storm-ai":
+                PageComponent = (await import("../(main)/brain-storm-ai/page"))
                   .default;
                 break;
               case "/analysis/seven-stations":
@@ -405,8 +405,8 @@ describe("الاختبارات الحرجة للصفحات الرئيسية", ()
                 PageComponent = (await import("../(main)/actorai-arabic/page"))
                   .default;
                 break;
-              case "/brainstorm":
-                PageComponent = (await import("../(main)/brainstorm/page"))
+              case "/brain-storm-ai":
+                PageComponent = (await import("../(main)/brain-storm-ai/page"))
                   .default;
                 break;
               case "/analysis/seven-stations":
