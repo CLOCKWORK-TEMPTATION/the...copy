@@ -1,0 +1,54 @@
+{
+  "name": "the-copy-monorepo",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
+  "scripts": {
+    "start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/start-app.ps1",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/kill-ports.ps1",
+    "start:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File ./start-dev.ps1",
+    "start:redis": "powershell -Command \"Start-Process -FilePath '.\\redis\\redis-server.exe' -WindowStyle Minimized\"",
+    "kill:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File ./kill-dev.ps1",
+    "lint": "pnpm --filter frontend lint",
+    "lint:fix": "pnpm --filter frontend lint:fix",
+    "lint:strict": "pnpm --filter frontend lint",
+    "test": "pnpm --filter frontend test",
+    "typecheck": "pnpm --filter frontend typecheck",
+    "build": "pnpm --filter frontend build",
+    "smoke:tests": "pnpm --filter frontend test -- src/app/__smoke__",
+    "check:remote-config": "node -e \"const config = require('./frontend/next.config.ts'); console.log('Remote patterns:', config.images?.remotePatterns?.length || 0, 'patterns');\"",
+    "ci": "pnpm check:exports && pnpm lint && pnpm lint:strict && pnpm typecheck && pnpm test && pnpm build && pnpm check:remote-config",
+    "check:exports": "node scripts/check-duplicate-exports.mjs",
+    "check:exports:json": "node scripts/check-duplicate-exports.mjs --output json",
+    "check:exports:fix": "node scripts/check-duplicate-exports.mjs --fix",
+    "approve-builds": "node scripts/approve-build-warnings.js",
+    "audit:code": "npx tsx scripts/code-auditor.ts",
+    "dev": "pnpm start:dev",
+    "type-check": "tsc --noEmit",
+    "preview": "pnpm --filter frontend start"
+  },
+  "dependencies": {
+    "@mistralai/mistralai": "^1.10.0",
+    "@sentry/nextjs": "10.32.1",
+    "gsap": "^3.14.2",
+    "stylelint-config-standard": "^39.0.1",
+    "tailwindcss": "^4.1.16",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "cypress": "^15.8.0",
+    "sharp": "^0.34.5",
+    "vitest": "^4.0.6"
+  },
+  "overrides": {
+    "@types/d3-array": "^3.2.1",
+    "@types/d3-scale": "^4.0.8",
+    "@types/d3-shape": "^3.1.6",
+    "@types/babel__traverse": "^7.20.5",
+    "@types/eslint": "^8.56.10",
+    "esbuild": "^0.25.0"
+  }
+}
