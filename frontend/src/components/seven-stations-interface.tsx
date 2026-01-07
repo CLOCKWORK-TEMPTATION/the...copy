@@ -41,6 +41,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -90,7 +91,7 @@ export interface DebateSession {
 export interface StationResult {
   id: string;
   name: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   description: string;
   status: "idle" | "analyzing" | "completed" | "error";
   confidence: number;
@@ -547,7 +548,6 @@ function StationCard({
     return (
       <div className="relative">
         <ProgressRing progress={0} size={40} strokeWidth={3} />
-        {/* @ts-expect-error - dynamic icon component */}
         <station.icon className="absolute inset-0 m-auto h-4 w-4 text-muted-foreground" />
       </div>
     );

@@ -9,7 +9,8 @@ import {
   Info, 
   X,
   Bell,
-  Sparkles
+  Sparkles,
+  type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +49,7 @@ export interface NotificationCenterProps {
   maxVisible?: number;
 }
 
-const iconMap: Record<NotificationType, React.ElementType> = {
+const iconMap: Record<NotificationType, LucideIcon> = {
   success: CheckCircle2,
   error: XCircle,
   warning: AlertCircle,
@@ -207,12 +208,10 @@ function NotificationItem({ notification, onDismiss, index }: NotificationItemPr
                     ease: "easeInOut",
                   }}
                 >
-                  {/* @ts-expect-error - dynamic icon component */}
                   <Icon className={cn("h-5 w-5", iconColorMap[notification.type])} />
                 </motion.div>
               ) : (
                 <>
-                  {/* @ts-expect-error - dynamic icon component */}
                   <Icon className={cn("h-5 w-5", iconColorMap[notification.type])} />
                 </>
               )}

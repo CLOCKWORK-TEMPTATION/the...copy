@@ -21,6 +21,7 @@ import {
   Star,
   Mic,
   X,
+  type LucideIcon,
 } from "lucide-react";
 
 /**
@@ -40,7 +41,7 @@ export interface CommandItem {
   title: string;
   titleAr: string;
   description?: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   action: () => void;
   category: "app" | "action" | "setting" | "recent";
   keywords?: string[];
@@ -341,7 +342,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 index === selectedIndex && "bg-accent"
               )}
             >
-              {/* @ts-expect-error - dynamic icon component */}
               <Icon className="command-palette__item-icon flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">

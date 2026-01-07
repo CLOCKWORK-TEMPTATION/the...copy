@@ -16,7 +16,8 @@ import {
   Folder,
   Hash,
   ArrowRight,
-  Loader2
+  Loader2,
+  type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -42,7 +43,7 @@ export interface SearchResult {
   title: string;
   description?: string;
   category: SearchCategory;
-  icon?: React.ElementType;
+  icon?: LucideIcon;
   url?: string;
   metadata?: {
     date?: string;
@@ -61,7 +62,7 @@ export interface UniversalSearchProps {
   onRecentSearchClick?: (query: string) => void;
 }
 
-const categoryIcons: Record<SearchCategory, React.ElementType> = {
+const categoryIcons: Record<SearchCategory, LucideIcon> = {
   all: Search,
   projects: Folder,
   scenes: Video,
@@ -238,7 +239,6 @@ export function UniversalSearch({
                       value={key}
                       className="gap-2"
                     >
-                      {/* @ts-expect-error - dynamic icon component */}
                       <Icon className="h-4 w-4" />
                       {label}
                     </TabsTrigger>
@@ -385,7 +385,6 @@ function SearchResultItem({ result, isSelected, onClick }: SearchResultItemProps
     >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 p-2 rounded-md bg-primary/10">
-          {/* @ts-expect-error - dynamic icon component */}
           <Icon className="h-5 w-5 text-primary" />
         </div>
         

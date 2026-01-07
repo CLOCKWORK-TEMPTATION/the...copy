@@ -1400,7 +1400,7 @@ export class ScreenplayClassifier {
 const CleanIntegratedScreenplayEditor: React.FC = () => {
   // State variables
   const [htmlContent, setHtmlContent] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [currentFormat, setCurrentFormat] = useState("action");
   const [selectedFont, setSelectedFont] = useState("Amiri");
   const [selectedSize, setSelectedSize] = useState("14pt");
@@ -1955,11 +1955,9 @@ Suggestions:
   }, [htmlContent]);
 
   return (
-    <div
-      className={`min-h-screen ${isDarkMode ? "dark bg-gray-900 text-white" : "bg-white text-black"}`}
-    >
+    <div className={`min-h-screen bg-gray-900 text-white ${isDarkMode ? "dark" : ""}`}>
       {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-10">
+      <header className="border-b border-gray-700 bg-gray-800 text-white sticky top-0 z-10">
         <div className="flex items-center justify-between p-2">
           <div className="flex items-center space-x-2">
             <Film className="text-blue-500" />
@@ -2139,7 +2137,7 @@ Suggestions:
       {/* Main content */}
       <div className="flex">
         {/* Editor */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 bg-gray-900 p-6 overflow-auto">
           <div
             ref={editorRef}
             contentEditable
@@ -2149,7 +2147,7 @@ Suggestions:
               fontSize: selectedSize,
               direction: "rtl",
               lineHeight: "1.8",
-              width: "21cm",
+              width: "min(21cm, calc(100vw - 2rem))",
               margin: "0 auto",
               paddingTop: "1in",
               paddingBottom: "1in",
@@ -2157,7 +2155,8 @@ Suggestions:
               paddingLeft: "1in",
               backgroundColor: "white",
               color: "black",
-              boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
+              boxShadow: "0 10px 30px rgba(0, 0, 0, 0.45)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
             }}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}

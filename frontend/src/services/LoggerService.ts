@@ -1,40 +1,12 @@
-import pino, { Logger, LoggerOptions } from "pino";
+type LogLevel = "debug" | "info" | "warn" | "error";
 
-/**
- * Singleton LoggerService using Pino.
- * Provides unified logging configuration for Development and Production.
- */
 class LoggerService {
     private static instance: LoggerService;
-    private logger: Logger;
+    private level: LogLevel;
 
     private constructor() {
         const isDev = process.env.NODE_ENV !== "production";
-
-        const config: LoggerOptions = {
-            level: isDev ? "debug" : "info",
-            timestamp: pino.stdTimeFunctions.isoTime,
-            browser: {
-                asObject: true,
-                serialize: true,
-            },
-            // In frontend/browser context, pino-pretty is often handled via browser-specific transport or just native console object formatting by pino-browser.
-            // We keep it simple for now, using standard pino browser behavior which is very capable.
-            // If running in Node context (SSR), transport would be used.
-            transport:
-                typeof window === "undefined" && isDev
-                    ? {
-                        target: "pino-pretty",
-                        options: {
-                            colorize: true,
-                            translateTime: "SYS:standard",
-                            ignore: "pid,hostname",
-                        },
-                    }
-                    : undefined,
-        };
-
-        this.logger = pino(config);
+        this.level = isDev ? "debug" : "info";
     }
 
     public static getInstance(): LoggerService {
@@ -44,25 +16,39 @@ class LoggerService {
         return LoggerService.instance;
     }
 
-    public info(message: string, ...args: any[]): void {
-        this.logger.info(message, ...args);
+    private shouldLog(target: LogLevel): boolean {
+        const order: Record<LogLevel, number> = {
+            debug: 10,
+            info: 20,
+            warn: 30,
+            error: 40,
+        };
+
+        return order[target] >= order[this.level];
     }
 
-    public warn(message: string, ...args: any[]): void {
-        this.logger.warn(message, ...args);
+    public info(message: string, ...args: unknown[]): void {
+        if (!this.shouldLog("info")) return;
+        console.info(message, ...args);
     }
 
-    public error(message: string, ...args: any[]): void {
-        this.logger.error(message, ...args);
+    public warn(message: string, ...args: unknown[]): void {
+        if (!this.shouldLog("warn")) return;
+        console.warn(message, ...args);
     }
 
-    public debug(message: string, ...args: any[]): void {
-        this.logger.debug(message, ...args);
+    public error(message: string, ...args: unknown[]): void {
+        if (!this.shouldLog("error")) return;
+        console.error(message, ...args);
     }
 
-    // Expose the raw pino logger if needed for advanced usage
-    public getRawLogger(): Logger {
-        return this.logger;
+    public debug(message: string, ...args: unknown[]): void {
+        if (!this.shouldLog("debug")) return;
+        console.debug(message, ...args);
+    }
+
+    public getRawLogger(): Console {
+        return console;
     }
 }
 
