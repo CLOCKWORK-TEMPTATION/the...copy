@@ -177,10 +177,8 @@ nul
 # Security
 .securityignore
 
-<<<<<<< Updated upstream
 # Controllers (backup/temporary)
 backend/src/controllers/
-=======
 # ==============================================================================
 # ANALYSIS & REPORTS (Generated Files)
 # ==============================================================================
@@ -245,4 +243,4 @@ start-all-services.ps1
 start-dev.ps1
 stop-dev.ps1
 test-redis-cloud.ps1
->>>>>>> Stashed changes
+
