@@ -1,0 +1,38 @@
+{
+  "repo_path": "./",
+  "ignore_patterns": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "__pycache__",
+    ".vscode",
+    ".idea",
+    ".next",
+    "coverage",
+    "temp_backup",
+    "backup_*"
+  ],
+  "entry_points": [
+    "frontend/src/app/page.tsx",
+    "frontend/src/main.tsx",
+    "backend/src/server.ts",
+    "backend/src/index.ts"
+  ],
+  "protected_files": [
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "tsconfig.json",
+    ".env.example",
+    "README.md",
+    ".gitignore",
+    "CLAUDE.md",
+    "cleanup_config.json",
+    "scripts/cleanup_repo.py"
+  ],
+  "safe_mode": false,
+  "create_backup": true,
+  "dry_run": true,
+  "auto_approve": true
+}
