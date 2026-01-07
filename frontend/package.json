@@ -101,7 +101,7 @@
     "drizzle-orm": "^0.44.7",
     "drizzle-zod": "^0.8.3",
     "embla-carousel-react": "^8.6.0",
-    "firebase": "^11.10.0",
+    "firebase": "^12.7.0",
     "framer-motion": "^12.23.26",
     "genkit": "^1.25.0",
     "groq-sdk": "^0.37.0",
