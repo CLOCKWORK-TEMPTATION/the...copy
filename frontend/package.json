@@ -159,7 +159,7 @@
     "@typescript-eslint/parser": "^8.52.0",
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^2.1.8",
-    "@vitest/ui": "^2.1.8",
+    "@vitest/ui": "^4.0.16",
     "autoprefixer": "^10.4.16",
     "cross-env": "^7.0.3",
     "cssnano": "^7.1.2",
