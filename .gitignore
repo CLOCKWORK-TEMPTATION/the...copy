@@ -479,6 +479,14 @@ docker-compose.override.yml
 .tabnine/
 .codeium/
 
+# MCP Configuration files (contains API keys and tokens)
+mcp.json
+mcp_*.json
+*.mcp.json
+.kiro/settings/mcp.json
+.claude/settings/mcp.json
+.cursor/settings/mcp.json
+
 # Build logs & temporary files
 build_log*.txt
 sentry-wizard-*.log
