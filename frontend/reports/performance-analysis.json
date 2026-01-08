@@ -1,0 +1,165 @@
+{
+  "timestamp": "2025-11-14T19:13:40.288Z",
+  "bundleSize": {
+    "total": 18500065,
+    "chunks": 18267958,
+    "css": 98102,
+    "js": 3981382,
+    "other": 14420581
+  },
+  "largestFiles": [
+    {
+      "name": "4956.ce6491709b2c0f87.js",
+      "path": "chunks\\4956.ce6491709b2c0f87.js",
+      "size": 490297
+    },
+    {
+      "name": "2507.ce7631214e39398d.js",
+      "path": "chunks\\2507.ce7631214e39398d.js",
+      "size": 418281
+    },
+    {
+      "name": "1915-d86570985f06a3e7.js",
+      "path": "chunks\\1915-d86570985f06a3e7.js",
+      "size": 367427
+    },
+    {
+      "name": "b294729b.fab031120328166a.js",
+      "path": "chunks\\b294729b.fab031120328166a.js",
+      "size": 332728
+    },
+    {
+      "name": "f0da0ce5.1bf72186a2a510af.js",
+      "path": "chunks\\f0da0ce5.1bf72186a2a510af.js",
+      "size": 322782
+    },
+    {
+      "name": "55d0b4b8.621c338085a9da46.js",
+      "path": "chunks\\55d0b4b8.621c338085a9da46.js",
+      "size": 175790
+    },
+    {
+      "name": "7e88fbbf-3cd0d026fd4f34ef.js",
+      "path": "chunks\\7e88fbbf-3cd0d026fd4f34ef.js",
+      "size": 173076
+    },
+    {
+      "name": "framework-5d5496dd6ad997e8.js",
+      "path": "chunks\\framework-5d5496dd6ad997e8.js",
+      "size": 140203
+    },
+    {
+      "name": "main-ff4208b9afbe175d.js",
+      "path": "chunks\\main-ff4208b9afbe175d.js",
+      "size": 123805
+    },
+    {
+      "name": "polyfills-42372ed130431b0a.js",
+      "path": "chunks\\polyfills-42372ed130431b0a.js",
+      "size": 112594
+    }
+  ],
+  "dependencies": {
+    "production": 60,
+    "dev": 44
+  },
+  "pages": [
+    {
+      "path": "/(main)/directors-studio/shots",
+      "size": 10,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\directors-studio\\shots\\page.tsx"
+    },
+    {
+      "path": "/(main)/directors-studio/characters",
+      "size": 9,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\directors-studio\\characters\\page.tsx"
+    },
+    {
+      "path": "/(main)/directors-studio/scenes",
+      "size": 9,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\directors-studio\\scenes\\page.tsx"
+    },
+    {
+      "path": "/(main)/directors-studio/script",
+      "size": 8,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\directors-studio\\script\\page.tsx"
+    },
+    {
+      "path": "/(main)/directors-studio/ai-assistant",
+      "size": 4,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\directors-studio\\ai-assistant\\page.tsx"
+    },
+    {
+      "path": "",
+      "size": 4,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\page.tsx"
+    },
+    {
+      "path": "/(main)/directors-studio",
+      "size": 2,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\directors-studio\\page.tsx"
+    },
+    {
+      "path": "/(main)/actorai-arabic",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\actorai-arabic\\page.tsx"
+    },
+    {
+      "path": "/(main)/analysis",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\analysis\\page.tsx"
+    },
+    {
+      "path": "/(main)/arabic-creative-writing-studio",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\arabic-creative-writing-studio\\page.tsx"
+    },
+    {
+      "path": "/(main)/arabic-prompt-engineering-studio",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\arabic-prompt-engineering-studio\\page.tsx"
+    },
+    {
+      "path": "/(main)/brainstorm",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\brainstorm\\page.tsx"
+    },
+    {
+      "path": "/(main)/breakdown",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\breakdown\\page.tsx"
+    },
+    {
+      "path": "/(main)/cinematography-studio",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\cinematography-studio\\page.tsx"
+    },
+    {
+      "path": "/(main)/development",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\development\\page.tsx"
+    },
+    {
+      "path": "/(main)/editor",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\editor\\page.tsx"
+    },
+    {
+      "path": "/(main)/new",
+      "size": 1,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\new\\page.tsx"
+    },
+    {
+      "path": "/(main)/metrics-dashboard",
+      "size": 0,
+      "file": "K:\\theeeecopy\\frontend\\src\\app\\(main)\\metrics-dashboard\\page.tsx"
+    }
+  ],
+  "recommendations": [
+    "Implement code splitting for heavy components",
+    "Enable particle performance detection",
+    "Optimize image loading with next/image",
+    "Remove unused dependencies",
+    "Enable caching strategies"
+  ]
+}

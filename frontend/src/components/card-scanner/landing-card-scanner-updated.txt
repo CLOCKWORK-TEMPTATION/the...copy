@@ -1,0 +1,7 @@
+The imports should be changed from:
+import { CARDS_11 } from "../carousel/cards.config"
+import images from "../../config/images"
+
+To:
+import { CARDS_11 } from "@/components/carousel/cards.config"
+import images from "@/config/images"
