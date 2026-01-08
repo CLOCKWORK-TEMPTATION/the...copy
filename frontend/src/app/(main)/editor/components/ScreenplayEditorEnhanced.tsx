@@ -1433,9 +1433,10 @@ export default function ScreenplayEditorEnhanced() {
     );
 
     if (result.success) {
-      alert(`Found ${result.totalMatches} matches for "${searchTerm}"`);
+      alert(`تم العثور على ${result.totalMatches} نتيجة لـ "${searchTerm}"`);
+      setShowSearchDialog(false);
     } else {
-      alert(`Search failed: ${result.error}`);
+      alert(`فشل البحث: ${result.error}`);
     }
   };
 
@@ -1463,10 +1464,13 @@ export default function ScreenplayEditorEnhanced() {
       }
 
       alert(
-        `Replaced ${replacementsApplied} occurrences of "${searchTerm}" with "${replaceTerm}"`,
+        `تم استبدال ${replacementsApplied} حالة من "${searchTerm}" بـ "${replaceTerm}"`,
       );
+      setShowReplaceDialog(false);
+      setSearchTerm("");
+      setReplaceTerm("");
     } else {
-      alert(`Replace failed: ${result.error}`);
+      alert(`فشل الاستبدال: ${result.error}`);
     }
   };
 
@@ -1492,7 +1496,7 @@ export default function ScreenplayEditorEnhanced() {
       if (replacementsApplied > 0) {
         updateContent();
         alert(
-          `Renamed character "${oldCharacterName}" to "${newCharacterName}" (${replacementsApplied})`,
+          `تم إعادة تسمية الشخصية "${oldCharacterName}" إلى "${newCharacterName}" (${replacementsApplied} حالة)`,
         );
         setShowCharacterRename(false);
         setOldCharacterName("");
@@ -1501,6 +1505,7 @@ export default function ScreenplayEditorEnhanced() {
         alert(
           `لم يتم العثور على الشخصية "${oldCharacterName}" لإعادة تسميتها.`,
         );
+        setShowCharacterRename(false);
       }
     }
   };
