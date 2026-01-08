@@ -223,84 +223,157 @@ class AutoSaveManager {
   getUnsavedChanges() {
     return this.hasUnsavedChanges;
   }
+
+  setSaveCallback(callback: (content: string) => Promise<void>) {
+    this.saveCallback = callback;
+  }
+
+  startAutoSave() {
+    if (this.autoSaveInterval) {
+      window.clearInterval(this.autoSaveInterval);
+    }
+    this.autoSaveInterval = window.setInterval(() => {
+      this.performAutoSave();
+    }, this.intervalMs);
+  }
+
+  stopAutoSave() {
+    if (this.autoSaveInterval) {
+      window.clearInterval(this.autoSaveInterval);
+      this.autoSaveInterval = null;
+    }
+  }
 }
 
 class AdvancedSearchEngine {
-  searchInContent(
-    content: string,
-    query: string,
-    options: {
-      caseSensitive?: boolean;
-      wholeWord?: boolean;
-      regex?: boolean;
-    } = {}
-  ) {
-    const results: Array<{ index: number; length: number; text: string }> = [];
-    
-    if (!query) return results;
+  async searchInContent(content: string, query: string, options: any = {}) {
+    const results: Array<{
+      lineNumber: number;
+      content: string;
+      matches: Array<{ text: string; index: number; length: number }>;
+    }> = [];
+    const lines = content.split("\n");
+    const caseSensitive = options.caseSensitive || false;
+    const wholeWords = options.wholeWords || false;
+    const useRegex = options.useRegex || false;
 
     let searchPattern: RegExp;
-    
+
     try {
-      if (options.regex) {
-        searchPattern = new RegExp(query, options.caseSensitive ? "g" : "gi");
+      if (useRegex) {
+        const flags = caseSensitive ? "g" : "gi";
+        searchPattern = new RegExp(query, flags);
+      } else if (wholeWords) {
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const flags = caseSensitive ? "g" : "gi";
+        searchPattern = new RegExp(`\\b${escapedQuery}\\b`, flags);
       } else {
         const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const pattern = options.wholeWord
-          ? `\\b${escapedQuery}\\b`
-          : escapedQuery;
-        searchPattern = new RegExp(pattern, options.caseSensitive ? "g" : "gi");
+        const flags = caseSensitive ? "g" : "gi";
+        searchPattern = new RegExp(escapedQuery, flags);
       }
 
-      let match;
-      while ((match = searchPattern.exec(content)) !== null) {
-        results.push({
-          index: match.index,
-          length: match[0].length,
-          text: match[0],
-        });
-      }
+      lines.forEach((line, lineNumber) => {
+        const matches = Array.from(line.matchAll(searchPattern));
+        if (matches.length > 0) {
+          results.push({
+            lineNumber: lineNumber + 1,
+            content: line,
+            matches: matches.map((match) => ({
+              text: match[0],
+              index: match.index || 0,
+              length: match[0].length,
+            })),
+          });
+        }
+      });
+
+      return {
+        success: true,
+        query: query,
+        totalMatches: results.reduce((sum, r) => sum + r.matches.length, 0),
+        results: results,
+        searchTime: Date.now(),
+      };
     } catch (error) {
-      console.error("Search error:", error);
+      return {
+        success: false,
+        error: `خطأ في البحث: ${error}`,
+        results: [],
+      };
     }
-
-    return results;
   }
 
-  replaceInContent(
+  async replaceInContent(
     content: string,
     searchQuery: string,
-    replaceWith: string,
-    options: {
-      caseSensitive?: boolean;
-      wholeWord?: boolean;
-      regex?: boolean;
-      replaceAll?: boolean;
-    } = {}
+    replaceText: string,
+    options: any = {},
   ) {
-    if (!searchQuery) return content;
+    const caseSensitive = options.caseSensitive || false;
+    const wholeWords = options.wholeWords || false;
+    const useRegex = options.useRegex || false;
+    const replaceAll = options.replaceAll !== false;
+
+    let searchPattern: RegExp;
 
     try {
-      let searchPattern: RegExp;
-      
-      if (options.regex) {
-        const flags = options.caseSensitive ? "g" : "gi";
+      if (useRegex) {
+        const flags = replaceAll
+          ? caseSensitive
+            ? "g"
+            : "gi"
+          : caseSensitive
+            ? ""
+            : "i";
         searchPattern = new RegExp(searchQuery, flags);
+      } else if (wholeWords) {
+        const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const flags = replaceAll
+          ? caseSensitive
+            ? "g"
+            : "gi"
+          : caseSensitive
+            ? ""
+            : "i";
+        searchPattern = new RegExp(`\\b${escapedQuery}\\b`, flags);
       } else {
         const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const pattern = options.wholeWord
-          ? `\\b${escapedQuery}\\b`
-          : escapedQuery;
-        const flags = options.replaceAll
-          ? options.caseSensitive ? "g" : "gi"
-          : options.caseSensitive ? "" : "i";
-        searchPattern = new RegExp(pattern, flags);
+        const flags = replaceAll
+          ? caseSensitive
+            ? "g"
+            : "gi"
+          : caseSensitive
+            ? ""
+            : "i";
+        searchPattern = new RegExp(escapedQuery, flags);
       }
 
-      return content.replace(searchPattern, replaceWith);
+      const originalMatches =
+        content.match(new RegExp(searchPattern.source, "g")) || [];
+      const newContent = content.replace(searchPattern, replaceText);
+
+      return {
+        success: true,
+        originalContent: content,
+        newContent: newContent,
+        replacements: originalMatches.length,
+        searchQuery: searchQuery,
+        replaceText: replaceText,
+        patternSource: searchPattern.source,
+        patternFlags: searchPattern.flags,
+        replaceAll: replaceAll,
+      };
     } catch (error) {
-      console.error("Replace error:", error);
-      return content;
+      return {
+        success: false,
+        error: `خطأ في الاستبدال: ${error}`,
+        originalContent: content,
+        newContent: content,
+        replacements: 0,
+        searchQuery: searchQuery,
+        replaceText: replaceText,
+      };
     }
   }
 }
@@ -913,6 +986,15 @@ export default function ScreenplayEditorEnhanced() {
   const editorRef = useRef<HTMLDivElement>(null);
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
 
+  const stateManager = useRef(new StateManager());
+  const autoSaveManager = useRef(new AutoSaveManager());
+  const searchEngine = useRef(new AdvancedSearchEngine());
+  const collaborationSystem = useRef(new CollaborationSystem());
+  const aiAssistant = useRef(new AIWritingAssistant());
+  const projectManager = useRef(new ProjectManager());
+  const visualPlanning = useRef(new VisualPlanningSystem());
+  const screenplayClassifier = useRef(new ScreenplayClassifier());
+
   const getFormatStyles = (formatType: string): React.CSSProperties => {
     const baseStyles: React.CSSProperties = {
       fontFamily: `"Cairo", system-ui, -apple-system, sans-serif`,
@@ -976,6 +1058,69 @@ export default function ScreenplayEditorEnhanced() {
       return { ...baseStyles, fontStyle: "italic", margin: "0" };
 
     return finalStyles;
+  };
+
+  const isCurrentElementEmpty = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const element = range.startContainer.parentElement;
+      return element && element.textContent === "";
+    }
+    return false;
+  };
+
+  const getNextFormatOnTab = (currentFormat: string, shiftKey: boolean) => {
+    const mainSequence = [
+      "scene-header-top-line",
+      "action",
+      "character",
+      "transition",
+    ];
+
+    switch (currentFormat) {
+      case "character":
+        if (shiftKey) {
+          return isCurrentElementEmpty() ? "action" : "transition";
+        } else {
+          return "dialogue";
+        }
+      case "dialogue":
+        if (shiftKey) {
+          return "character";
+        } else {
+          return "parenthetical";
+        }
+      case "parenthetical":
+        return "dialogue";
+      default:
+        const currentIndex = mainSequence.indexOf(currentFormat);
+        if (currentIndex !== -1) {
+          if (shiftKey) {
+            return mainSequence[Math.max(0, currentIndex - 1)];
+          } else {
+            return mainSequence[
+              Math.min(mainSequence.length - 1, currentIndex + 1)
+            ];
+          }
+        }
+        return "action";
+    }
+  };
+
+  const getNextFormatOnEnter = (currentFormat: string) => {
+    const transitions: { [key: string]: string } = {
+      "scene-header-top-line": "scene-header-3",
+      "scene-header-3": "action",
+      "scene-header-1": "scene-header-3",
+      "scene-header-2": "scene-header-3",
+    };
+
+    return transitions[currentFormat] || "action";
+  };
+
+  const formatText = (command: string, value: string = "") => {
+    document.execCommand(command, false, value);
   };
 
   const calculateStats = () => {
@@ -1219,13 +1364,29 @@ export default function ScreenplayEditorEnhanced() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Tab") {
       e.preventDefault();
-      const nextFormat = currentFormat === "character" ? "dialogue" : "action";
+      const nextFormat = getNextFormatOnTab(currentFormat, e.shiftKey);
       applyFormatToCurrentLine(nextFormat);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      applyFormatToCurrentLine("action");
+      const nextFormat = getNextFormatOnEnter(currentFormat);
+      applyFormatToCurrentLine(nextFormat);
     } else if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
+        case "b":
+        case "B":
+          e.preventDefault();
+          formatText("bold");
+          break;
+        case "i":
+        case "I":
+          e.preventDefault();
+          formatText("italic");
+          break;
+        case "u":
+        case "U":
+          e.preventDefault();
+          formatText("underline");
+          break;
         case "1":
           e.preventDefault();
           applyFormatToCurrentLine("scene-header-top-line");
@@ -1258,6 +1419,124 @@ export default function ScreenplayEditorEnhanced() {
           break;
       }
     }
+
+    setTimeout(updateContent, 10);
+  };
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim() || !editorRef.current) return;
+
+    const content = editorRef.current.innerText;
+    const result = await searchEngine.current.searchInContent(
+      content,
+      searchTerm,
+    );
+
+    if (result.success) {
+      alert(`Found ${result.totalMatches} matches for "${searchTerm}"`);
+    } else {
+      alert(`Search failed: ${result.error}`);
+    }
+  };
+
+  const handleReplace = async () => {
+    if (!searchTerm.trim() || !editorRef.current) return;
+
+    const content = editorRef.current.innerText;
+    const result = await searchEngine.current.replaceInContent(
+      content,
+      searchTerm,
+      replaceTerm,
+    );
+
+    if (result.success && editorRef.current) {
+      const replacementsApplied = applyRegexReplacementToTextNodes(
+        editorRef.current,
+        result.patternSource as string,
+        result.patternFlags as string,
+        result.replaceText as string,
+        result.replaceAll !== false,
+      );
+
+      if (replacementsApplied > 0) {
+        updateContent();
+      }
+
+      alert(
+        `Replaced ${replacementsApplied} occurrences of "${searchTerm}" with "${replaceTerm}"`,
+      );
+    } else {
+      alert(`Replace failed: ${result.error}`);
+    }
+  };
+
+  const handleCharacterRename = () => {
+    if (
+      !oldCharacterName.trim() ||
+      !newCharacterName.trim() ||
+      !editorRef.current
+    )
+      return;
+
+    const regex = new RegExp(`^\\s*${oldCharacterName}\\s*$`, "gmi");
+
+    if (editorRef.current) {
+      const replacementsApplied = applyRegexReplacementToTextNodes(
+        editorRef.current,
+        regex.source,
+        regex.flags,
+        newCharacterName.toUpperCase(),
+        true,
+      );
+
+      if (replacementsApplied > 0) {
+        updateContent();
+        alert(
+          `Renamed character "${oldCharacterName}" to "${newCharacterName}" (${replacementsApplied})`,
+        );
+        setShowCharacterRename(false);
+        setOldCharacterName("");
+        setNewCharacterName("");
+      } else {
+        alert(
+          `لم يتم العثور على الشخصية "${oldCharacterName}" لإعادة تسميتها.`,
+        );
+      }
+    }
+  };
+
+  const handleAIReview = async () => {
+    if (!editorRef.current) return;
+
+    setIsReviewing(true);
+    const content = editorRef.current.innerText;
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const mockReview = `AI Review Results:
+
+Strengths:
+- Good character development
+- Strong dialogue
+- Clear scene structure
+
+Areas for improvement:
+- Consider adding more action descriptions
+- Some dialogue could be more natural
+- Scene transitions could be smoother
+
+Suggestions:
+- Add more sensory details to action lines
+- Vary sentence structure in dialogue
+- Ensure each scene has a clear purpose`;
+
+      setReviewResult(mockReview);
+    } catch (error) {
+      setReviewResult(`AI review failed: ${error}`);
+    } finally {
+      setIsReviewing(false);
+    }
   };
 
   useEffect(() => {
@@ -1275,86 +1554,565 @@ export default function ScreenplayEditorEnhanced() {
     calculateStats();
   }, [htmlContent]);
 
+  useEffect(() => {
+    if (editorRef.current && !htmlContent) {
+      editorRef.current.innerHTML = `
+        <div class="basmala" style="${Object.entries(getFormatStyles("basmala"))
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("; ")}">
+          بسم الله الرحمن الرحيم
+        </div>
+        <div class="scene-header-top-line" style="${Object.entries(
+          getFormatStyles("scene-header-top-line"),
+        )
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("; ")}">
+          <div>المؤلف: اسم المؤلف</div>
+          <div>التاريخ: ${new Date().toLocaleDateString("ar")}</div>
+        </div>
+        <div class="scene-header-3" style="${Object.entries(
+          getFormatStyles("scene-header-3"),
+        )
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("; ")}">
+          مشهد 1
+        </div>
+        <div class="action" style="${Object.entries(getFormatStyles("action"))
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("; ")}">
+          [وصف المشهد والأفعال هنا]
+        </div>
+        <div class="character" style="${Object.entries(
+          getFormatStyles("character"),
+        )
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("; ")}">
+          الاسم
+        </div>
+        <div class="dialogue" style="${Object.entries(
+          getFormatStyles("dialogue"),
+        )
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("; ")}">
+          [الحوار هنا]
+        </div>
+      `;
+
+      updateContent();
+    }
+
+    autoSaveManager.current.setSaveCallback(async (content) => {
+      console.log("Auto-saved content:", content);
+    });
+    autoSaveManager.current.startAutoSave();
+
+    return () => {
+      autoSaveManager.current.stopAutoSave();
+    };
+  }, []);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   return (
     <div
       className={`min-h-screen ${isDarkMode ? "dark bg-gray-900 text-white" : "bg-white text-black"}`}
       dir="rtl"
     >
-      <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-md p-2 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <FileText className="text-blue-500" />
-          <h1 className="text-xl font-bold">محرر السيناريو المحسّن</h1>
-        </div>
+      <header className="border-b border-gray-700 bg-gray-800 text-white sticky top-0 z-10">
+        <div className="flex items-center justify-between p-2">
+          <div className="flex items-center space-x-2">
+            <Film className="text-blue-500" />
+            <h1 className="text-xl font-bold">محرر السيناريو العربي</h1>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAdvancedAgents(true)}
-            className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center gap-2"
-          >
-            <Brain size={16} />
-            <span>الوكلاء المتقدمة</span>
-          </button>
-          
-          <button
-            onClick={() => setShowExportDialog(true)}
-            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2"
-          >
-            <Download size={16} />
-            <span>تصدير</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+              title={isDarkMode ? "الوضع النهاري" : "الوضع الليلي"}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
 
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowFileMenu(!showFileMenu)}
+                className="px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+              >
+                ملف <ChevronDown size={16} className="mr-1" />
+              </button>
+
+              {showFileMenu && (
+                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20">
+                  <button className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center">
+                    <FilePlus size={16} className="ml-2" /> جديد
+                  </button>
+                  <button className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center">
+                    <FolderOpen size={16} className="ml-2" /> فتح
+                  </button>
+                  <button className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center">
+                    <Save size={16} className="ml-2" /> حفظ
+                  </button>
+                  <button className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center">
+                    <Download size={16} className="ml-2" /> تصدير
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowEditMenu(!showEditMenu)}
+                className="px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+              >
+                تحرير <ChevronDown size={16} className="mr-1" />
+              </button>
+
+              {showEditMenu && (
+                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20">
+                  <button className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center">
+                    <Undo size={16} className="ml-2" /> تراجع
+                  </button>
+                  <button className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center">
+                    <Redo size={16} className="ml-2" /> إعادة
+                  </button>
+                  <button className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center">
+                    <Scissors size={16} className="ml-2" /> قص
+                  </button>
+                  <button className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center">
+                    <Copy size={16} className="ml-2" /> نسخ
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowFormatMenu(!showFormatMenu)}
+                className="px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+              >
+                تنسيق <ChevronDown size={16} className="mr-1" />
+              </button>
+
+              {showFormatMenu && (
+                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20">
+                  <button
+                    onClick={() =>
+                      applyFormatToCurrentLine("scene-header-top-line")
+                    }
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    عنوان المشهد العلوي
+                  </button>
+                  <button
+                    onClick={() => applyFormatToCurrentLine("scene-header-3")}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    عنوان المشهد
+                  </button>
+                  <button
+                    onClick={() => applyFormatToCurrentLine("action")}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    وصف الأفعال
+                  </button>
+                  <button
+                    onClick={() => applyFormatToCurrentLine("character")}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    الشخصية
+                  </button>
+                  <button
+                    onClick={() => applyFormatToCurrentLine("dialogue")}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    الحوار
+                  </button>
+                  <button
+                    onClick={() => applyFormatToCurrentLine("transition")}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    الانتقال
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowToolsMenu(!showToolsMenu)}
+                className="px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+              >
+                أدوات <ChevronDown size={16} className="mr-1" />
+              </button>
+
+              {showToolsMenu && (
+                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20">
+                  <button
+                    onClick={() => setShowSearchDialog(true)}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                  >
+                    <Search size={16} className="ml-2" /> بحث
+                  </button>
+                  <button
+                    onClick={() => setShowReplaceDialog(true)}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                  >
+                    <Replace size={16} className="ml-2" /> استبدال
+                  </button>
+                  <button
+                    onClick={() => setShowCharacterRename(true)}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                  >
+                    <UserSquare size={16} className="ml-2" /> إعادة تسمية
+                    الشخصية
+                  </button>
+                  <button
+                    onClick={() => setShowReviewerDialog(true)}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                  >
+                    <Sparkles size={16} className="ml-2" /> مراجعة الذكاء
+                    الاصطناعي
+                  </button>
+                  <button
+                    onClick={() => setShowAdvancedAgents(true)}
+                    className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                  >
+                    <Brain size={16} className="ml-2" /> الوكلاء المتقدمة
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => window.print()}
+              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+              title="طباعة"
+            >
+              <Printer size={20} />
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="container mx-auto p-4">
-        <div
-          ref={editorRef}
-          contentEditable
-          onInput={updateContent}
-          onPaste={handlePaste}
-          onKeyDown={handleKeyDown}
-          className="min-h-[800px] bg-white dark:bg-gray-800 p-8 rounded shadow-lg focus:outline-none"
-          style={{
-            fontFamily: `"${selectedFont}", system-ui`,
-            fontSize: selectedSize,
-          }}
-        />
+      <div className="flex">
+        <div className="flex-1 bg-gray-900 p-6 overflow-auto">
+          <div
+            ref={editorRef}
+            contentEditable
+            className="screenplay-page min-h-[29.7cm] focus:outline-none"
+            style={{
+              fontFamily: `${selectedFont}, Amiri, Cairo, Noto Sans Arabic, Arial, sans-serif`,
+              fontSize: selectedSize,
+              direction: "rtl",
+              lineHeight: "1.8",
+              width: "min(21cm, calc(100vw - 2rem))",
+              margin: "0 auto",
+              paddingTop: "1in",
+              paddingBottom: "1in",
+              paddingRight: "1.5in",
+              paddingLeft: "1in",
+              backgroundColor: "white",
+              color: "black",
+              boxShadow: "0 10px 30px rgba(0, 0, 0, 0.45)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+            }}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onInput={updateContent}
+          />
+        </div>
 
-        <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded">
-          <div className="grid grid-cols-4 gap-4 text-center">
+        <div className="no-print sidebar w-64 border-l border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+          <div className="space-y-6">
             <div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">أحرف</div>
-              <div className="text-2xl font-bold">{documentStats.characters}</div>
+              <h3 className="font-bold mb-2">الإحصائيات</h3>
+              <div className="space-y-1 text-sm">
+                <div>الشخصيات: {documentStats.characters}</div>
+                <div>الكلمات: {documentStats.words}</div>
+                <div>الصفحات: {documentStats.pages}</div>
+                <div>المشاهد: {documentStats.scenes}</div>
+              </div>
             </div>
+
             <div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">كلمات</div>
-              <div className="text-2xl font-bold">{documentStats.words}</div>
+              <h3 className="font-bold mb-2">التنسيق</h3>
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-sm mb-1">الخط</label>
+                  <select
+                    value={selectedFont}
+                    onChange={(e) => setSelectedFont(e.target.value)}
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                  >
+                    <option value="Amiri">Amiri</option>
+                    <option value="Cairo">Cairo</option>
+                    <option value="Tajawal">Tajawal</option>
+                    <option value="Noto Sans Arabic">Noto Sans Arabic</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-1">الحجم</label>
+                  <select
+                    value={selectedSize}
+                    onChange={(e) => setSelectedSize(e.target.value)}
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                  >
+                    <option value="12pt">صغير (12pt)</option>
+                    <option value="14pt">متوسط (14pt)</option>
+                    <option value="16pt">كبير (16pt)</option>
+                    <option value="18pt">كبير جداً (18pt)</option>
+                  </select>
+                </div>
+              </div>
             </div>
+
             <div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">صفحات</div>
-              <div className="text-2xl font-bold">{documentStats.pages}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">مشاهد</div>
-              <div className="text-2xl font-bold">{documentStats.scenes}</div>
+              <h3 className="font-bold mb-2">العناصر السريعة</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => applyFormatToCurrentLine("scene-header-3")}
+                  className="w-full text-right p-2 bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 rounded flex items-center"
+                >
+                  <Hash size={16} className="ml-2" /> إضافة مشهد
+                </button>
+                <button
+                  onClick={() => applyFormatToCurrentLine("character")}
+                  className="w-full text-right p-2 bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800 rounded flex items-center"
+                >
+                  <UserSquare size={16} className="ml-2" /> إضافة شخصية
+                </button>
+                <button
+                  onClick={() => applyFormatToCurrentLine("dialogue")}
+                  className="w-full text-right p-2 bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800 rounded flex items-center"
+                >
+                  <MessageCircle size={16} className="ml-2" /> إضافة حوار
+                </button>
+                <button
+                  onClick={() => applyFormatToCurrentLine("transition")}
+                  className="w-full text-right p-2 bg-yellow-100 dark:bg-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-800 rounded flex items-center"
+                >
+                  <FastForward size={16} className="ml-2" /> إضافة انتقال
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {showAdvancedAgents && (
-        <AdvancedAgentsPopup
-          isOpen={showAdvancedAgents}
-          onClose={() => setShowAdvancedAgents(false)}
-          content={editorRef.current?.innerText || ""}
-        />
+      {showSearchDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold flex items-center">
+                <Search className="ml-2" /> بحث
+              </h3>
+              <button onClick={() => setShowSearchDialog(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-1">كلمة البحث</label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                  placeholder="أدخل النص للبحث عنه"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setShowSearchDialog(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleSearch}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  بحث
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
+
+      {showReplaceDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold flex items-center">
+                <Replace className="ml-2" /> بحث واستبدال
+              </h3>
+              <button onClick={() => setShowReplaceDialog(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-1">البحث عن</label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                  placeholder="أدخل النص للبحث عنه"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1">استبدال بـ</label>
+                <input
+                  type="text"
+                  value={replaceTerm}
+                  onChange={(e) => setReplaceTerm(e.target.value)}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                  placeholder="أدخل النص البديل"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setShowReplaceDialog(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleReplace}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  استبدال
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCharacterRename && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold flex items-center">
+                <UserSquare className="ml-2" /> إعادة تسمية الشخصية
+              </h3>
+              <button onClick={() => setShowCharacterRename(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-1">الاسم الحالي</label>
+                <input
+                  type="text"
+                  value={oldCharacterName}
+                  onChange={(e) => setOldCharacterName(e.target.value)}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                  placeholder="أدخل الاسم الحالي"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1">الاسم الجديد</label>
+                <input
+                  type="text"
+                  value={newCharacterName}
+                  onChange={(e) => setNewCharacterName(e.target.value)}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                  placeholder="أدخل الاسم الجديد"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setShowCharacterRename(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleCharacterRename}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  إعادة تسمية
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReviewerDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-1/2 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold flex items-center">
+                <Sparkles className="ml-2" /> مراجعة الذكاء الاصطناعي
+              </h3>
+              <button onClick={() => setShowReviewerDialog(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {isReviewing ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="animate-spin mb-4" size={32} />
+                <p>جاري تحليل النص باستخدام الذكاء الاصطناعي...</p>
+              </div>
+            ) : reviewResult ? (
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded whitespace-pre-line">
+                  {reviewResult}
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowReviewerDialog(false)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    إغلاق
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p>هل تريد مراجعة النص باستخدام الذكاء الاصطناعي؟</p>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={() => setShowReviewerDialog(false)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    onClick={handleAIReview}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    مراجعة
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <AdvancedAgentsPopup
+        isOpen={showAdvancedAgents}
+        onClose={() => setShowAdvancedAgents(false)}
+        content={editorRef.current?.innerText || ""}
+      />
 
       {showExportDialog && (
         <ExportDialog
