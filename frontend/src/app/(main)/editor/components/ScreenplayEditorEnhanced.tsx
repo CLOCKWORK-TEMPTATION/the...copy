@@ -995,6 +995,15 @@ export default function ScreenplayEditorEnhanced() {
   const visualPlanning = useRef(new VisualPlanningSystem());
   const screenplayClassifier = useRef(new ScreenplayClassifier());
 
+  const cssObjectToString = (styles: React.CSSProperties): string => {
+    return Object.entries(styles)
+      .map(([key, value]) => {
+        const cssKey = key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+        return `${cssKey}: ${value}`;
+      })
+      .join("; ");
+  };
+
   const getFormatStyles = (formatType: string): React.CSSProperties => {
     const baseStyles: React.CSSProperties = {
       fontFamily: `"Cairo", system-ui, -apple-system, sans-serif`,
@@ -1271,7 +1280,7 @@ export default function ScreenplayEditorEnhanced() {
         if (ScreenplayClassifier.isBasmala(line)) {
           context.lastFormat = "basmala";
           context.isInDialogueBlock = false;
-          htmlResult += `<div class="basmala" style="direction: rtl; text-align: left; margin: 0;">${line}</div>`;
+          htmlResult += `<div class="basmala" style="${cssObjectToString(getFormatStyles("basmala"))}">${line}</div>`;
           continue;
         }
 
@@ -1288,7 +1297,7 @@ export default function ScreenplayEditorEnhanced() {
           context.lastFormat = "transition";
           context.isInDialogueBlock = false;
           context.pendingCharacterLine = false;
-          htmlResult += `<div class="transition" style="direction: rtl; text-align: center; font-weight: bold; text-transform: uppercase; margin: 1rem 0;">${line}</div>`;
+          htmlResult += `<div class="transition" style="${cssObjectToString(getFormatStyles("transition"))}">${line}</div>`;
           continue;
         }
 
@@ -1297,14 +1306,14 @@ export default function ScreenplayEditorEnhanced() {
           context.lastFormat = "character";
           context.isInDialogueBlock = true;
           context.pendingCharacterLine = false;
-          htmlResult += `<div class="character" style="direction: rtl; text-align: center; font-weight: bold; text-transform: uppercase; width: 2.5in; margin: 12px auto 0 auto;">${line}</div>`;
+          htmlResult += `<div class="character" style="${cssObjectToString(getFormatStyles("character"))}">${line}</div>`;
           continue;
         }
 
         if (ScreenplayClassifier.isParenShaped(line)) {
           context.lastFormat = "parenthetical";
           context.pendingCharacterLine = false;
-          htmlResult += `<div class="parenthetical" style="direction: rtl; text-align: center; font-style: italic; width: 2.0in; margin: 6px auto;">${line}</div>`;
+          htmlResult += `<div class="parenthetical" style="${cssObjectToString(getFormatStyles("parenthetical"))}">${line}</div>`;
           continue;
         }
 
@@ -1314,12 +1323,12 @@ export default function ScreenplayEditorEnhanced() {
             context.isInDialogueBlock = false;
             context.pendingCharacterLine = false;
             const cleanedLine = line.replace(/^\s*[-–—]\s*/, "");
-            htmlResult += `<div class="action" style="direction: rtl; text-align: right; margin: 12px 0;">${cleanedLine}</div>`;
+            htmlResult += `<div class="action" style="${cssObjectToString(getFormatStyles("action"))}">${cleanedLine}</div>`;
             continue;
           } else {
             context.lastFormat = "dialogue";
             context.pendingCharacterLine = false;
-            htmlResult += `<div class="dialogue" style="direction: rtl; text-align: center; width: 2.5in; line-height: 1.2; margin: 0 auto 12px auto;">${line}</div>`;
+            htmlResult += `<div class="dialogue" style="${cssObjectToString(getFormatStyles("dialogue"))}">${line}</div>`;
             continue;
           }
         }
@@ -1329,7 +1338,7 @@ export default function ScreenplayEditorEnhanced() {
           context.isInDialogueBlock = false;
           context.pendingCharacterLine = false;
           const cleanedLine = line.replace(/^\s*[-–—]\s*/, "");
-          htmlResult += `<div class="action" style="direction: rtl; text-align: right; margin: 12px 0;">${cleanedLine}</div>`;
+          htmlResult += `<div class="action" style="${cssObjectToString(getFormatStyles("action"))}">${cleanedLine}</div>`;
           continue;
         }
 
@@ -1337,7 +1346,7 @@ export default function ScreenplayEditorEnhanced() {
         context.isInDialogueBlock = false;
         context.pendingCharacterLine = false;
         const cleanedLine = line.replace(/^\s*[-–—]\s*/, "");
-        htmlResult += `<div class="action" style="direction: rtl; text-align: right; margin: 12px 0;">${cleanedLine}</div>`;
+        htmlResult += `<div class="action" style="${cssObjectToString(getFormatStyles("action"))}">${cleanedLine}</div>`;
       }
 
       const correctedHtmlResult = postProcessFormatting(htmlResult);
@@ -1562,43 +1571,23 @@ Suggestions:
   useEffect(() => {
     if (editorRef.current && !htmlContent) {
       editorRef.current.innerHTML = `
-        <div class="basmala" style="${Object.entries(getFormatStyles("basmala"))
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("; ")}">
+        <div class="basmala" style="${cssObjectToString(getFormatStyles("basmala"))}">
           بسم الله الرحمن الرحيم
         </div>
-        <div class="scene-header-top-line" style="${Object.entries(
-          getFormatStyles("scene-header-top-line"),
-        )
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("; ")}">
+        <div class="scene-header-top-line" style="${cssObjectToString(getFormatStyles("scene-header-top-line"))}">
           <div>المؤلف: اسم المؤلف</div>
           <div>التاريخ: ${new Date().toLocaleDateString("ar")}</div>
         </div>
-        <div class="scene-header-3" style="${Object.entries(
-          getFormatStyles("scene-header-3"),
-        )
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("; ")}">
+        <div class="scene-header-3" style="${cssObjectToString(getFormatStyles("scene-header-3"))}">
           مشهد 1
         </div>
-        <div class="action" style="${Object.entries(getFormatStyles("action"))
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("; ")}">
+        <div class="action" style="${cssObjectToString(getFormatStyles("action"))}">
           [وصف المشهد والأفعال هنا]
         </div>
-        <div class="character" style="${Object.entries(
-          getFormatStyles("character"),
-        )
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("; ")}">
+        <div class="character" style="${cssObjectToString(getFormatStyles("character"))}">
           الاسم
         </div>
-        <div class="dialogue" style="${Object.entries(
-          getFormatStyles("dialogue"),
-        )
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("; ")}">
+        <div class="dialogue" style="${cssObjectToString(getFormatStyles("dialogue"))}">
           [الحوار هنا]
         </div>
       `;
