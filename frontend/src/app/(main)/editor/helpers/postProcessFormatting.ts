@@ -22,7 +22,7 @@ export const postProcessFormatting = (
 
     if (currentElement.className === "action") {
       const textContent = currentElement.textContent || "";
-      const bulletCharacterPattern = /^\s*[•·●○■▪▫–—‣⁃-]([^:]+):(.*)/;
+const bulletCharacterPattern =/^\s*[•·∙⋅●○◦■□▪▫◆◇–—−‒―‣⁃*+]\s*([^:：]+?)\s*[:：]\s*(.*)\s*$/;
       const match = textContent.match(bulletCharacterPattern);
 
       if (match) {

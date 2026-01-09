@@ -21,7 +21,7 @@
     "lint:fix": "eslint \"src/app/(main)/directors-studio/page.tsx\" \"src/app/(main)/directors-studio/helpers/projectSummary.ts\" \"src/app/(main)/directors-studio/components/LoadingSection.tsx\" \"src/app/(main)/directors-studio/components/NoProjectSection.tsx\" \"src/app/(main)/directors-studio/components/PageLayout.tsx\" \"src/app/(main)/directors-studio/components/ProjectContent.tsx\" \"src/app/(main)/directors-studio/components/ProjectTabs.tsx\" --no-warn-ignored --fix --max-warnings=10",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit --skipLibCheck",
+    "type-check": "tsc -b",
     "test": "vitest run \"src/app/(main)/directors-studio/helpers/__tests__/projectSummary.test.ts\"",
     "test:smoke": "vitest run \"src/app/__smoke__/simple.test.ts\"",
     "test:ui": "vitest --ui",
@@ -45,8 +45,8 @@
     "perf:full": "pnpm build && pnpm budget:report && pnpm perf:analyze",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org $SENTRY_ORG --project $SENTRY_PROJECT .next && sentry-cli sourcemaps upload --org $SENTRY_ORG --project $SENTRY_PROJECT .next",
     "approve-builds": "echo 'Frontend build warnings approved - OpenTelemetry and Sentry warnings are expected and safe' && node -e 'console.log(\"✅ Build approved with expected warnings\")';",
-    "prepush": "pnpm lint && pnpm typecheck && pnpm test",
-    "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e"
+    "prepush": "pnpm lint && pnpm type-check && pnpm test",
+    "ci": "pnpm lint && pnpm type-check && pnpm test && pnpm build && pnpm e2e"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.23.0",

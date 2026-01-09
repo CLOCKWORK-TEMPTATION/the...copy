@@ -14,7 +14,7 @@
     "test:mongodb": "tsx scripts/test-mongodb-connection.ts",
     "lint": "eslint src --ext .ts --max-warnings=0",
     "lint:fix": "eslint src --ext .ts --fix",
-    "typecheck": "tsc --noEmit --skipLibCheck",
+    "type-check": "tsc --noEmit --skipLibCheck",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",

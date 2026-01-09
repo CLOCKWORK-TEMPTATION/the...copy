@@ -31,7 +31,8 @@ export const handlePaste = (
   const pastedText = clipboardData.getData("text/plain");
 
   if (editorRef.current) {
-    const bulletCharacterPattern = /^\s*[•·●○■▪▫–—‣⁃-]([^:]+):(.*)/;
+    const bulletCharacterPattern =/^\s*[•·∙⋅●○◦■□▪▫◆◇–—−‒―‣⁃*+]\s*([^:：]+?)\s*[:：]\s*(.*)\s*$/;
+
 
     const isBulletCharacterLine = (candidateLine: string): boolean => {
       const match = candidateLine.match(bulletCharacterPattern);
