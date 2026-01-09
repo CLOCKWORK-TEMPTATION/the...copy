@@ -2,13 +2,19 @@
  * @class ScreenplayClassifier
  * @description مصنف السيناريو - يحتوي على جميع الدوال والـ patterns لتصنيف أسطر السيناريو
  */
+export type ClassifiedLine = {
+  text: string;
+  type: string; // 'scene-header-1' | 'scene-header-3' | 'character' | 'dialogue' | 'action' | 'transition' | 'parenthetical' | 'scene-header-2';
+  confidence: number; // 0 to 1
+};
+
 export class ScreenplayClassifier {
   static readonly AR_AB_LETTER = "\u0600-\u06FF";
   static readonly EASTERN_DIGITS = "٠٢٣٤٥٦٧٨٩";
   static readonly WESTERN_DIGITS = "0123456789";
   static readonly ACTION_VERB_LIST =
     "يدخل|يخرج|ينظر|يرفع|تبتسم|ترقد|تقف|يبسم|يضع|يقول|تنظر|تربت|تقوم|يشق|تشق|تضرب|يسحب|يلتفت|يقف|يجلس|تجلس|يجري|تجري|يمشي|تمشي|يركض|تركض|يصرخ|اصرخ|يبكي|تبكي|يضحك|تضحك|يغني|تغني|يرقص|ترقص|يأكل|تأكل|يشرب|تشرب|ينام|تنام|يستيقظ|تستيقظ|يكتب|تكتب|يقرأ|تقرأ|يسمع|تسمع|يشم|تشم|يلمس|تلمس|يأخذ|تأخذ|يعطي|تعطي|يفتح|تفتح|يغلق|تغلق|يبدأ|تبدأ|ينتهي|تنتهي|يذهب|تذهب|يعود|تعود|يأتي|تأتي|يموت|تموت|يحيا|تحيا|يقاتل|تقاتل|ينصر|تنتصر|يخسر|تخسر|يكتب|تكتب|يرسم|ترسم|يصمم|تخطط|تخطط|يقرر|تقرر|يفكر|تفكر|يتذكر|تذكر|يحاول|تحاول|يستطيع|تستطيع|يريد|تريد|يحتاج|تحتاج|يبحث|تبحث|يجد|تجد|يفقد|تفقد|يحمي|تحمي|يحمي|تحمي|يراقب|تراقب|يخفي|تخفي|يكشف|تكشف|يكتشف|تكتشف|يعرف|تعرف|يتعلم|تعلن|يعلم|تعلن|يوجه|وجه|يسافر|تسافر|يعود|تعود|يرحل|ترحل|يبقى|تبقى|ينتقل|تنتقل|يتغير|تتغير|ينمو|تنمو|يتطور|تتطور|يواجه|تواجه|يحل|تحل|يفشل|تفشل|ينجح|تنجح|يحقق|تحقن|يبدأ|تبدأ|ينهي|تنهي|يوقف|توقف|يستمر|تستمر|ينقطع|تنقطع|يرتبط|ترتبط|ينفصل|تنفصل|يتزوج|تتزوج|يطلق|يطلق|يولد|تولد|يكبر|تكبر|يشيخ|تشيخ|يمرض|تمرض|يشفي|تشفي|يصاب|تصيب|يتعافى|تعافي|يموت|يقتل|تقتل|يُقتل|تُقتل|يختفي|تختفي|يظهر|تظهر|يختبئ|تخبوء|يطلب|تطلب|يأمر|تأمر|يمنع|تمنع|يسمح|تسمح|يوافق|توافق|يرفض|ترفض|يعتذر|تعتذر|يشكر|تشكر|يحيي|تحيي|يودع|تودع|يجيب|تجيب|يسأل|تسأل|يصيح|تصيح|يهمس|تهمس|يصمت|تصمت|يتكلم|تتكلم|ينادي|تنادي|يحكي|تحكي|يروي|تروي|يقص|تقص|يضحك|تضحك|يبكي|تبكي|يتنهد|تتنهد|يئن|تئن";
-  
+
   static readonly ACTION_VERB_SET = new Set(
     ScreenplayClassifier.ACTION_VERB_LIST.split("|")
       .map((v) => v.trim())
@@ -239,4 +245,91 @@ export class ScreenplayClassifier {
 
     return false;
   }
+
+  /**
+   * نظام النافذة المنزلقة (Sliding Window) للمعالجة الدقيقة
+   * ينظر للسطر السابق واللاحق لتحديد النوع بدقة
+   */
+  static classifyBatch(text: string): ClassifiedLine[] {
+  const lines = text.split(/\r?\n/);
+  const results: ClassifiedLine[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const currentLine = lines[i].trim();
+
+    // تخطي الأسطر الفارغة
+    if (!currentLine) {
+      continue;
+    }
+
+    // تجهيز النافذة
+    const prevType = results.length > 0 ? results[results.length - 1].type : null;
+    const nextLineRaw = i < lines.length - 1 ? lines[i + 1].trim() : "";
+
+    const type = this.determineTypeWithContext(currentLine, prevType, nextLineRaw);
+
+    results.push({
+      text: currentLine,
+      type: type,
+      confidence: 0.9 // قيمة افتراضية للمعالجة المحلية
+    });
+  }
+
+  return results;
+}
+
+  private static determineTypeWithContext(current: string, prevType: string | null, nextRaw: string): string {
+  // 1. العناوين الرئيسية (الأقوى دائماً)
+  if (this.isSceneHeaderStart(current)) return 'scene-header-1';
+  if (this.isTransition(current)) return 'transition';
+
+  // 2. عناوين الأماكن الفرعية (Scene Header 3)
+  // الشرط: يأتي بعد عنوان رئيسي أو فرعي + قصير + ليس انتقالاً
+  if (prevType === 'scene-header-1' || prevType === 'scene-header-2' || prevType === 'scene-header-3') {
+    // هل هو قصير ولا يحتوي على فعل أكشن صريح؟
+    const wordCount = current.split(/\s+/).length;
+    if (wordCount <= 6 && !current.includes(':') && !this.isTransition(current)) {
+      return 'scene-header-3';
+    }
+  }
+
+  // 3. الشخصيات (Character)
+  // المنطق المستقبلي (Lookahead): لو السطر اللي بعدي شكله حوار، يبقى أنا شخصية أكيد
+  if (this.looksLikeDialogue(nextRaw)) {
+    // شروط إضافية: الشخصية عادة قصيرة ولا تنتهي بنقطة
+    if (current.length < 50 && !current.endsWith('.')) {
+      return 'character';
+    }
+  }
+
+  // Also check standard character patterns if lookahead wasn't definitive but it looks like a character
+  if (this.isCharacterLine(current)) {
+    return 'character';
+  }
+
+  // 4. الحوار (Dialogue)
+  if (prevType === 'character' || prevType === 'parenthetical') {
+    return 'dialogue';
+  }
+
+  // 5. الملاحظات (Parenthetical)
+  if (current.startsWith('(') && current.endsWith(')')) {
+    if (prevType === 'character' || prevType === 'dialogue') {
+      return 'parenthetical';
+    }
+  }
+
+  // الافتراضي دائماً هو الأكشن
+  return 'action';
+}
+
+  // دالة مساعدة سريعة للنظر للمستقبل
+  private static looksLikeDialogue(nextLine: string): boolean {
+  if (!nextLine) return false;
+  // الحوار لا يبدأ عادة بكلمات المفاتيح الخاصة بالمشاهد
+  if (this.isSceneHeaderStart(nextLine)) return false;
+  if (this.isTransition(nextLine)) return false;
+  // الحوار عادة نص حر
+  return true;
+}
 }
