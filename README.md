@@ -21,7 +21,7 @@ Additional documentation:
 - **[tech.md](./tech.md)** - Technical specifications
 
 ## 🚀 Quick Start
-
+>>>>>>>>>>>>>>>>>>>>
 ```bash
 # Install dependencies
 pnpm install
