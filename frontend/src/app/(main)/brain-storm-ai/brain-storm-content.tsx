@@ -36,18 +36,18 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Textarea } from "@/components DONT USE THIS FLODER EVER/ui/textarea";
-import { ScrollArea } from "@/components DONT USE THIS FLODER EVER/ui/scroll-area";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components DONT USE THIS FLODER EVER/ui/tooltip";
-import FileUpload from "@/components DONT USE THIS FLODER EVER/file-upload";
+} from "@/components/ui/tooltip";
+import FileUpload from "@/components/file-upload";
 
 // استيراد الوكلاء الحقيقيين
 import {
@@ -61,6 +61,16 @@ import {
   type AgentIcon,
   type AgentCategory,
 } from "@/lib/drama-analyst/services/brainstormAgentRegistry";
+
+// استيراد Constitutional AI للنقاش المتعدد الوكلاء
+import {
+  getMultiAgentDebateSystem,
+  getUncertaintyQuantificationEngine,
+  type DebateResult,
+  type UncertaintyMetrics,
+} from "@/lib/ai/constitutional";
+
+import { getGeminiService } from "@/lib/ai/stations/gemini-service";
 
 // الأنواع
 interface AgentState {
@@ -86,6 +96,7 @@ interface DebateMessage {
   message: string;
   timestamp: Date;
   type: "proposal" | "critique" | "agreement" | "decision";
+  uncertainty?: UncertaintyMetrics;
 }
 
 // مكون الأيقونة
@@ -535,7 +546,25 @@ export default function BrainStormContent() {
                       <div key={idx} className={`p-3 rounded-lg border ${msg.type === "proposal" ? "bg-blue-50 border-blue-200" : msg.type === "decision" ? "bg-purple-50 border-purple-200" : "bg-green-50 border-green-200"}`}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">{msg.agentName}</span>
-                          <Badge variant="outline" className="text-xs">{msg.type === "proposal" ? "اقتراح" : msg.type === "decision" ? "قرار" : "موافقة"}</Badge>
+                          <div className="flex items-center gap-2">
+                            {msg.uncertainty && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="outline" className={`text-xs ${msg.uncertainty.confidence > 0.7 ? "bg-green-50" : msg.uncertainty.confidence > 0.4 ? "bg-yellow-50" : "bg-red-50"}`}>
+                                      <Shield className="w-3 h-3 mr-1" />
+                                      {(msg.uncertainty.confidence * 100).toFixed(0)}%
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>الثقة: {msg.uncertainty.confidence.toFixed(2)}</p>
+                                    <p>النوع: {msg.uncertainty.type}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            <Badge variant="outline" className="text-xs">{msg.type === "proposal" ? "اقتراح" : msg.type === "decision" ? "قرار" : "موافقة"}</Badge>
+                          </div>
                         </div>
                         <p className="text-sm text-muted-foreground">{msg.message}</p>
                       </div>

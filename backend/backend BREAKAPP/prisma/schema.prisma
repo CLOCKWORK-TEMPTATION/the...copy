@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Project {
+  id                  String          @id @default(uuid())
+  name                String
+  active_location     Json?           // PostGIS Point stored as JSON
+  access_token_secret String
+  budget_config       Json?
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @updatedAt
+  
+  users               User[]
+  daily_sessions      DailySession[]
+  
+  @@map("projects")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  project_id String
+  role       Role     @default(CREW)
+  user_hash  String   @unique
+  created_at DateTime @default(now())
+  
+  project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  
+  @@index([project_id])
+  @@map("users")
+}
+
+enum Role {
+  DIRECTOR
+  CREW
+  RUNNER
+}
+
+model Vendor {
+  id             String     @id @default(uuid())
+  name           String
+  fixed_location Json       // PostGIS Point stored as JSON {lat, lng}
+  is_mobile      Boolean    @default(false)
+  created_at     DateTime   @default(now())
+  updated_at     DateTime   @updatedAt
+  
+  menu_items     MenuItem[]
+  
+  @@map("vendors")
+}
+
+model DailySession {
+  id           String        @id @default(uuid())
+  project_id   String
+  center_point Json          // PostGIS Point for the day's location
+  status       SessionStatus @default(OPEN)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  
+  project      Project       @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  orders       Order[]
+  
+  @@index([project_id])
+  @@index([status])
+  @@map("daily_sessions")
+}
+
+enum SessionStatus {
+  OPEN
+  LOCKED
+  DELIVERING
+  COMPLETED
+}
+
+model MenuItem {
+  id          String   @id @default(uuid())
+  vendor_id   String
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  available   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  vendor      Vendor   @relation(fields: [vendor_id], references: [id], onDelete: Cascade)
+  
+  @@index([vendor_id])
+  @@index([available])
+  @@map("menu_items")
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  session_id    String
+  user_hash     String
+  items         Json     // Array of {menuItemId, quantity, name}
+  cost_internal Decimal  @db.Decimal(10, 2)
+  status        String   @default("pending")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  session       DailySession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  
+  @@index([session_id])
+  @@index([user_hash])
+  @@map("orders")
+}

@@ -1,6 +1,6 @@
 // frontend/src/lib/ai/constitutional/multi-agent-debate.ts
 
-import { GeminiService } from "../stations/gemini-service";
+import { GeminiService } from "../../ai/stations/gemini-service";
 import { stripHtmlTags } from "@/lib/security/sanitize-html";
 
 export interface DebateParticipant {

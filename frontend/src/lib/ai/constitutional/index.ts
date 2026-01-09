@@ -1,4 +1,6 @@
-// Constitutional AI Module
+// Constitutional AI Module - Exports all constitutional AI functionality
+
+// Core ConstitutionalAI class (defined below)
 export interface ConstitutionalPrinciple {
   id: string;
   name: string;
@@ -70,4 +72,35 @@ export class ConstitutionalAI {
 }
 
 export const constitutionalAI = new ConstitutionalAI();
+
+// Export from multi-agent-debate.ts
+export {
+  MultiAgentDebateSystem,
+  getMultiAgentDebateSystem,
+} from "./multi-agent-debate";
+export type {
+  DebateParticipant,
+  DebateArgument,
+  DebateRound,
+  ConsensusArea,
+  DisputedArea,
+  FinalVerdict,
+  DebateVerdict,
+  DebateDynamics,
+  DebateResult,
+} from "./multi-agent-debate";
+
+// Export from principles.ts
+export { checkConstitutionalCompliance } from "./principles";
+export type { ConstitutionalCheckResult } from "./principles";
+
+// Export from uncertainty-quantification.ts
+export {
+  getUncertaintyQuantificationEngine,
+} from "./uncertainty-quantification";
+export type {
+  UncertaintyMetrics,
+  UncertaintyQuantificationEngine,
+} from "./uncertainty-quantification";
+
 export default constitutionalAI;

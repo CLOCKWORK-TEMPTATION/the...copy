@@ -5,19 +5,19 @@
 
 import React, { useState, useCallback } from "react";
 import { AppSettings } from "@/app/(main)/arabic-creative-writing-studio/types";
-import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components DONT USE THIS FLODER EVER/ui/select";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Switch } from "@/components DONT USE THIS FLODER EVER/ui/switch";
-import { Slider } from "@/components DONT USE THIS FLODER EVER/ui/slider";
-import { Label } from "@/components DONT USE THIS FLODER EVER/ui/label";
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 
 interface SettingsPanelProps {
   settings: AppSettings;

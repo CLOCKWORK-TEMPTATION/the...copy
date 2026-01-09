@@ -14,21 +14,21 @@ import {
   WritingTechnique,
 } from "@/app/(main)/arabic-creative-writing-studio/types";
 import { GeminiService } from "@/ai/gemini-service";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Alert, AlertDescription } from "@/components DONT USE THIS FLODER EVER/ui/alert";
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/dialog";
+} from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 
 // Lazy load heavy components for better performance

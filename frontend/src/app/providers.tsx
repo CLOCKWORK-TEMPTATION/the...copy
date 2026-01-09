@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect } from "react";
-import { NotificationProvider } from "@/components DONT USE THIS FLODER EVER/providers/notification-provider";
+import { NotificationProvider } from "@/components/providers/notification-provider";
 import { initBrowserTracing } from "@/lib/tracing";
 
 /**

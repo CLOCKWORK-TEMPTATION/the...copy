@@ -1,4 +1,4 @@
-import { GeminiService } from "../stations/gemini-service";
+import { GeminiService } from "../../ai/stations/gemini-service";
 
 export interface UncertaintyMetrics {
   confidence: number;
