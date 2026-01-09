@@ -7,8 +7,8 @@ import {
   GripVertical,
   Copy,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
 // import { toast } from "sonner"; // Temporarily disabled
 
 interface TimelineScene {

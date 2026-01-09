@@ -10,23 +10,23 @@ import {
   WritingTechnique,
   DifficultyLevel,
 } from "@/app/(main)/arabic-creative-writing-studio/types";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+} from "@/components DONT USE THIS FLODER EVER/ui/select";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { VirtualizedGrid } from "@/components/ui/virtualized-grid";
+} from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { VirtualizedGrid } from "@/components DONT USE THIS FLODER EVER/ui/virtualized-grid";
 
 interface PromptLibraryProps {
   onPromptSelect: (prompt: CreativePrompt) => void;

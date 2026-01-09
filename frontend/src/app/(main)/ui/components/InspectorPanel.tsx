@@ -1,12 +1,12 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { X, Calendar, User, Tag, Link as LinkIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
+import { Textarea } from "@/components DONT USE THIS FLODER EVER/ui/textarea";
+import { Label } from "@/components DONT USE THIS FLODER EVER/ui/label";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Separator } from "@/components DONT USE THIS FLODER EVER/ui/separator";
 
 interface InspectorPanelProps {
   isOpen: boolean;

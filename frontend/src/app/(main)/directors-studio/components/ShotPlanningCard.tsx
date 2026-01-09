@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, memo, useCallback, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Video,
@@ -26,7 +26,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components DONT USE THIS FLODER EVER/ui/select";
 import { useGetShotSuggestion } from "@/hooks/useAI";
 import type { Shot } from "@shared/schema";
 

@@ -4,7 +4,7 @@ import { SceneCard } from "@/app/(main)/ui/components/SceneCard";
 import { NarrativeTimeline } from "@/app/(main)/ui/components/NarrativeTimeline";
 import { InspectorPanel } from "@/app/(main)/ui/components/InspectorPanel";
 import { ExportHub } from "@/app/(main)/ui/components/ExportHub";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import { Plus, Grid3x3, List } from "lucide-react";
 
 interface Scene {

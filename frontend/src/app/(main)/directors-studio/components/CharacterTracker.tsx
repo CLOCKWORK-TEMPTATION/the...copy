@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Avatar, AvatarFallback } from "@/components DONT USE THIS FLODER EVER/ui/avatar";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import { CheckCircle2, AlertCircle, Eye } from "lucide-react";
 
 interface Character {

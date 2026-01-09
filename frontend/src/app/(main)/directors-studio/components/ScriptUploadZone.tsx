@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
 import { Upload, FileText, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import { useCreateProject, useAnalyzeScript } from "@/hooks/useProject";
 import { setCurrentProject } from "@/lib/projectStore";
 import { useToast } from "@/hooks/use-toast";

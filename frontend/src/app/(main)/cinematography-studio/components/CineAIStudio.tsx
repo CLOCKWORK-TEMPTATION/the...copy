@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Card, CardContent } from "@/components DONT USE THIS FLODER EVER/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components DONT USE THIS FLODER EVER/ui/select";
 import {
   Camera,
   Clapperboard,
@@ -33,7 +33,7 @@ import PostProductionTools from "./tools/PostProductionTools";
 
 // Dynamically import new components
 const LensSimulator = dynamic(
-  () => import("@/components/ui/lens-simulator"),
+  () => import("@/components DONT USE THIS FLODER EVER/ui/lens-simulator"),
   {
     loading: () => (
       <div className="flex items-center justify-center h-96 bg-zinc-900 rounded-lg">
@@ -48,7 +48,7 @@ const LensSimulator = dynamic(
 );
 
 const ColorGradingPreview = dynamic(
-  () => import("@/components/ui/color-grading-preview"),
+  () => import("@/components DONT USE THIS FLODER EVER/ui/color-grading-preview"),
   {
     loading: () => (
       <div className="flex items-center justify-center h-96 bg-zinc-900 rounded-lg">
@@ -63,7 +63,7 @@ const ColorGradingPreview = dynamic(
 );
 
 const DOFCalculator = dynamic(
-  () => import("@/components/ui/dof-calculator"),
+  () => import("@/components DONT USE THIS FLODER EVER/ui/dof-calculator"),
   {
     loading: () => (
       <div className="flex items-center justify-center h-96 bg-zinc-900 rounded-lg">

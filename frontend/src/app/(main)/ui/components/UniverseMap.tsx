@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { DynamicMotionDiv } from "@/components/ui/dynamic-motion";
+import { DynamicMotionDiv } from "@/components DONT USE THIS FLODER EVER/ui/dynamic-motion";
 import { UniverseNode } from "./UniverseNode";
 import { ZoomIn, ZoomOut, Grid3x3, Maximize2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import {
   FileEdit,
   BarChart3,

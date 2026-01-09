@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
 import CharacterTracker from "@/app/(main)/directors-studio/components/CharacterTracker";
 import SceneCard from "@/app/(main)/directors-studio/components/SceneCard";
 import type {

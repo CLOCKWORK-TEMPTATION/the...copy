@@ -10,16 +10,16 @@ import {
   AppSettings,
   TextAnalysis,
 } from "@/app/(main)/arabic-creative-writing-studio/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components DONT USE THIS FLODER EVER/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Progress } from "@/components/ui/progress";
+} from "@/components DONT USE THIS FLODER EVER/ui/dropdown-menu";
+import { Progress } from "@/components DONT USE THIS FLODER EVER/ui/progress";
 
 interface WritingEditorProps {
   project: CreativeProject | null;

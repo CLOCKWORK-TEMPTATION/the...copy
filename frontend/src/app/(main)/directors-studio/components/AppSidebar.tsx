@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
-} from "@/components/ui/sidebar";
+} from "@/components DONT USE THIS FLODER EVER/ui/sidebar";
 import {
   Film,
   FileText,
@@ -22,7 +22,7 @@ import {
   Settings,
   HelpCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 
 const menuItems = [
   {

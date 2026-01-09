@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { ExportHub } from "@/app/(main)/ui/components/ExportHub";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
 import { Plus, Pin, Trash2, Grid3x3, Layers, Lightbulb } from "lucide-react";
 
 interface IdeaCard {

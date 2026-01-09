@@ -1,9 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Circle, Loader2, Eye } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Progress } from "@/components DONT USE THIS FLODER EVER/ui/progress";
 
 interface StationItem {
   id: number;

@@ -1,6 +1,6 @@
 import React from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import { GitBranch } from "lucide-react";
 
 interface Version {

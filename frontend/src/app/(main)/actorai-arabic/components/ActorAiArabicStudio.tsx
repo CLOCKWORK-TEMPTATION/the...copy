@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import {
   Card,
   CardContent,
@@ -9,21 +9,21 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
+import { Alert, AlertDescription } from "@/components DONT USE THIS FLODER EVER/ui/alert";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Progress } from "@/components DONT USE THIS FLODER EVER/ui/progress";
+import { Textarea } from "@/components DONT USE THIS FLODER EVER/ui/textarea";
+import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
+import { Label } from "@/components DONT USE THIS FLODER EVER/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components DONT USE THIS FLODER EVER/ui/select";
 import { VoiceCoach } from "./VoiceCoach";
 
 // ==================== أنواع البيانات ====================

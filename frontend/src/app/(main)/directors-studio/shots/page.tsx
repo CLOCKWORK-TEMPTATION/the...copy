@@ -8,11 +8,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import { Plus, Edit, Trash2, Camera, Lightbulb } from "lucide-react";
 import ShotPlanningCard from "@/app/(main)/directors-studio/components/ShotPlanningCard";
-import { VirtualizedGrid } from "@/components/ui/virtualized-grid";
+import { VirtualizedGrid } from "@/components DONT USE THIS FLODER EVER/ui/virtualized-grid";
 import type { Shot, Scene } from "@shared/schema";
 
 export default function ShotsPage() {

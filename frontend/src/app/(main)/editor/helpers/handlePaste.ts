@@ -3,6 +3,15 @@ import { ScreenplayClassifier } from "../classes/ScreenplayClassifier";
 import { SceneHeaderAgent } from "./SceneHeaderAgent";
 import { postProcessFormatting } from "./postProcessFormatting";
 
+const cssObjectToString = (styles: React.CSSProperties): string => {
+  return Object.entries(styles)
+    .map(([key, value]) => {
+      const cssKey = key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+      return `${cssKey}: ${String(value)}`;
+    })
+    .join("; ");
+};
+
 /**
  * @function handlePaste
  * @description معالج اللصق - يقوم بتصنيف النص المُلصق سطرًا بسطر وتطبيق التنسيق المناسب
@@ -22,7 +31,7 @@ export const handlePaste = (
   const pastedText = clipboardData.getData("text/plain");
 
   if (editorRef.current) {
-    const bulletCharacterPattern = /^\s*[•·●○■▪▫–—‣⁃-]([^:]+):(.*)/;
+    const bulletCharacterPattern = /^\s*[•·●○■▪▫–—‣⁃-]([^:]+):(.*)/;
 
     const isBulletCharacterLine = (candidateLine: string): boolean => {
       const match = candidateLine.match(bulletCharacterPattern);
@@ -51,15 +60,17 @@ export const handlePaste = (
         currentCharacter = "";
         context.isInDialogueBlock = false;
         context.lastFormat = "action";
+        const actionStyle = cssObjectToString(getFormatStylesFn("action"));
         htmlResult +=
-          '<div class="action"></div>';
+          `<div class="action" style='${actionStyle}'></div>`;
         continue;
       }
 
       if (ScreenplayClassifier.isBasmala(line)) {
         context.lastFormat = "basmala";
         context.isInDialogueBlock = false;
-        htmlResult += `<div class="basmala">${line}</div>`;
+        const basmalaStyle = cssObjectToString(getFormatStylesFn("basmala"));
+        htmlResult += `<div class="basmala" style='${basmalaStyle}'>${line}</div>`;
         continue;
       }
 
@@ -76,7 +87,8 @@ export const handlePaste = (
         context.lastFormat = "transition";
         context.isInDialogueBlock = false;
         context.pendingCharacterLine = false;
-        htmlResult += `<div class="transition">${line}</div>`;
+        const transitionStyle = cssObjectToString(getFormatStylesFn("transition"));
+        htmlResult += `<div class="transition" style='${transitionStyle}'>${line}</div>`;
         continue;
       }
 
@@ -85,14 +97,18 @@ export const handlePaste = (
         context.lastFormat = "character";
         context.isInDialogueBlock = true;
         context.pendingCharacterLine = false;
-        htmlResult += `<div class="character">${line}</div>`;
+        const characterStyle = cssObjectToString(getFormatStylesFn("character"));
+        htmlResult += `<div class="character" style='${characterStyle}'>${line}</div>`;
         continue;
       }
 
       if (ScreenplayClassifier.isParenShaped(line)) {
         context.lastFormat = "parenthetical";
         context.pendingCharacterLine = false;
-        htmlResult += `<div class="parenthetical">${line}</div>`;
+        const parentheticalStyle = cssObjectToString(
+          getFormatStylesFn("parenthetical")
+        );
+        htmlResult += `<div class="parenthetical" style='${parentheticalStyle}'>${line}</div>`;
         continue;
       }
 
@@ -104,12 +120,14 @@ export const handlePaste = (
           const cleanedLine = isBulletCharacterLine(line)
             ? line
             : line.replace(/^\s*[-–—]\s*/, "");
-          htmlResult += `<div class="action">${cleanedLine}</div>`;
+          const actionStyle = cssObjectToString(getFormatStylesFn("action"));
+          htmlResult += `<div class="action" style='${actionStyle}'>${cleanedLine}</div>`;
           continue;
         } else {
           context.lastFormat = "dialogue";
           context.pendingCharacterLine = false;
-          htmlResult += `<div class="dialogue">${line}</div>`;
+          const dialogueStyle = cssObjectToString(getFormatStylesFn("dialogue"));
+          htmlResult += `<div class="dialogue" style='${dialogueStyle}'>${line}</div>`;
           continue;
         }
       }
@@ -121,7 +139,8 @@ export const handlePaste = (
         const cleanedLine = isBulletCharacterLine(line)
           ? line
           : line.replace(/^\s*[-–—]\s*/, "");
-        htmlResult += `<div class="action">${cleanedLine}</div>`;
+        const actionStyle = cssObjectToString(getFormatStylesFn("action"));
+        htmlResult += `<div class="action" style='${actionStyle}'>${cleanedLine}</div>`;
         continue;
       }
 
@@ -131,7 +150,8 @@ export const handlePaste = (
       const cleanedLine = isBulletCharacterLine(line)
         ? line
         : line.replace(/^\s*[-–—]\s*/, "");
-      htmlResult += `<div class="action">${cleanedLine}</div>`;
+      const actionStyle = cssObjectToString(getFormatStylesFn("action"));
+      htmlResult += `<div class="action" style='${actionStyle}'>${cleanedLine}</div>`;
     }
 
     const correctedHtmlResult = postProcessFormatting(htmlResult, getFormatStylesFn);

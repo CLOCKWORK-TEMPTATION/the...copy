@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-const V0Component = dynamic(() => import("@/components/v0-component"), {
+const V0Component = dynamic(() => import("@/components DONT USE THIS FLODER EVER/v0-component"), {
   ssr: false,
 });
 

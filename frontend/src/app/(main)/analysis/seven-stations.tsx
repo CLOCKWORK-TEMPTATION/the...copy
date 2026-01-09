@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 
 const SevenStationsInterface = dynamic(
-  () => import("@/components/seven-stations-interface"),
+  () => import("@/components DONT USE THIS FLODER EVER/seven-stations-interface"),
   {
     loading: () => (
       <div className="container mx-auto max-w-6xl p-6 space-y-6">

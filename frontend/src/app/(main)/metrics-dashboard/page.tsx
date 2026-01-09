@@ -6,7 +6,7 @@
 
 "use client";
 
-import SystemMetricsDashboard from "@/components/ui/system-metrics-dashboard";
+import SystemMetricsDashboard from "@/components DONT USE THIS FLODER EVER/ui/system-metrics-dashboard";
 
 // Force dynamic rendering to prevent prerendering during build
 // This is necessary because the dashboard uses React Query hooks

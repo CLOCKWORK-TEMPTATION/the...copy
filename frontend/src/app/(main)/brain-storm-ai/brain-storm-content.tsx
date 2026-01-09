@@ -36,18 +36,18 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+} from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Textarea } from "@/components DONT USE THIS FLODER EVER/ui/textarea";
+import { ScrollArea } from "@/components DONT USE THIS FLODER EVER/ui/scroll-area";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import FileUpload from "@/components/file-upload";
+} from "@/components DONT USE THIS FLODER EVER/ui/tooltip";
+import FileUpload from "@/components DONT USE THIS FLODER EVER/file-upload";
 
 // استيراد الوكلاء الحقيقيين
 import {

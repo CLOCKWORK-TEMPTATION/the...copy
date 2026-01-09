@@ -1,6 +1,6 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components DONT USE THIS FLODER EVER/ui/skeleton";
 
 export function LoadingSection() {
   return (

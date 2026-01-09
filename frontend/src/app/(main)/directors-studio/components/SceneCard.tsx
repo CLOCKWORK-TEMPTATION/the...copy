@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, memo, useCallback, useMemo } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import {
   MapPin,
   Clock,
@@ -18,7 +18,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components DONT USE THIS FLODER EVER/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +28,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components DONT USE THIS FLODER EVER/ui/alert-dialog";
 import { useDeleteScene } from "@/hooks/useProject";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";

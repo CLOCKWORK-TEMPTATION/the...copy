@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ExportHub } from "@/app/(main)/ui/components/ExportHub";
 import { UploadDock } from "@/app/(main)/ui/components/UploadDock";
 import { AssetsShelf } from "@/app/(main)/ui/components/AssetsShelf";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
 import { Upload, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 

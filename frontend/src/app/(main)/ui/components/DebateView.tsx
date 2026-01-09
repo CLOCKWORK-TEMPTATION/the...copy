@@ -7,10 +7,10 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
+import { ScrollArea } from "@/components DONT USE THIS FLODER EVER/ui/scroll-area";
 
 interface DebateTurn {
   id: string;

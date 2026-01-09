@@ -8,11 +8,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
 import { Plus, Edit, Trash2, User } from "lucide-react";
 import CharacterFormDialog from "@/app/(main)/directors-studio/components/CharacterFormDialog";
-import { VirtualizedGrid } from "@/components/ui/virtualized-grid";
+import { VirtualizedGrid } from "@/components DONT USE THIS FLODER EVER/ui/virtualized-grid";
 import type { Character } from "@/types/api";
 
 export default function CharactersPage() {

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Textarea } from "@/components DONT USE THIS FLODER EVER/ui/textarea";
 import { FileText, Upload, Download, Sparkles } from "lucide-react";
 import ScriptUploadZone from "@/app/(main)/directors-studio/components/ScriptUploadZone";
 import type { Project } from "@shared/schema";

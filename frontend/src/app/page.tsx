@@ -1,4 +1,4 @@
-import { HeroAnimation } from "@/components/HeroAnimation"
+import { HeroAnimation } from "@/components DONT USE THIS FLODER EVER/HeroAnimation"
 
 export default function Page() {
   return (

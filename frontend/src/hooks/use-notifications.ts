@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Notification } from "@/components/ui/notification-center";
+import type { Notification } from "@/components DONT USE THIS FLODER EVER/ui/notification-center";
 
 /**
  * Notification Store

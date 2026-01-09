@@ -5,10 +5,10 @@ import { ConfidenceMeter } from "@/app/(main)/ui/components/ConfidenceMeter";
 import { DebateView } from "@/app/(main)/ui/components/DebateView";
 import { CausalPlotGraph } from "@/app/(main)/ui/components/CausalPlotGraph";
 import { ExportHub } from "@/app/(main)/ui/components/ExportHub";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
 import { ArrowRight, FileText, Network, Users, Brain } from "lucide-react";
 import { toast } from "sonner";
 

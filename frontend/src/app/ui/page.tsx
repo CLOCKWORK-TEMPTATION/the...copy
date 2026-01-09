@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { ImageWithFallback } from "@/components/figma/ImageWithFallback"
+import { ImageWithFallback } from "@/components DONT USE THIS FLODER EVER/figma/ImageWithFallback"
 import images from "@/lib/images"
-import LauncherCenterCard from "@/components/LauncherCenterCard"
+import LauncherCenterCard from "@/components DONT USE THIS FLODER EVER/LauncherCenterCard"
 
 // Grid configuration
 const CENTER_CELLS = [5, 6, 9, 10]
