@@ -1,32 +1,9 @@
 /**
  * @class AdvancedSearchEngine
- * @description Provides advanced search and replace functionality for the screenplay editor.
+ * @description محرك البحث والاستبدال المتقدم مع دعم Regex
  */
 export class AdvancedSearchEngine {
-  /**
-   * @method searchInContent
-   * @description Searches for a query in the content.
-   * @param {string} content - The content to search in.
-   * @param {string} query - The query to search for.
-   * @param {Record<string, unknown>} options - The search options.
-   * @returns {Promise<SearchResults>} - The search results.
-   */
-  async searchInContent(
-    content: string,
-    query: string,
-    options: Record<string, unknown> = {}
-  ): Promise<{
-    success: boolean;
-    query: string;
-    totalMatches: number;
-    results: Array<{
-      lineNumber: number;
-      content: string;
-      matches: Array<{ text: string; index: number; length: number }>;
-    }>;
-    searchTime: number;
-    error?: string;
-  }> {
+  async searchInContent(content: string, query: string, options: any = {}) {
     const results: Array<{
       lineNumber: number;
       content: string;
@@ -79,40 +56,17 @@ export class AdvancedSearchEngine {
       return {
         success: false,
         error: `خطأ في البحث: ${error}`,
-        query,
-        totalMatches: 0,
         results: [],
-        searchTime: Date.now(),
       };
     }
   }
 
-  /**
-   * @method replaceInContent
-   * @description Replaces a search query with a new text in the content.
-   * @param {string} content - The content to search in.
-   * @param {string} searchQuery - The query to search for.
-   * @param {string} replaceText - The text to replace with.
-   * @param {any} options - The replace options.
-   * @returns {Promise<any>} - The replace results.
-   */
   async replaceInContent(
     content: string,
     searchQuery: string,
     replaceText: string,
-    options: any = {}
-  ): Promise<{
-    success: boolean;
-    originalContent: string;
-    newContent: string;
-    replacements: number;
-    searchQuery: string;
-    replaceText: string;
-    patternSource: string;
-    patternFlags: string;
-    replaceAll: boolean;
-    error?: string;
-  }> {
+    options: any = {},
+  ) {
     const caseSensitive = options.caseSensitive || false;
     const wholeWords = options.wholeWords || false;
     const useRegex = options.useRegex || false;
@@ -122,36 +76,33 @@ export class AdvancedSearchEngine {
 
     try {
       if (useRegex) {
-        const flags =
-          replaceAll
-            ? caseSensitive
-              ? "g"
-              : "gi"
-            : caseSensitive
-              ? ""
-              : "i";
+        const flags = replaceAll
+          ? caseSensitive
+            ? "g"
+            : "gi"
+          : caseSensitive
+            ? ""
+            : "i";
         searchPattern = new RegExp(searchQuery, flags);
       } else if (wholeWords) {
         const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const flags =
-          replaceAll
-            ? caseSensitive
-              ? "g"
-              : "gi"
-            : caseSensitive
-              ? ""
-              : "i";
+        const flags = replaceAll
+          ? caseSensitive
+            ? "g"
+            : "gi"
+          : caseSensitive
+            ? ""
+            : "i";
         searchPattern = new RegExp(`\\b${escapedQuery}\\b`, flags);
       } else {
         const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const flags =
-          replaceAll
-            ? caseSensitive
-              ? "g"
-              : "gi"
-            : caseSensitive
-              ? ""
-              : "i";
+        const flags = replaceAll
+          ? caseSensitive
+            ? "g"
+            : "gi"
+          : caseSensitive
+            ? ""
+            : "i";
         searchPattern = new RegExp(escapedQuery, flags);
       }
 
@@ -179,9 +130,6 @@ export class AdvancedSearchEngine {
         replacements: 0,
         searchQuery: searchQuery,
         replaceText: replaceText,
-        patternSource: "",
-        patternFlags: "",
-        replaceAll: replaceAll,
       };
     }
   }
