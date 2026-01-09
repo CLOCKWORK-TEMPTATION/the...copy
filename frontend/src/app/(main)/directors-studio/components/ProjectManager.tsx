@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-} from "@/components DONT USE THIS FLODER EVER/ui/dialog";
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +21,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
 import {
   useProjects,
   useUpdateProject,
@@ -34,7 +34,7 @@ import {
 } from "@/lib/projectStore";
 import { FolderOpen, Trash2, Edit2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components DONT USE THIS FLODER EVER/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Project } from "@/types/api";
 
 export default function ProjectManager() {

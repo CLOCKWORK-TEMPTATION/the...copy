@@ -7,10 +7,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Textarea } from "@/components DONT USE THIS FLODER EVER/ui/textarea";
-import { Slider } from "@/components DONT USE THIS FLODER EVER/ui/slider";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import { Eye, Sparkles, Zap, Image as ImageIcon } from "lucide-react";
 
 interface PreProductionProps {

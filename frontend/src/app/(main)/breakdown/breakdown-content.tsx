@@ -7,8 +7,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface AnalysisReport {
   executiveSummary: string;

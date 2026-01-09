@@ -1,16 +1,16 @@
 import React, { useState } from "react";
-import { DynamicMotionDiv } from "@/components DONT USE THIS FLODER EVER/ui/dynamic-motion";
+import { DynamicMotionDiv } from "@/components/ui/dynamic-motion";
 import { Network, Filter, Play, AlertCircle } from "lucide-react";
-import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components DONT USE THIS FLODER EVER/ui/select";
+} from "@/components/ui/select";
 
 interface GraphNode {
   id: string;

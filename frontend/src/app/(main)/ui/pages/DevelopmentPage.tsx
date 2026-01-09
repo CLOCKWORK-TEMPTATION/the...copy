@@ -3,10 +3,10 @@ import { ExportHub } from "@/app/(main)/ui/components/ExportHub";
 import { TasksBoard } from "@/app/(main)/ui/components/TasksBoard";
 import { VersionsPanel } from "@/app/(main)/ui/components/VersionsPanel";
 import { RhythmMap } from "@/app/(main)/ui/components/RhythmMap";
-import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Lock,
   CheckCircle,

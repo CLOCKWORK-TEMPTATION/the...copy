@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Film, Users, Camera, CheckCircle } from "lucide-react";
 
 interface StatCardProps {

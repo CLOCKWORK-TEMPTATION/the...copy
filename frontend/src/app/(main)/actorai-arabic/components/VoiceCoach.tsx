@@ -1,17 +1,17 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Alert, AlertDescription } from "@/components DONT USE THIS FLODER EVER/ui/alert";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
-import { Progress } from "@/components DONT USE THIS FLODER EVER/ui/progress";
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useVoiceAnalytics, VoiceMetrics } from "../hooks/useVoiceAnalytics";
 
 // ==================== مكون عرض الموجة الصوتية ====================

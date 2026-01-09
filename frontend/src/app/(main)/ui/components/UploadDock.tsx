@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 
 interface UploadDockProps {

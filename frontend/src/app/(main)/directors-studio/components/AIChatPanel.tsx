@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
-import { ScrollArea } from "@/components DONT USE THIS FLODER EVER/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, Send, User, Bot } from "lucide-react";
 import { useChatWithAI } from "@/hooks/useAI";
 

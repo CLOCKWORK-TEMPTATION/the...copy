@@ -1,20 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
-import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
-import { Textarea } from "@/components DONT USE THIS FLODER EVER/ui/textarea";
-import { Label } from "@/components DONT USE THIS FLODER EVER/ui/label";
-import { Alert, AlertDescription } from "@/components DONT USE THIS FLODER EVER/ui/alert";
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Sparkles,
   Lightbulb,

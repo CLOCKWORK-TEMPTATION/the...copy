@@ -1,8 +1,8 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Keyboard } from "lucide-react";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface KeyboardShortcutsProps {
   isOpen: boolean;

@@ -1,6 +1,6 @@
 import React from "react";
-import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { CheckCircle } from "lucide-react";
 
 interface Task {

@@ -7,10 +7,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Clapperboard,
   Camera,
@@ -37,7 +37,7 @@ import dynamic from "next/dynamic";
 
 // Dynamically import heavy components
 const SpatialScenePlanner = dynamic(
-  () => import("@/components DONT USE THIS FLODER EVER/ui/spatial-scene-planner"),
+  () => import("@/components/ui/spatial-scene-planner"),
   {
     loading: () => (
       <div className="flex items-center justify-center h-96 bg-muted/20 rounded-lg">
@@ -51,7 +51,7 @@ const SpatialScenePlanner = dynamic(
   }
 );
 
-const AIShotLibrary = dynamic(() => import("@/components DONT USE THIS FLODER EVER/ui/ai-shot-library"), {
+const AIShotLibrary = dynamic(() => import("@/components/ui/ai-shot-library"), {
   loading: () => (
     <div className="flex items-center justify-center h-96 bg-muted/20 rounded-lg">
       <div className="text-center">

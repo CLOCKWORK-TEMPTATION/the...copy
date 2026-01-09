@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/card";
+} from "@/components/ui/card";
 import { Bot, Sparkles, Film, Users } from "lucide-react";
 
 export default function AIAssistantPage() {

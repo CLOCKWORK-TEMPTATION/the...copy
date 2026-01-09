@@ -1,5 +1,5 @@
-import { Logo } from "@/components DONT USE THIS FLODER EVER/logo";
-import { MainNav } from "@/components DONT USE THIS FLODER EVER/main-nav";
+import { Logo } from "@/components/logo";
+import { MainNav } from "@/components/main-nav";
 import {
   SidebarProvider,
   Sidebar,
@@ -8,7 +8,7 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
-} from "@/components DONT USE THIS FLODER EVER/ui/sidebar";
+} from "@/components/ui/sidebar";
 
 export default function MainLayout({
   children,

@@ -8,20 +8,20 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components DONT USE THIS FLODER EVER/ui/card";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Badge } from "@/components DONT USE THIS FLODER EVER/ui/badge";
-import { Textarea } from "@/components DONT USE THIS FLODER EVER/ui/textarea";
-import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
-import { Progress } from "@/components DONT USE THIS FLODER EVER/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components DONT USE THIS FLODER EVER/ui/tabs";
-import { ScrollArea } from "@/components DONT USE THIS FLODER EVER/ui/scroll-area";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components DONT USE THIS FLODER EVER/ui/tooltip";
+} from "@/components/ui/tooltip";
 import {
   Sparkles,
   Wand2,

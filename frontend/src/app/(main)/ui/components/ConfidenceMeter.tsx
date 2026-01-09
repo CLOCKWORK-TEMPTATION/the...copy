@@ -1,12 +1,12 @@
 import React from "react";
 import { HelpCircle } from "lucide-react";
-import { Progress } from "@/components DONT USE THIS FLODER EVER/ui/progress";
+import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components DONT USE THIS FLODER EVER/ui/tooltip";
+} from "@/components/ui/tooltip";
 
 interface ConfidenceMeterProps {
   type: "cognitive" | "aleatoric";

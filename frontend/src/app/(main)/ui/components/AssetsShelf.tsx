@@ -1,5 +1,5 @@
 import React from "react";
-import { Card } from "@/components DONT USE THIS FLODER EVER/ui/card";
+import { Card } from "@/components/ui/card";
 import { FileText, Image, Video } from "lucide-react";
 
 interface Asset {

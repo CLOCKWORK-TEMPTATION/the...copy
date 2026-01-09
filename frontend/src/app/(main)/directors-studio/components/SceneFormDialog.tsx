@@ -7,18 +7,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components DONT USE THIS FLODER EVER/ui/dialog";
-import { Button } from "@/components DONT USE THIS FLODER EVER/ui/button";
-import { Input } from "@/components DONT USE THIS FLODER EVER/ui/input";
-import { Label } from "@/components DONT USE THIS FLODER EVER/ui/label";
-import { Textarea } from "@/components DONT USE THIS FLODER EVER/ui/textarea";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components DONT USE THIS FLODER EVER/ui/select";
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateScene, useUpdateScene } from "@/hooks/useProject";
 import type { Scene } from "@/types/api";
