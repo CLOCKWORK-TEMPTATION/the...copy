@@ -19,7 +19,7 @@ const getAI = (): GoogleGenAI | null => {
 export async function POST(request: Request) {
   try {
     const { action, data } = await request.json();
-    
+
     const ai = getAI();
     if (!ai) {
       return NextResponse.json(
@@ -41,6 +41,8 @@ export async function POST(request: Request) {
         return await handleGenerateVirtualFit(ai, data);
       case 'editGarment':
         return await handleEditGarment(ai, data);
+      case 'refineScreenplay':
+        return await handleRefineScreenplay(ai, data);
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
 
 async function handleGenerateDesign(ai: GoogleGenAI, data: any) {
   const { brief } = data;
-  
+
   const systemInstruction = `You are an expert AI Costume Stylist & Designer for Film/TV.
   Your Goal: Create a "Look" that fits the Drama (Script), Visuals (Camera), Production Reality (Budget/Weather), and **Character Psychology**.
 
@@ -95,7 +97,7 @@ async function handleGenerateDesign(ai: GoogleGenAI, data: any) {
 
 async function handleTranscribeAudio(ai: GoogleGenAI, data: any) {
   const { audioBase64, mimeType } = data;
-  
+
   const response = await ai.models.generateContent({
     model: 'gemini-2.0-flash-exp',
     contents: [
@@ -109,7 +111,7 @@ async function handleTranscribeAudio(ai: GoogleGenAI, data: any) {
 
 async function handleAnalyzeVideo(ai: GoogleGenAI, data: any) {
   const { videoBase64, mimeType } = data;
-  
+
   const response = await ai.models.generateContent({
     model: 'gemini-2.0-flash-exp',
     contents: [
@@ -123,13 +125,13 @@ async function handleAnalyzeVideo(ai: GoogleGenAI, data: any) {
 
 async function handleGenerateGarment(ai: GoogleGenAI, data: any) {
   const { prompt, size } = data;
-  
+
   const response = await ai.models.generateContent({
     model: 'gemini-2.0-flash-exp',
     contents: `Generate a detailed description and visual concept for a garment: ${prompt}. Size reference: ${size}. Include fabric suggestions, color palette, and styling notes.`
   });
 
-  return NextResponse.json({ 
+  return NextResponse.json({
     description: response.text || '',
     imageUrl: null
   });
@@ -137,13 +139,13 @@ async function handleGenerateGarment(ai: GoogleGenAI, data: any) {
 
 async function handleGenerateVirtualFit(ai: GoogleGenAI, data: any) {
   const { garmentUrl, personUrl, config } = data;
-  
+
   const response = await ai.models.generateContent({
     model: 'gemini-2.0-flash-exp',
     contents: `Describe how the garment would look when virtually fitted. Garment: ${garmentUrl}, Person reference: ${personUrl}, Config: ${JSON.stringify(config)}. Provide fit analysis and styling suggestions.`
   });
 
-  return NextResponse.json({ 
+  return NextResponse.json({
     fitDescription: response.text || '',
     resultUrl: garmentUrl
   });
@@ -151,14 +153,52 @@ async function handleGenerateVirtualFit(ai: GoogleGenAI, data: any) {
 
 async function handleEditGarment(ai: GoogleGenAI, data: any) {
   const { imageUrl, editPrompt } = data;
-  
+
   const response = await ai.models.generateContent({
     model: 'gemini-2.0-flash-exp',
     contents: `Describe how to edit this garment image (${imageUrl}) with the following modifications: ${editPrompt}. Provide detailed instructions for the visual changes.`
   });
 
-  return NextResponse.json({ 
+  return NextResponse.json({
     description: response.text || '',
     imageUrl: imageUrl
   });
+}
+
+async function handleRefineScreenplay(ai: GoogleGenAI, data: any) {
+  const { lines } = data;
+
+  const prompt = `
+    You are an expert Screenplay Formatter specialized in Arabic scripts.
+    Analyze the following screenplay lines and correct their classification strictly.
+    
+    Rules:
+    1. 'scene-header-3' MUST be a location name (e.g., "غرفة المكتب") appearing immediately after a master scene header.
+    2. Differentiate carefully between 'action' description and 'character' names.
+    3. Return ONLY a JSON array.
+
+    Lines:
+    ${JSON.stringify(lines)}
+
+    Output format:
+    {"lines": [{"text": "...", "type": "scene-header-1" | "scene-header-3" | "action" | "character" | "dialogue"}]}
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash-exp', // Using the available model in this file context, usually safest
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+    }
+  });
+
+  const text = response.text || '{}';
+  let result;
+  try {
+    result = JSON.parse(text);
+  } catch {
+    result = { lines: [] };
+  }
+
+  return NextResponse.json(result);
 }
