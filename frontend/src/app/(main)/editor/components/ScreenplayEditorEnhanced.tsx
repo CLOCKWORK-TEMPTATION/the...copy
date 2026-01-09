@@ -1184,18 +1184,25 @@ export default function ScreenplayEditorEnhanced() {
     tempDiv.innerHTML = htmlResult;
     const elements = Array.from(tempDiv.children);
 
-    for (let i = 0; i < elements.length - 1; i++) {
+    for (let i = 0; i < elements.length; i++) {
       const currentElement = elements[i] as HTMLElement;
-      const nextElement = elements[i + 1] as HTMLElement;
+      const nextElement = elements[i + 1] as HTMLElement | undefined;
 
       if (currentElement.className === "action") {
         const textContent = currentElement.textContent || "";
-        const bulletCharacterPattern = /^\s*[•·●○■▪▫–—‣⁃]([^:]+):(.*)/;
+        const bulletCharacterPattern = /^\s*[•·●○■▪▫–—‣⁃-]([^:]+):(.*)/;
         const match = textContent.match(bulletCharacterPattern);
 
         if (match) {
           const characterName = (match[1] || "").trim();
           const dialogueText = (match[2] || "").trim();
+
+          if (
+            !characterName ||
+            !ScreenplayClassifier.isCharacterLine(`${characterName}:`)
+          ) {
+            continue;
+          }
 
           currentElement.className = "character";
           currentElement.textContent = characterName + ":";
@@ -1255,6 +1262,18 @@ export default function ScreenplayEditorEnhanced() {
     const pastedText = clipboardData.getData("text/plain");
 
     if (editorRef.current) {
+      const bulletCharacterPattern = /^\s*[•·●○■▪▫–—‣⁃-]([^:]+):(.*)/;
+
+      const isBulletCharacterLine = (candidateLine: string): boolean => {
+        const match = candidateLine.match(bulletCharacterPattern);
+        if (!match) return false;
+
+        const characterName = (match[1] || "").trim();
+        if (!characterName) return false;
+
+        return ScreenplayClassifier.isCharacterLine(`${characterName}:`);
+      };
+
       const lines = pastedText.split("\n");
       let currentCharacter = "";
       let htmlResult = "";
@@ -1322,7 +1341,9 @@ export default function ScreenplayEditorEnhanced() {
             context.lastFormat = "action";
             context.isInDialogueBlock = false;
             context.pendingCharacterLine = false;
-            const cleanedLine = line.replace(/^\s*[-–—]\s*/, "");
+            const cleanedLine = isBulletCharacterLine(line)
+              ? line
+              : line.replace(/^\s*[-–—]\s*/, "");
             htmlResult += `<div class="action">${cleanedLine}</div>`;
             continue;
           } else {
@@ -1337,7 +1358,9 @@ export default function ScreenplayEditorEnhanced() {
           context.lastFormat = "action";
           context.isInDialogueBlock = false;
           context.pendingCharacterLine = false;
-          const cleanedLine = line.replace(/^\s*[-–—]\s*/, "");
+          const cleanedLine = isBulletCharacterLine(line)
+            ? line
+            : line.replace(/^\s*[-–—]\s*/, "");
           htmlResult += `<div class="action">${cleanedLine}</div>`;
           continue;
         }
@@ -1345,7 +1368,9 @@ export default function ScreenplayEditorEnhanced() {
         context.lastFormat = "action";
         context.isInDialogueBlock = false;
         context.pendingCharacterLine = false;
-        const cleanedLine = line.replace(/^\s*[-–—]\s*/, "");
+        const cleanedLine = isBulletCharacterLine(line)
+          ? line
+          : line.replace(/^\s*[-–—]\s*/, "");
         htmlResult += `<div class="action">${cleanedLine}</div>`;
       }
 
