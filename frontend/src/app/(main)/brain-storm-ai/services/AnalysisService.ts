@@ -1,4 +1,4 @@
-import type { Script } from '../types/types';
+import type { Script, Character, Scene } from '../types/types';
 
 export interface CharacterDialogueStat {
   name: string;
@@ -43,14 +43,14 @@ export default class AnalysisService {
   async analyze(script: Script, rawTextOverride?: string): Promise<AnalysisResult> {
     const totalScenes = script.scenes.length;
     const characterDialogueCounts = Object.values(script.characters)
-      .map<CharacterDialogueStat>((character) => ({
+      .map<CharacterDialogueStat>((character: Character) => ({
         name: character.name,
         dialogueLines: character.dialogueCount,
       }))
       .sort((a, b) => b.dialogueLines - a.dialogueLines);
 
     const totalDialogueLines = script.dialogueLines.length;
-    const totalActionLines = script.scenes.reduce((sum, scene) => sum + scene.actionLines.length, 0);
+    const totalActionLines = script.scenes.reduce((sum: number, scene: Scene) => sum + scene.actionLines.length, 0);
     const dialogueToActionRatio = totalActionLines === 0
       ? totalDialogueLines
       : totalDialogueLines / totalActionLines;

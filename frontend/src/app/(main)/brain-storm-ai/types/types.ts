@@ -6,7 +6,12 @@
 export type {
   AIAgentConfig,
   ProcessedFile,
-  CompletionEnhancementOption
+  CompletionEnhancementOption,
+  Script,
+  Scene,
+  Character,
+  DialogueLine,
+  SceneActionLine
 } from '../../../../types/types';
 
 export {
