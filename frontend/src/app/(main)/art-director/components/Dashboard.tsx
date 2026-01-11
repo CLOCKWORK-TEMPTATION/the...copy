@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Palette,
   MapPin,
@@ -74,6 +74,19 @@ const defaultPlugins: Plugin[] = [
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [plugins, setPlugins] = useState<Plugin[]>(defaultPlugins);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/plugins")
+      .then(res => res.json())
+      .then(data => {
+        if (data?.plugins) {
+          setPlugins(data.plugins);
+        }
+      })
+      .catch(() => setPlugins(defaultPlugins))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className="art-director-page">
@@ -110,15 +123,25 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           {quickActions.map((action, index) => (
             <button
               key={index}
+              className="art-card"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                background: `${action.color}15`,
+                border: "none",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
               onClick={() => onNavigate(action.id)}
-              className="art-card art-quick-action"
-              style={{ border: "none", cursor: "pointer", textAlign: "center" }}
             >
-              <div className="art-action-icon" style={{ background: `${action.color}20`, color: action.color }}>
-                <action.icon size={28} />
+              <div style={{ background: `${action.color}20`, color: action.color, padding: "10px", borderRadius: "12px" }}>
+                <action.icon size={20} />
               </div>
-              <h3>{action.title}</h3>
-              <p>{action.desc}</p>
+              <div>
+                <h3 style={{ fontSize: "16px", marginBottom: "4px" }}>{action.title}</h3>
+                <p style={{ color: "var(--art-text-muted)", fontSize: "13px" }}>{action.desc}</p>
+              </div>
             </button>
           ))}
         </div>
@@ -126,17 +149,21 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
       <section>
         <h2 style={{ fontSize: "20px", marginBottom: "16px" }}>الأدوات المتاحة ({plugins.length})</h2>
-        <div className="art-grid-3">
-          {plugins.map((plugin) => (
-            <div key={plugin.id} className="art-card" style={{ position: "relative" }}>
-              <div style={{ display: "inline-block", background: "var(--art-primary)", color: "white", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", marginBottom: "12px" }}>
-                {plugin.category}
+        {loading ? (
+          <div className="art-card">جاري تحميل الأدوات من المنصة...</div>
+        ) : (
+          <div className="art-grid-3">
+            {plugins.map((plugin) => (
+              <div key={plugin.id} className="art-card" style={{ position: "relative" }}>
+                <div style={{ display: "inline-block", background: "var(--art-primary)", color: "white", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", marginBottom: "12px" }}>
+                  {plugin.category}
+                </div>
+                <h3 style={{ fontSize: "16px", marginBottom: "4px" }}>{plugin.nameAr}</h3>
+                <p style={{ color: "var(--art-text-muted)", fontSize: "13px" }}>{plugin.name}</p>
               </div>
-              <h3 style={{ fontSize: "16px", marginBottom: "4px" }}>{plugin.nameAr}</h3>
-              <p style={{ color: "var(--art-text-muted)", fontSize: "13px" }}>{plugin.name}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

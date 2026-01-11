@@ -13,10 +13,14 @@ export interface CastAgentOptions {
 }
 
 /**
- * Initialize Google GenAI with API key
+ * Initialize Google GenAI with API key - Safe handling
  */
 const getAI = (apiKey?: string): GoogleGenAI => {
-  return new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
+  const keyToUse = apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+  if (!keyToUse) {
+    console.warn('⚠️ Warning: GEMINI_API_KEY environment variable is not set.');
+  }
+  return new GoogleGenAI({ apiKey: keyToUse });
 };
 
 // ============================================

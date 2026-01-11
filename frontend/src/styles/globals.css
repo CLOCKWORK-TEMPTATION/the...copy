@@ -192,6 +192,18 @@
   .hero-animation-root {
     min-height: 100vh;
     background: radial-gradient(ellipse at 50% 30%, rgba(20, 20, 25, 1) 0%, rgba(0, 0, 0, 1) 70%);
+    position: relative;
+  }
+  
+  /* Enhanced dotted pattern overlay */
+  .hero-animation-root::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255, 215, 0, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 1;
   }
 
   .video-text-mask__title {
@@ -312,6 +324,11 @@
     background: linear-gradient(135deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0) 100%);
     opacity: 0.6;
     border-radius: 24px;
+    transition: opacity 500ms ease;
+  }
+  
+  .card-elite:hover .hero-card-sheen {
+    opacity: 0.8;
   }
 
   .card-elite {
@@ -319,13 +336,40 @@
     border: 2px solid #FFD700;
     background-color: rgba(10, 10, 10, 0.15);
     backdrop-filter: blur(8px);
-    box-shadow: 0px 0px 15px rgba(255, 215, 0, 0.6), 0 20px 40px rgba(0, 0, 0, 0.5);
-    transition: all 500ms ease-out;
+    box-shadow: 
+      0px 0px 15px rgba(255, 215, 0, 0.6), 
+      0 20px 40px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-elite::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, 
+      transparent 0%, 
+      rgba(255, 215, 0, 0.1) 50%, 
+      transparent 100%);
+    opacity: 0;
+    transition: opacity 500ms ease;
+    pointer-events: none;
+    z-index: 1;
   }
 
   .card-elite:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 
+      0 0 30px rgba(255, 215, 0, 0.8),
+      0 30px 70px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 215, 0, 0.9);
+  }
+  
+  .card-elite:hover::before {
+    opacity: 1;
   }
 
   .video-text-mask__video {

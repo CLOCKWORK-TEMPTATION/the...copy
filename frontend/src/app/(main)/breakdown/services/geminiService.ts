@@ -14,12 +14,39 @@ const ANALYSIS_MODEL = 'gemini-3-pro-preview';
 
 /**
  * Initialize Google GenAI with API key from environment
+ * Safely retrieves API key from multiple possible sources
  */
-const getAI = (): GoogleGenAI => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+const getAPIKey = (): string => {
+  // Try multiple sources for API key
+  const apiKey = 
+    process.env.GEMINI_API_KEY || 
+    process.env.API_KEY || 
+    (typeof window !== 'undefined' && (window as any).GEMINI_API_KEY) ||
+    '';
+  
+  if (!apiKey) {
+    console.warn('⚠️ Warning: GEMINI_API_KEY environment variable is not set. AI features will not work.');
+  }
+  
+  return apiKey;
 };
 
-const ai = getAI();
+const getAI = (): GoogleGenAI => {
+  const apiKey = getAPIKey();
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is required. Please set it in your .env.local file.');
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
+let ai: GoogleGenAI | null = null;
+
+const getAIInstance = (): GoogleGenAI => {
+  if (!ai) {
+    ai = getAI();
+  }
+  return ai;
+};
 
 // ============================================
 // CHAT SESSION
@@ -29,7 +56,8 @@ const ai = getAI();
  * Creates a new chat session for the production assistant.
  */
 export const createChatSession = (): Chat => {
-  return ai.chats.create({
+  const aiInstance = getAIInstance();
+  return aiInstance.chats.create({
     model: CHAT_MODEL,
     config: {
       systemInstruction: `أنت مساعد ذكي ومتخصص في الإنتاج السينمائي (Proactive Production Co-Pilot).
@@ -83,7 +111,8 @@ Return a JSON object with a "scenes" array where each scene has:
 - "content": The full text of the scene (action, dialogue, parentheticals) excluding the header`;
 
   try {
-    const response = await ai.models.generateContent({
+    const aiInstance = getAIInstance();
+    const response = await aiInstance.models.generateContent({
       model: SEGMENTATION_MODEL,
       contents: [
         { role: 'user', parts: [{ text: prompt }] },
@@ -246,7 +275,8 @@ For each scenario, provide:
   };
 
   try {
-    const response = await ai.models.generateContent({
+    const aiInstance = getAIInstance();
+    const response = await aiInstance.models.generateContent({
       model: SCENARIO_MODEL,
       contents: [
         { role: 'user', parts: [{ text: prompt }] },
@@ -337,7 +367,8 @@ Return ONLY valid JSON.`;
   };
 
   try {
-    const response = await ai.models.generateContent({
+    const aiInstance = getAIInstance();
+    const response = await aiInstance.models.generateContent({
       model: ANALYSIS_MODEL,
       contents: [
         { role: 'user', parts: [{ text: prompt }] },

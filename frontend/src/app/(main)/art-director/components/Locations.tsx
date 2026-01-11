@@ -12,14 +12,8 @@ interface Location {
   features: string[];
 }
 
-const defaultLocations: Location[] = [
-  { id: "1", name: "Baron Palace", nameAr: "قصر البارون", type: "interior", address: "مصر الجديدة، القاهرة", features: ["إضاءة طبيعية", "مساحة واسعة"] },
-  { id: "2", name: "Desert Studio", nameAr: "استوديو الصحراء", type: "exterior", address: "الفيوم، مصر", features: ["مناظر طبيعية", "إضاءة غروب"] },
-  { id: "3", name: "Old Cairo Streets", nameAr: "شوارع القاهرة القديمة", type: "exterior", address: "الأزهر، القاهرة", features: ["أصالة تاريخية", "عمارة إسلامية"] },
-];
-
 export default function Locations() {
-  const [locations, setLocations] = useState<Location[]>(defaultLocations);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
@@ -30,29 +24,44 @@ export default function Locations() {
     features: "",
   });
 
-  const handleSearch = () => {
-    if (!searchQuery) {
-      setLocations(defaultLocations);
-      return;
+  const handleSearch = async () => {
+    try {
+      const response = await fetch("/api/locations/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: searchQuery || undefined }),
+      });
+      const data = await response.json();
+      if (data.success && data.data?.locations) {
+        setLocations(data.data.locations);
+      } else {
+        setLocations([]);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setLocations([]);
     }
-    const filtered = defaultLocations.filter(
-      loc => loc.nameAr.includes(searchQuery) || loc.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setLocations(filtered);
   };
 
-  const handleAddLocation = () => {
-    const newLocation: Location = {
-      id: Date.now().toString(),
-      name: formData.name,
-      nameAr: formData.nameAr,
-      type: formData.type,
-      address: formData.address,
-      features: formData.features.split(",").map(f => f.trim()).filter(Boolean),
-    };
-    setLocations([...locations, newLocation]);
-    setShowAddForm(false);
-    setFormData({ name: "", nameAr: "", type: "interior", address: "", features: "" });
+  const handleAddLocation = async () => {
+    try {
+      const response = await fetch("/api/locations/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          features: formData.features.split(",").map(f => f.trim()).filter(Boolean),
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setShowAddForm(false);
+        setFormData({ name: "", nameAr: "", type: "interior", address: "", features: "" });
+        handleSearch();
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   const getTypeIcon = (type: string) => {

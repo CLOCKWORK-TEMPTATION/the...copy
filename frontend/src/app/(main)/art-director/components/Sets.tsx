@@ -19,15 +19,8 @@ interface SustainabilityReport {
   environmentalImpact: string;
 }
 
-const defaultPieces: SetPiece[] = [
-  { id: "1", name: "Classic Sofa", nameAr: "كنبة كلاسيكية", category: "أثاث", condition: "excellent", reusabilityScore: 95 },
-  { id: "2", name: "Vintage Chandelier", nameAr: "نجفة عتيقة", category: "إضاءة", condition: "good", reusabilityScore: 80 },
-  { id: "3", name: "Wooden Bookshelf", nameAr: "مكتبة خشبية", category: "أثاث", condition: "excellent", reusabilityScore: 90 },
-  { id: "4", name: "Persian Carpet", nameAr: "سجادة فارسية", category: "أقمشة", condition: "fair", reusabilityScore: 60 },
-];
-
 export default function Sets() {
-  const [pieces, setPieces] = useState<SetPiece[]>(defaultPieces);
+  const [pieces, setPieces] = useState<SetPiece[]>([]);
   const [report, setReport] = useState<SustainabilityReport | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,29 +32,57 @@ export default function Sets() {
     dimensions: "",
   });
 
-  const handleAddPiece = () => {
-    const newPiece: SetPiece = {
-      id: Date.now().toString(),
-      name: formData.name,
-      nameAr: formData.nameAr,
-      category: formData.category,
-      condition: formData.condition,
-      reusabilityScore: formData.condition === "excellent" ? 95 : formData.condition === "good" ? 75 : formData.condition === "fair" ? 50 : 25,
-    };
-    setPieces([...pieces, newPiece]);
-    setShowAddForm(false);
-    setFormData({ name: "", nameAr: "", category: "أثاث", condition: "excellent", dimensions: "" });
+  const handleAddPiece = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/sets/add-piece", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setShowAddForm(false);
+        setFormData({ name: "", nameAr: "", category: "أثاث", condition: "excellent", dimensions: "" });
+        loadInventory();
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+    setLoading(false);
+  };
+
+  const loadInventory = async () => {
+    try {
+      const response = await fetch("/api/sets/inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+      if (data.success && data.data?.pieces) {
+        setPieces(data.data.pieces);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   const loadSustainabilityReport = async () => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setReport({
-      totalPieces: pieces.length,
-      reusablePercentage: 78,
-      estimatedSavings: 45000,
-      environmentalImpact: "تقليل البصمة الكربونية بنسبة 23%",
-    });
+    try {
+      const response = await fetch("/api/sets/sustainability-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setReport(data.data);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
     setLoading(false);
   };
 
@@ -97,6 +118,10 @@ export default function Sets() {
         <button className="art-btn" onClick={() => setShowAddForm(true)}>
           <Plus size={18} />
           إضافة قطعة
+        </button>
+        <button className="art-btn art-btn-secondary" onClick={loadInventory}>
+          <Boxes size={18} />
+          عرض المخزون
         </button>
         <button className="art-btn art-btn-secondary" onClick={loadSustainabilityReport} disabled={loading}>
           <Leaf size={18} />
@@ -167,9 +192,9 @@ export default function Sets() {
             </div>
           </div>
           <div className="art-form-actions">
-            <button className="art-btn" onClick={handleAddPiece}>
+            <button className="art-btn" onClick={handleAddPiece} disabled={loading}>
               <Plus size={18} />
-              إضافة
+              {loading ? "جاري الإضافة..." : "إضافة"}
             </button>
             <button className="art-btn art-btn-secondary" onClick={() => setShowAddForm(false)}>
               إلغاء

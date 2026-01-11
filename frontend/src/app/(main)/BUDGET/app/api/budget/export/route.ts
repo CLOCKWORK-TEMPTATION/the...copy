@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Workbook } from 'exceljs'
-import { Budget } from '@/lib/types'
+import type { Budget } from '../../../lib/types'
 
 export async function POST(request: NextRequest) {
     try {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         // Calculate totals for summary if not present in a "summary" object like the old App,
         // The Budget type has grandTotal, and sections with totals.
         // We need to map the sections to "Above The Line", "Production", etc.
-        const getSectionTotal = (id: string) => budget.sections.find(s => s.id === id)?.total || 0;
+        const getSectionTotal = (id: string) => budget.sections.find((s: any) => s.id === id)?.total || 0;
 
         const atlTotal = getSectionTotal('atl');
         const prodTotal = getSectionTotal('production');
@@ -41,12 +41,12 @@ export async function POST(request: NextRequest) {
 
         // Helper to add section to top sheet
         const addSectionToTopSheet = (sectionId: string, title: string) => {
-            const section = budget.sections.find(s => s.id === sectionId);
+            const section = budget.sections.find((s: any) => s.id === sectionId);
             if (!section) return;
 
             topSheet.addRow([title, '', '']);
             topSheet.addRow(['ACCT#', 'Description', 'Total']);
-            section.categories.forEach(cat => {
+            section.categories.forEach((cat: any) => {
                 topSheet.addRow([cat.code, cat.name, cat.total]);
             });
             topSheet.addRow([]);
@@ -66,12 +66,12 @@ export async function POST(request: NextRequest) {
         topSheet.getColumn(3).width = 15
 
         // Create detailed sheets for each section
-        budget.sections.forEach(section => {
+        budget.sections.forEach((section: any) => {
             // Sanitize sheet name length (max 31 chars in Excel)
             const sheetName = section.name.substring(0, 30);
             const sheet = workbook.addWorksheet(sheetName);
 
-            section.categories.forEach(category => {
+            section.categories.forEach((category: any) => {
                 sheet.addRow([category.name, '', '', '', '', '']);
                 sheet.addRow(['ACCT#', 'Description', 'Amount', 'Unit', 'Rate', 'Total']);
 

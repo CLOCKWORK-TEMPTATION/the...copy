@@ -303,7 +303,7 @@ const ResultsView: React.FC<ResultsViewProps> = ({ scenes, onUpdateScene, onRest
                         <AgentCard
                           key={agent.key}
                           agent={agent}
-                          items={displayAnalysis ? displayAnalysis[agent.key] : []}
+                          items={displayAnalysis && agent.key in displayAnalysis ? displayAnalysis[agent.key as keyof SceneBreakdown] : []}
                           isProcessing={isProcessing}
                         />
                       ))}

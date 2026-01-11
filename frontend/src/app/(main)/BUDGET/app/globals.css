@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   html {
@@ -8,13 +6,18 @@
   }
   
   body {
-    @apply antialiased bg-slate-50 dark:bg-slate-900;
+    @apply antialiased;
+    background-color: rgb(248 250 252);
+  }
+  
+  body.dark {
+    background-color: rgb(15 23 42);
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105;
+    @apply bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg;
   }
   
   .btn-secondary {
@@ -22,11 +25,11 @@
   }
   
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6 transition-all hover:shadow-lg;
+    @apply bg-white rounded-xl shadow-md border border-gray-200 p-6 transition-all hover:shadow-lg;
   }
   
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white;
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-gray-900;
   }
 }
 
@@ -37,15 +40,24 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
+  background-color: rgb(243 244 246);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background-color: rgb(31 41 55);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+  background-color: rgb(156 163 175);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgb(75 85 99);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500 dark:bg-gray-500;
+  background-color: rgb(107 114 128);
 }
 
 /* Animations */
@@ -115,7 +127,7 @@
 /* Responsive utilities */
 @media (max-width: 640px) {
   .card {
-    @apply p-4;
+    padding: 1rem;
   }
 }
 
@@ -126,10 +138,12 @@
   }
   
   body {
-    @apply bg-white text-black;
+    background-color: white;
+    color: black;
   }
   
   .card {
-    @apply shadow-none border-gray-300;
+    box-shadow: none;
+    border-color: rgb(209 213 219);
   }
 }

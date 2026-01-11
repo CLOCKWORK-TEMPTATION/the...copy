@@ -1,36 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Break Break - تطبيق إدارة الإنتاج السينمائي
 
-## Getting Started
+تطبيق حديث لإدارة الإنتاج السينمائي مع مصادقة (Authentication) قائمة على رمز QR.
 
-First, run the development server:
+## الميزات الرئيسية
+
+- 🔐 مصادقة آمنة باستخدام رمز QR
+- 📡 اتصال فوري عبر WebSocket
+- 🗺️ تتبع الموقع الجغرافي
+- 📱 تصميم متجاوب يعمل على جميع الأجهزة
+- 🔄 مزامنة تلقائية مع المنصة الأم
+
+## متطلبات التشغيل
+
+- Node.js 20 أو أحدث
+- npm أو yarn
+
+## التثبيت
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# تثبيت الحزم (Packages)
+npm install
+
+# نسخ ملف متغيرات البيئة
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## التكوين
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+قم بتعديل ملف `.env.local` لضبط اتصال المنصة الأم:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+```
 
-## Learn More
+## تشغيل التطبيق
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# وضع التطوير (Development)
+npm run dev
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# بناء للإنتاج (Production Build)
+npm run build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# تشغيل الإنتاج
+npm start
+```
 
-## Deploy on Vercel
+التطبيق سيعمل على: http://localhost:3001
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## البنية الأساسية
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+├── (auth)/           # صفحات المصادقة
+│   └── login/qr/     # تسجيل الدخول برمز QR
+├── dashboard/        # لوحة التحكم الرئيسية
+├── (crew)/          # صفحات الطاقم
+├── (runner)/        # صفحات المساعدين
+└── layout.tsx       # التخطيط الرئيسي
+
+components/
+├── scanner/         # مكون قارئ QR
+├── maps/           # مكون الخرائط
+└── ConnectionTest.tsx  # اختبار الاتصال بالمنصة
+
+hooks/
+├── useSocket.ts    # Hook للاتصال بـ Socket.IO
+└── useGeolocation.ts  # Hook لتتبع الموقع
+
+lib/
+└── auth.ts        # وظائف المصادقة والتوثيق
+```
+
+## الاتصال بالمنصة الأم
+
+يتصل التطبيق بالمنصة الأم عبر:
+
+1. **REST API**: للعمليات الأساسية
+2. **WebSocket**: للمزامنة الفورية
+
+### اختبار الاتصال
+
+يوفر التطبيق صفحة اختبار الاتصال في لوحة التحكم تعرض:
+- حالة اتصال API
+- حالة اتصال WebSocket
+- رسائل الأخطاء إن وجدت
+
+## المصادقة (Authentication)
+
+يستخدم التطبيق نظام مصادقة ثلاثي:
+1. **رمز QR**: يحتوي على معلومات المشروع والمستخدم
+2. **Device Hash**: بصمة الجهاز للأمان
+3. **JWT Token**: رمز الوصول الآمن
+
+## الأمان
+
+- تخزين آمن للرموز في `localStorage`
+- التحقق التلقائي من صلاحية الرموز
+- CORS محمي
+- اتصال مشفر
+
+## التطوير
+
+### إضافة صفحة جديدة
+
+```typescript
+// app/new-page/page.tsx
+'use client';
+
+export default function NewPage() {
+  return <div>صفحة جديدة</div>;
+}
+```
+
+### استخدام Socket.IO
+
+```typescript
+import { useSocket } from '@/hooks/useSocket';
+
+const { connected, emit, on } = useSocket({
+  auth: true // استخدام التوثيق
+});
+
+// إرسال حدث
+emit('event-name', { data: 'value' });
+
+// استقبال حدث
+on('event-name', (data) => {
+  console.log(data);
+});
+```
+
+## استكشاف الأخطاء
+
+### خطأ في الاتصال بالـ API
+
+تأكد من:
+- تشغيل المنصة الأم على العنوان الصحيح
+- صحة قيمة `NEXT_PUBLIC_API_URL`
+- عدم وجود جدار ناري (Firewall) يمنع الاتصال
+
+### خطأ في WebSocket
+
+تأكد من:
+- دعم المنصة الأم لـ Socket.IO
+- صحة قيمة `NEXT_PUBLIC_SOCKET_URL`
+- تفعيل CORS في المنصة الأم
+
+## الترخيص
+
+حقوق النشر محفوظة © 2026 Break Break

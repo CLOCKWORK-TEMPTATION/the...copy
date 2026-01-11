@@ -24,24 +24,62 @@ export default function Productivity() {
     { name: "متأخر", value: 10, color: "#ef4444" },
   ];
 
-  const handleLogTime = () => {
-    setShowTimeForm(false);
-    setTimeForm({ task: "", hours: "", category: "design" });
+  const handleLogTime = async () => {
+    try {
+      const response = await fetch("/api/productivity/log-time", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: timeForm.task,
+          hours: parseFloat(timeForm.hours),
+          category: timeForm.category,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setShowTimeForm(false);
+        setTimeForm({ task: "", hours: "", category: "design" });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
-  const handleReportDelay = () => {
-    setShowDelayForm(false);
-    setDelayForm({ reason: "", impact: "low", hoursLost: "" });
+  const handleReportDelay = async () => {
+    try {
+      const response = await fetch("/api/productivity/report-delay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: delayForm.reason,
+          impact: delayForm.impact,
+          hoursLost: parseFloat(delayForm.hoursLost),
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setShowDelayForm(false);
+        setDelayForm({ reason: "", impact: "low", hoursLost: "" });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   const loadRecommendations = async () => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setRecommendations([
-      "تحسين جدولة مهام التصميم لتقليل وقت الانتظار",
-      "تخصيص المزيد من الموارد لمرحلة البناء",
-      "تقليل عدد الاجتماعات غير الضرورية",
-      "استخدام أدوات التواصل الفوري بدلاً من الاجتماعات",
-    ]);
+    try {
+      const response = await fetch("/api/productivity/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+      if (data.success && data.data?.recommendations) {
+        setRecommendations(data.data.recommendations);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   return (

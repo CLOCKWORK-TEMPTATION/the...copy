@@ -2,6 +2,8 @@
  * Instructions loader service for dynamic loading of agent instructions
  */
 
+import { INSTRUCTIONS_MAP } from '../agents/instructions';
+
 interface InstructionSet {
   systemPrompt: string;
   instructions: string[];
@@ -12,7 +14,6 @@ interface InstructionSet {
 
 class InstructionsLoader {
   private cache = new Map<string, InstructionSet>();
-  private loadingPromises = new Map<string, Promise<InstructionSet>>();
 
   /**
    * Load instructions for a specific agent
@@ -23,53 +24,54 @@ class InstructionsLoader {
       return this.cache.get(agentId)!;
     }
 
-    // Check if already loading
-    if (this.loadingPromises.has(agentId)) {
-      return this.loadingPromises.get(agentId)!;
-    }
-
-    // Start loading
-    const loadPromise = this.fetchInstructions(agentId);
-    this.loadingPromises.set(agentId, loadPromise);
-
     try {
-      const instructions = await loadPromise;
-      this.cache.set(agentId, instructions);
-      this.loadingPromises.delete(agentId);
-      return instructions;
-    } catch (error) {
-      this.loadingPromises.delete(agentId);
-      throw error;
-    }
-  }
-
-  /**
-   * Fetch instructions from public directory
-   */
-  private async fetchInstructions(agentId: string): Promise<InstructionSet> {
-    try {
-      const response = await fetch(`/instructions/${agentId}.json`);
+      const rawInstructions = INSTRUCTIONS_MAP[agentId];
       
-      if (!response.ok) {
-        throw new Error(`Failed to load instructions for ${agentId}: ${response.statusText}`);
+      if (!rawInstructions) {
+        console.warn(`No instructions found for agent ${agentId}, using fallback`);
+        return this.getFallbackInstructions(agentId);
       }
 
-      const instructions = await response.json();
-      return this.validateInstructions(instructions);
+      const instructions = this.parseInstructions(rawInstructions, agentId);
+      this.cache.set(agentId, instructions);
+      return instructions;
     } catch (error) {
-      console.warn(`Failed to load instructions for ${agentId}, using fallback`);
+      console.error(`Failed to load instructions for ${agentId}:`, error);
       return this.getFallbackInstructions(agentId);
     }
   }
 
   /**
-   * Validate instruction format
+   * Parse raw instructions string into InstructionSet
    */
-  private validateInstructions(instructions: any): InstructionSet {
-    if (!instructions.systemPrompt || !Array.isArray(instructions.instructions)) {
-      throw new Error('Invalid instruction format');
+  private parseInstructions(raw: string, agentId: string): InstructionSet {
+    try {
+      // Extract JSON block
+      const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/);
+      let parsedJson: any = {};
+      
+      if (jsonMatch && jsonMatch[1]) {
+        try {
+          parsedJson = JSON.parse(jsonMatch[1]);
+        } catch (e) {
+          console.warn(`Failed to parse JSON for ${agentId}`, e);
+        }
+      }
+
+      // Extract text before JSON as system prompt context
+      const textContext = raw.split(/```json/)[0].trim();
+
+      return {
+        systemPrompt: textContext || `أنت وكيل ذكي متخصص في ${agentId}`,
+        instructions: parsedJson.instructions || [textContext],
+        outputFormat: parsedJson.outputFormat || {},
+        examples: parsedJson.examples || [],
+        ...parsedJson
+      };
+    } catch (error) {
+      console.error(`Error parsing instructions for ${agentId}:`, error);
+      return this.getFallbackInstructions(agentId);
     }
-    return instructions;
   }
 
   /**
@@ -94,8 +96,8 @@ class InstructionsLoader {
    * Preload instructions for multiple agents
    */
   async preloadInstructions(agentIds: string[]): Promise<void> {
-    const promises = agentIds.map(id => this.loadInstructions(id));
-    await Promise.allSettled(promises);
+    // Since we import directly, preloading is just caching parsed results
+    agentIds.forEach(id => this.loadInstructions(id));
   }
 
   /**
@@ -103,16 +105,14 @@ class InstructionsLoader {
    */
   clearCache(): void {
     this.cache.clear();
-    this.loadingPromises.clear();
   }
 
   /**
    * Get cache status
    */
-  getCacheStatus(): { cached: string[]; loading: string[] } {
+  getCacheStatus(): { cached: string[] } {
     return {
-      cached: Array.from(this.cache.keys()),
-      loading: Array.from(this.loadingPromises.keys())
+      cached: Array.from(this.cache.keys())
     };
   }
 }

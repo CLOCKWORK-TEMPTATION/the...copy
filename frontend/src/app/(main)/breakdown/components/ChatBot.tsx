@@ -20,9 +20,18 @@ const ChatBot: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize chat session only once
+    // Initialize chat session only once with error handling
     if (!chatSessionRef.current) {
-      chatSessionRef.current = createChatSession();
+      try {
+        chatSessionRef.current = createChatSession();
+      } catch (error) {
+        console.error('Failed to initialize chat session:', error);
+        setMessages(prev => [...prev, {
+          id: '2',
+          role: 'model',
+          text: 'عذراً، لم يتمكن التطبيق من الاتصال بخدمة الذكاء الاصطناعي. تأكد من تعيين مفتاح API الصحيح.'
+        }]);
+      }
     }
   }, []);
 
@@ -45,7 +54,17 @@ const ChatBot: React.FC = () => {
 
     try {
       if (!chatSessionRef.current) {
-        chatSessionRef.current = createChatSession();
+        try {
+          chatSessionRef.current = createChatSession();
+        } catch (initError) {
+          console.error('Failed to initialize chat session:', initError);
+          setMessages(prev => [...prev, { 
+            id: Date.now().toString(), 
+            role: 'model', 
+            text: 'عذراً، خدمة الذكاء الاصطناعي غير متاحة حالياً.' 
+          }]);
+          return;
+        }
       }
 
       // Add placeholder for streaming response
@@ -67,10 +86,11 @@ const ChatBot: React.FC = () => {
 
     } catch (error) {
       console.error("Chat error:", error);
+      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
       setMessages(prev => [...prev, { 
         id: Date.now().toString(), 
         role: 'model', 
-        text: 'عذراً، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.' 
+        text: `عذراً، حدث خطأ: ${errorMessage}. يرجى المحاولة مرة أخرى.` 
       }]);
     } finally {
       setIsLoading(false);

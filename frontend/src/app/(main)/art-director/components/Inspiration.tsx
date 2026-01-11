@@ -16,12 +16,6 @@ interface MoodBoard {
   suggestedPalette: ColorPalette;
 }
 
-const defaultPalettes: ColorPalette[] = [
-  { name: "Warm Sunset", nameAr: "غروب دافئ", colors: ["#FF6B35", "#F7C59F", "#EFEFEF", "#2E4057", "#048A81"] },
-  { name: "Ocean Breeze", nameAr: "نسيم البحر", colors: ["#05668D", "#028090", "#00A896", "#02C39A", "#F0F3BD"] },
-  { name: "Vintage Cinema", nameAr: "سينما كلاسيكية", colors: ["#2D3142", "#4F5D75", "#BFC0C0", "#EF8354", "#FFFFFF"] },
-];
-
 export default function Inspiration() {
   const [sceneDescription, setSceneDescription] = useState("");
   const [mood, setMood] = useState("");
@@ -33,25 +27,46 @@ export default function Inspiration() {
   const handleAnalyze = async () => {
     if (!sceneDescription) return;
     setLoading(true);
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setResult({
-      theme: "Romantic Vintage",
-      themeAr: "رومانسي كلاسيكي",
-      keywords: ["دافئ", "حميمي", "كلاسيكي", "رومانسي", "ذهبي"],
-      suggestedPalette: defaultPalettes[2],
-    });
+
+    try {
+      const response = await fetch("/api/inspiration/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sceneDescription,
+          mood: mood || undefined,
+          era: era || undefined,
+        }),
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setResult(data.data);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+
     setLoading(false);
   };
 
   const handleGeneratePalette = async () => {
     if (!mood) return;
     setLoading(true);
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setPalettes(defaultPalettes);
+
+    try {
+      const response = await fetch("/api/inspiration/palette", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mood, count: 3 }),
+      });
+      const data = await response.json();
+      if (data.success && data.data?.palettes) {
+        setPalettes(data.data.palettes);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+
     setLoading(false);
   };
 

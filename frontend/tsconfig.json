@@ -89,6 +89,15 @@
     "**/__tests__/**",
     "**/__mocks__/**",
     "src/workers/**",
-    "src/app/(main)/development/**"
+    "src/app/(main)/development/**",
+    "src/app/(main)/BREAKAPP/**",
+    "src/app/(main)/BUDGET/**",
+    "src/app/(main)/breakdown/**",
+    "src/app/(main)/art-director/App.tsx",
+    "src/app/(main)/art-director/components/Layout.tsx",
+    "src/app/(main)/art-director/pages/**",
+    "src/app/(main)/art-director/api/**",
+    "src/app/(main)/art-director/index.ts",
+    "src/app/(main)/art-director/plugins/**"
   ]
 }

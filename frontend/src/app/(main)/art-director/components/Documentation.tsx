@@ -39,48 +39,74 @@ export default function Documentation() {
 
   const handleGenerateBook = async () => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setProductionBook({
-      title: bookForm.projectName || "New Project",
-      titleAr: bookForm.projectNameAr || "مشروع جديد",
-      sections: [
-        "مقدمة المشروع",
-        "رؤية الإخراج الفنية",
-        "لوحات الألوان والمزاج",
-        "قائمة المواقع",
-        "مخطط الديكورات",
-        "جدول الإكسسوارات",
-        "خطة الإضاءة",
-        "ميزانية قسم الفن",
-      ],
-      createdAt: new Date().toISOString(),
-    });
-    setShowBookForm(false);
+    try {
+      const response = await fetch("/api/documentation/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookForm),
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setProductionBook(data.data);
+        setShowBookForm(false);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
     setLoading(false);
   };
 
   const handleGenerateStyleGuide = async () => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setStyleGuide({
-      name: "Visual Style Guide",
-      nameAr: "دليل الأسلوب البصري",
-      elements: [
-        "لوحة الألوان الرئيسية",
-        "الألوان الثانوية",
-        "أنماط الإضاءة",
-        "الخامات والملمس",
-        "أنماط الأثاث",
-        "الإكسسوارات المميزة",
-        "الخطوط والطباعة",
-      ],
-    });
+    try {
+      const response = await fetch("/api/documentation/style-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectName: bookForm.projectName || "مشروع جديد" }),
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setStyleGuide(data.data);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
     setLoading(false);
   };
 
-  const handleLogDecision = () => {
-    setShowDecisionForm(false);
-    setDecisionForm({ title: "", description: "", category: "color", rationale: "" });
+  const handleLogDecision = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/documentation/log-decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(decisionForm),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setShowDecisionForm(false);
+        setDecisionForm({ title: "", description: "", category: "color", rationale: "" });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+    setLoading(false);
+  };
+
+  const handleExport = async (format: string) => {
+    try {
+      const response = await fetch("/api/documentation/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert(`تم تصدير التوثيق بصيغة ${format.toUpperCase()}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   return (
@@ -251,10 +277,10 @@ export default function Documentation() {
               تاريخ الإنشاء: {new Date(productionBook.createdAt).toLocaleDateString("ar-EG")}
             </div>
             <div style={{ display: "flex", gap: "12px" }}>
-              <button className="art-btn art-btn-secondary">
+              <button className="art-btn art-btn-secondary" onClick={() => handleExport("pdf")}>
                 <Download size={16} /> PDF
               </button>
-              <button className="art-btn art-btn-secondary">
+              <button className="art-btn art-btn-secondary" onClick={() => handleExport("docx")}>
                 <Download size={16} /> Word
               </button>
             </div>

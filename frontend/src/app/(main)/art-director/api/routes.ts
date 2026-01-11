@@ -36,7 +36,7 @@ router.get('/plugins/:id', (req: Request, res: Response) => {
     });
   }
 
-  res.json({
+  return res.json({
     success: true,
     plugin: {
       id: plugin.id,
@@ -79,7 +79,7 @@ router.post('/plugins/:id/execute', async (req: Request, res: Response) => {
   }
 
   const result = await pluginManager.executePlugin(pluginId, input);
-  res.json(result);
+  return res.json(result);
 });
 
 // Visual Consistency Analysis endpoint

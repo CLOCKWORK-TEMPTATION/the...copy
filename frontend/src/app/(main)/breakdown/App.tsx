@@ -22,19 +22,33 @@ function App() {
     try {
       const response = await geminiService.segmentScript(scriptText);
       
-      const formattedScenes: Scene[] = response.scenes.map((s, index) => ({
-        id: index + 1,
-        header: s.header,
-        content: s.content,
-        isAnalyzed: false,
-        versions: []
-      }));
+      if (!response || !response.scenes || !Array.isArray(response.scenes)) {
+        throw new Error('Invalid response format from API. Expected scenes array.');
+      }
+      
+      const formattedScenes: Scene[] = response.scenes.map((s: any, index: number) => {
+        if (!s.header || !s.content) {
+          throw new Error(`Scene ${index + 1} is missing required fields (header or content).`);
+        }
+        return {
+          id: index + 1,
+          header: s.header || '',
+          content: s.content || '',
+          isAnalyzed: false,
+          versions: []
+        };
+      });
+
+      if (formattedScenes.length === 0) {
+        throw new Error('لم يتم اكتشاف أي مشاهد في السيناريو. تأكد من تنسيق السيناريو.');
+      }
 
       setScenes(formattedScenes);
       setView('results');
     } catch (err) {
-      console.error(err);
-      setError("حدث خطأ أثناء تقسيم السيناريو. تأكد من مفتاح API وحاول مرة أخرى.");
+      console.error('Script processing error:', err);
+      const errorMsg = err instanceof Error ? err.message : 'خطأ غير معروف';
+      setError(`خطأ: ${errorMsg}`);
     } finally {
       setIsSegmenting(false);
     }
