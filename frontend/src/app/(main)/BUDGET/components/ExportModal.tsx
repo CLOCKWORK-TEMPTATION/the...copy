@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, FileText, FileSpreadsheet, FileJson, FileImage } from 'lucide-react';
 import { Budget, ExportOptions } from '@/lib/types';
-import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -70,53 +69,40 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     downloadFile(csvContent, `${budgetName}_budget.csv`, 'text/csv');
   };
 
-  const exportToExcel = () => {
-    const workbook = XLSX.utils.book_new();
-
-    // Main budget sheet
-    const budgetData: any[][] = [
-      ['Section', 'Category', 'Code', 'Description', 'Amount', 'Unit', 'Rate', 'Total']
-    ];
-
-    budget.sections.forEach(section => {
-      section.categories.forEach(category => {
-        category.items.forEach(item => {
-          if (!exportOptions.includeZeroValues && item.total === 0) return;
-          budgetData.push([
-            section.name,
-            category.name,
-            item.code,
-            item.description,
-            item.amount,
-            item.unit,
-            item.rate,
-            item.total
-          ]);
-        });
+  const exportToExcel = async () => {
+    try {
+      setExporting(true);
+      // Use the API endpoint which uses exceljs (safer than xlsx)
+      const response = await fetch('/api/budget/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          budget: budget,
+          format: 'excel'
+        }),
       });
-    });
 
-    const budgetSheet = XLSX.utils.aoa_to_sheet(budgetData);
-    XLSX.utils.book_append_sheet(workbook, budgetSheet, 'Budget Details');
+      if (!response.ok) {
+        throw new Error('Failed to export budget');
+      }
 
-    // Summary sheet
-    const summaryData = [
-      ['Budget Summary', ''],
-      ['Total Budget', budget.grandTotal],
-      ['', ''],
-      ['By Section', ''],
-      ...budget.sections.map(section => [section.name, section.total]),
-      ['', ''],
-      ['By Category', ''],
-      ...budget.sections.flatMap(section =>
-        section.categories.map(cat => [`${section.name} - ${cat.name}`, cat.total])
-      )
-    ];
-
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
-
-    XLSX.writeFile(workbook, `${budgetName}_budget.xlsx`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${budgetName}_budget.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('فشل تصدير الميزانية. الرجاء المحاولة مرة أخرى.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const exportToJSON = () => {
