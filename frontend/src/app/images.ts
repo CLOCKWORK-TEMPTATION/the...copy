@@ -11,6 +11,7 @@ const images: string[] = [
   "https://images.unsplash.com/photo-1574267432644-f610a0f8e6b0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080", // directors-studio
   "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/1e5becf441ad8ea50f63e8-hQCeK7sV7L0jJ2sQA8wyVJdC9XPIxC.webp", // editor
   "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080", // new
+  "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080", // styleIST - fashion/costume design
 ];
 
 export default images;
