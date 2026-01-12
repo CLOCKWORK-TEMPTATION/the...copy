@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+// Import from BUDGET directory using path alias
 import { geminiService } from '@/app/(main)/BUDGET/lib/geminiService';
 import { INITIAL_BUDGET_TEMPLATE } from '@/app/(main)/BUDGET/lib/constants';
 

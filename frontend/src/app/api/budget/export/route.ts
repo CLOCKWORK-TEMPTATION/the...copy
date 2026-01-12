@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Workbook } from 'exceljs'
+// Import from BUDGET directory using path alias
 import type { Budget } from '@/app/(main)/BUDGET/lib/types'
 
 export async function POST(request: NextRequest) {

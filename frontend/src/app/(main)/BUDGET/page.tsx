@@ -223,7 +223,7 @@ export default function BudgetPage() {
                 {/* Footer */}
                 <div className="text-center space-y-2">
                     <p className="text-slate-500 text-sm">
-                        © 2026 FilmBudget AI Pro. Powered by Google Gemini 2.0 Flash
+                        © 2025 FilmBudget AI Pro. Powered by Google Gemini 2.0 Flash
                     </p>
                     <p className="text-slate-400 text-xs">
                         تم التطوير بأحدث تقنيات الذكاء الاصطناعي لخدمة صناعة السينما العربية
