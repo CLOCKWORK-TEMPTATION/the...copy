@@ -279,7 +279,7 @@ export default function BrainStormContent() {
 
   const handleStartSession = async () => {
     if (!brief.trim()) {
-      setError("يرجى إدخال ملخص الفكرة الإبداعية");
+      setError("⚠️ يرجى إدخال ملخص الفكرة الإبداعية أو رفع ملف (PDF, DOCX, TXT)");
       return;
     }
 
@@ -380,8 +380,10 @@ export default function BrainStormContent() {
           },
         ]);
       }
-    } catch (error) {
-      console.error("[BrainStorm] Debate error:", error);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(`❌ فشل في تنفيذ النقاش: ${errorMessage}. تأكد من إضافة GEMINI_API_KEY في .env.local`);
+      console.error("[BrainStorm] Debate error:", err);
       agents.forEach((agent) => {
         updateAgentState(agent.id, { status: "error", lastMessage: "فشل" });
       });
