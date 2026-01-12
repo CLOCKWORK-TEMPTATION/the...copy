@@ -308,7 +308,8 @@ export default function BrainStormContent() {
 
       await executeAgentDebate(phase1Agents, newSession);
     } catch (err) {
-      setError("فشل في إنشاء الجلسة");
+      const errorMessage = err instanceof Error ? err.message : "فشل في إنشاء الجلسة";
+      setError(errorMessage);
       console.error("[BrainStorm] Session error:", err);
     } finally {
       setIsLoading(false);
@@ -342,7 +343,18 @@ export default function BrainStormContent() {
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        // تحسين رسائل الأخطاء حسب نوع الخطأ
+        if (response.status === 401) {
+          throw new Error("لم يتم العثور على API key - يرجى إضافتها في ملف .env.local");
+        } else if (response.status === 503) {
+          throw new Error("فشل الاتصال بخادم AI - تحقق من الاتصال بالإنترنت");
+        } else if (response.status === 504) {
+          throw new Error("تم تجاوز الحد الزمني - حاول بنص أقصر");
+        } else if (response.status === 429) {
+          throw new Error("تم تجاوز الحد المسموح من الطلبات - يرجى المحاولة لاحقاً");
+        } else {
+          throw new Error(`خطأ في الخادم: ${response.status}`);
+        }
       }
 
       const { result: debateResult } = await response.json();
@@ -380,10 +392,11 @@ export default function BrainStormContent() {
           },
         ]);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(`❌ فشل في تنفيذ النقاش: ${errorMessage}. تأكد من إضافة GEMINI_API_KEY في .env.local`);
-      console.error("[BrainStorm] Debate error:", err);
+    } catch (error) {
+      console.error("[BrainStorm] Debate error:", error);
+      // تحديث رسالة الخطأ الرئيسية
+      const errorMessage = error instanceof Error ? error.message : "فشل في تنفيذ النقاش";
+      setError(errorMessage);
       agents.forEach((agent) => {
         updateAgentState(agent.id, { status: "error", lastMessage: "فشل" });
       });
