@@ -155,6 +155,10 @@ export function getAppById(id: string): PlatformApp | undefined {
 }
 
 export function getAppsByCategory(category: PlatformApp["category"]): PlatformApp[] {
+  return platformApps.filter(app => app.category === category);
+}
+
+export function getEnabledAppsByCategory(category: PlatformApp["category"]): PlatformApp[] {
   return platformApps.filter(app => app.category === category && app.enabled);
 }
 

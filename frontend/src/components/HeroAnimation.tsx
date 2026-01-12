@@ -23,7 +23,7 @@ interface HeroAnimationProps {
   onContinue?: () => void;
 }
 
-export const HeroAnimation = ({ onContinue }: HeroAnimationProps = {}) => {
+export const HeroAnimation = ({ onContinue }: HeroAnimationProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
   const [introOpen, setIntroOpen] = useState(false)
