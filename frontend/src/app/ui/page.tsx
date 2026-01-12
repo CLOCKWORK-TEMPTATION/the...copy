@@ -17,7 +17,7 @@ const APP_MAPPING: Record<number, { route: string; label: string; ready: boolean
   3: { route: "/arabic-prompt-engineering-studio", label: "هندسة التلقين", ready: true },
   4: { route: "/actorai-arabic", label: "الممثل الذكي", ready: true },
   7: { route: "/breakdown", label: "تحليل المشهد", ready: true },
-  8: { route: "/brain-storm-ai", label: "العصف الذهني", ready: true },
+  8: { route: "/BUDGET", label: "الميزانية", ready: true },
   11: { route: "/metrics-dashboard", label: "لوحة التحليلات", ready: true },
   12: { route: "/analysis", label: "التحليل الدرامي", ready: true },
   13: { route: "/new", label: "مشروع جديد", ready: true },
