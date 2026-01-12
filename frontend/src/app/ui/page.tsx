@@ -10,14 +10,14 @@ const CENTER_CELLS = [5, 6, 9, 10]
 const GRID_CENTER_START_INDEX = 5
 
 // Mapping for the 12 surrounding grid cells (indices 0-15, excluding 5, 6, 9, 10)
-const APP_MAPPING: Record<number, { route: string; label: string; ready: boolean }> = {
+const APP_MAPPING: Record<number, { route: string; label: string; ready: boolean; description?: string }> = {
   0: { route: "/directors-studio", label: "رؤية المخرج", ready: true },
   1: { route: "/cinematography-studio", label: "التصوير السينمائي", ready: true },
   2: { route: "/arabic-creative-writing-studio", label: "الكتابة الإبداعية", ready: true },
   3: { route: "/arabic-prompt-engineering-studio", label: "هندسة التلقين", ready: true },
   4: { route: "/actorai-arabic", label: "الممثل الذكي", ready: true },
   7: { route: "/breakdown", label: "تحليل المشهد", ready: true },
-  8: { route: "/brain-storm-ai", label: "العصف الذهني", ready: true },
+  8: { route: "/brain-storm-ai", label: "🧠 العصف الذهني الذكي", ready: true, description: "28 وكيل ذكي للتطوير الإبداعي" },
   11: { route: "/metrics-dashboard", label: "لوحة التحليلات", ready: true },
   12: { route: "/analysis", label: "التحليل الدرامي", ready: true },
   13: { route: "/new", label: "مشروع جديد", ready: true },
@@ -112,6 +112,11 @@ export default function UILauncherPage() {
                   <div className="text-xs md:text-sm font-bold text-white mb-0.5 drop-shadow-lg transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
                     {appData.label}
                   </div>
+                  {appData.description && (
+                    <div className="text-[8px] md:text-[10px] text-white/80 mb-1 opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                      {appData.description}
+                    </div>
+                  )}
                   <div className="text-[8px] md:text-xs text-[#FFD700] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 uppercase tracking-widest font-medium">
                     فتح التطبيق
                   </div>
