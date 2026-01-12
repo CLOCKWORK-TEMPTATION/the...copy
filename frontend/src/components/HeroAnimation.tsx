@@ -19,7 +19,11 @@ const HERO_CARD_IMAGE_STYLES: Record<string, CSSProperties> = {
   },
 }
 
-export const HeroAnimation = () => {
+interface HeroAnimationProps {
+  onContinue?: () => void;
+}
+
+export const HeroAnimation = ({ onContinue }: HeroAnimationProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
   const [introOpen, setIntroOpen] = useState(false)
@@ -134,15 +138,26 @@ export const HeroAnimation = () => {
 
       {/* CTA / UX Hint */}
       <div className="hero-cta fixed bottom-6 left-0 right-0 z-[10020] flex flex-col items-center gap-3 opacity-0 pointer-events-none">
-        <button
-          onClick={() => setIntroOpen(true)}
-          className="pointer-events-auto inline-flex items-center justify-center rounded-full px-6 py-3 text-sm md:text-base font-semibold bg-white/10 hover:bg-white/15 active:bg-white/20 border border-white/15 hover:border-[#FFD700]/30 backdrop-blur-md cursor-pointer transition-all duration-300 group relative overflow-hidden"
-          aria-label="شاهد الفيديو التعريفي"
-        >
-          {/* Shimmer effect on hover */}
-          <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          <span className="relative">اضغط على الفيديو</span>
-        </button>
+        <div className="flex flex-col md:flex-row gap-3 items-center">
+          <button
+            onClick={() => setIntroOpen(true)}
+            className="pointer-events-auto inline-flex items-center justify-center rounded-full px-6 py-3 text-sm md:text-base font-semibold bg-white/10 hover:bg-white/15 active:bg-white/20 border border-white/15 hover:border-[#FFD700]/30 backdrop-blur-md cursor-pointer transition-all duration-300 group relative overflow-hidden"
+            aria-label="شاهد الفيديو التعريفي"
+          >
+            {/* Shimmer effect on hover */}
+            <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <span className="relative">اضغط على الفيديو</span>
+          </button>
+          {onContinue && (
+            <button
+              onClick={onContinue}
+              className="pointer-events-auto inline-flex items-center justify-center rounded-full px-8 py-3 text-sm md:text-base font-semibold bg-white text-black hover:bg-white/90 active:bg-white/80 cursor-pointer transition-all duration-300 group relative overflow-hidden shadow-lg"
+              aria-label="استكشف التطبيقات"
+            >
+              <span className="relative">استكشف التطبيقات ←</span>
+            </button>
+          )}
+        </div>
         <div className="text-xs md:text-sm text-white/60 tracking-wider">
           اضغط على الكروت لفتح الأدوات
         </div>
