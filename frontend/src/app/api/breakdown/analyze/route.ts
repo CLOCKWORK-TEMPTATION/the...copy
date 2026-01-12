@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
     }
 
     // إذا لم يكن هناك backend، استخدم Gemini مباشرة
-    const { geminiService } = await import("@/app/(main)/breakdown/services/geminiService");
-    const result = await geminiService.analyzeScript(script);
+    const { analyzeScene } = await import("@/app/(main)/breakdown/services/geminiService");
+    const result = await analyzeScene(script);
 
     return NextResponse.json({
       success: true,
