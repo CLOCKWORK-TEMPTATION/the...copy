@@ -14,7 +14,7 @@ const APP_MAPPING: Record<number, { route: string; label: string; ready: boolean
   0: { route: "/directors-studio", label: "رؤية المخرج", ready: true },
   1: { route: "/cinematography-studio", label: "التصوير السينمائي", ready: true },
   2: { route: "/arabic-creative-writing-studio", label: "الكتابة الإبداعية", ready: true },
-  3: { route: "/arabic-prompt-engineering-studio", label: "هندسة التلقين", ready: true },
+  3: { route: "/styleIST", label: "مصمم الأزياء السينمائي", ready: true },
   4: { route: "/actorai-arabic", label: "الممثل الذكي", ready: true },
   7: { route: "/breakdown", label: "تحليل المشهد", ready: true },
   8: { route: "/BUDGET", label: "الميزانية", ready: true },
