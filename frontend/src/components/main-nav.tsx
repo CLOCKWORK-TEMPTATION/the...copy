@@ -10,6 +10,7 @@ import {
   Sparkles,
   Rocket,
   Film,
+  Camera,
 } from "lucide-react";
 import {
   SidebarMenu,
@@ -32,6 +33,11 @@ const menuItems = [
     href: "/directors-studio",
     label: "استوديو الإخراج",
     icon: Film,
+  },
+  {
+    href: "/cinematography-studio",
+    label: "استوديو السينما",
+    icon: Camera,
   },
   {
     href: "/analysis",
