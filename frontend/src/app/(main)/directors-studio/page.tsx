@@ -6,7 +6,7 @@ import { LoadingSection } from "@/app/(main)/directors-studio/components/Loading
 import {
   useProjectScenes,
   useProjectCharacters,
-} from "@/app/(main)/directors-studio/hooks/useProject";
+} from "@/hooks/useProject";
 import { getCurrentProject } from "@/lib/projectStore";
 import {
   hasActiveProject,
