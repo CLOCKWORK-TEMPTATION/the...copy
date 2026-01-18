@@ -15,6 +15,8 @@ jobs:
   coverage-frontend:
     name: 📊 Frontend Coverage Check
     runs-on: ubuntu-latest
+    # Only run on the original repository
+    if: github.repository == 'CLOCKWORK-TEMPTATION/the...copy'
     permissions:
       checks: write
       pull-requests: write
