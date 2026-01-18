@@ -12,8 +12,8 @@
 
 يقوم بتشغيل نظام النقاش المتعدد بين الوكلاء لتحليل وتطوير الأفكار الإبداعية.
 
-**URL**: `/api/brainstorm`  
-**Method**: `POST`  
+**URL**: `/api/brainstorm`
+**Method**: `POST`
 **Content-Type**: `application/json`
 
 ---
@@ -240,7 +240,7 @@
 }
 ```
 
-**الحل**: 
+**الحل**:
 - قلل من طول النص المدخل
 - قلل عدد الوكلاء المشاركين
 - جرب المرحلة مرة أخرى
@@ -447,17 +447,17 @@ async function brainstormWithRetry(request, maxRetries = 3) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request)
       });
-      
+
       if (response.ok) {
         return await response.json();
       }
-      
+
       if (response.status === 429) {
         // Rate limited - انتظر وأعد المحاولة
         await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
         continue;
       }
-      
+
       throw new Error(`API error: ${response.status}`);
     } catch (error) {
       if (i === maxRetries - 1) throw error;
@@ -491,6 +491,6 @@ async function brainstormWithRetry(request, maxRetries = 3) {
 
 ---
 
-**آخر تحديث**: يناير 2026  
-**الإصدار**: 1.0.0  
+**آخر تحديث**: يناير 2026
+**الإصدار**: 1.0.0
 **الحالة**: ✅ مستقر
