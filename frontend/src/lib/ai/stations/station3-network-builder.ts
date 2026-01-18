@@ -243,6 +243,64 @@ export interface Station3Output {
   };
 }
 
+/**
+ * Configuration for keyword-based inference.
+ * Maps a set of keywords to a result value.
+ */
+interface KeywordMapping<T> {
+  keywords: string[];
+  value: T;
+}
+
+/**
+ * Finds the first matching value from keyword mappings, or returns the default.
+ * This replaces repetitive if/else chains with a declarative approach.
+ */
+function inferFromKeywords<T>(
+  description: string,
+  mappings: KeywordMapping<T>[],
+  defaultValue: T
+): T {
+  const desc = description.toLowerCase();
+  for (const mapping of mappings) {
+    if (mapping.keywords.some((keyword) => desc.includes(keyword))) {
+      return mapping.value;
+    }
+  }
+  return defaultValue;
+}
+
+// Declarative keyword mappings for relationship inference
+const RELATIONSHIP_TYPE_MAPPINGS: KeywordMapping<RelationshipType>[] = [
+  { keywords: ["أسرة", "أب", "أم", "أخ", "أخت"], value: RelationshipType.FAMILY },
+  { keywords: ["صديق", "رفاق"], value: RelationshipType.FRIENDSHIP },
+  { keywords: ["حب", "علاقة عاطفية", "زواج"], value: RelationshipType.ROMANTIC },
+  { keywords: ["عمل", "زميل", "مدير"], value: RelationshipType.PROFESSIONAL },
+  { keywords: ["عدو", "خصم", "منافس"], value: RelationshipType.ANTAGONISTIC },
+  { keywords: ["معلم", "تلميذ", "مرشد"], value: RelationshipType.MENTORSHIP },
+];
+
+const RELATIONSHIP_NATURE_MAPPINGS: KeywordMapping<RelationshipNature>[] = [
+  { keywords: ["إيجابي", "داعم", "جيد"], value: RelationshipNature.POSITIVE },
+  { keywords: ["سلبي", "معادي", "سيء"], value: RelationshipNature.NEGATIVE },
+  { keywords: ["متغير", "متبدل", "غير مستقر"], value: RelationshipNature.VOLATILE },
+];
+
+const RELATIONSHIP_DIRECTION_MAPPINGS: KeywordMapping<RelationshipDirection>[] = [
+  { keywords: ["أثر", "يسيطر", "يؤثر على"], value: RelationshipDirection.UNIDIRECTIONAL },
+];
+
+interface StrengthMapping {
+  keywords: string[];
+  value: number;
+}
+
+const RELATIONSHIP_STRENGTH_MAPPINGS: StrengthMapping[] = [
+  { keywords: ["قوي جداً", "عميق", "وثيق"], value: 9 },
+  { keywords: ["قوي", "مهم"], value: 7 },
+  { keywords: ["ضعيف", "سطحي"], value: 3 },
+];
+
 class RelationshipInferenceEngine {
   constructor(private geminiService: GeminiService) {}
 
@@ -365,105 +423,31 @@ class RelationshipInferenceEngine {
   }
 
   private inferRelationshipType(description: string): RelationshipType {
-    const desc = description.toLowerCase();
-
-    if (
-      desc.includes("أسرة") ||
-      desc.includes("أب") ||
-      desc.includes("أم") ||
-      desc.includes("أخ") ||
-      desc.includes("أخت")
-    ) {
-      return RelationshipType.FAMILY;
-    } else if (desc.includes("صديق") || desc.includes("رفاق")) {
-      return RelationshipType.FRIENDSHIP;
-    } else if (
-      desc.includes("حب") ||
-      desc.includes("علاقة عاطفية") ||
-      desc.includes("زواج")
-    ) {
-      return RelationshipType.ROMANTIC;
-    } else if (
-      desc.includes("عمل") ||
-      desc.includes("زميل") ||
-      desc.includes("مدير")
-    ) {
-      return RelationshipType.PROFESSIONAL;
-    } else if (
-      desc.includes("عدو") ||
-      desc.includes("خصم") ||
-      desc.includes("منافس")
-    ) {
-      return RelationshipType.ANTAGONISTIC;
-    } else if (
-      desc.includes("معلم") ||
-      desc.includes("تلميذ") ||
-      desc.includes("مرشد")
-    ) {
-      return RelationshipType.MENTORSHIP;
-    }
-
-    return RelationshipType.OTHER;
+    return inferFromKeywords(
+      description,
+      RELATIONSHIP_TYPE_MAPPINGS,
+      RelationshipType.OTHER
+    );
   }
 
   private inferRelationshipNature(description: string): RelationshipNature {
-    const desc = description.toLowerCase();
-
-    if (
-      desc.includes("إيجابي") ||
-      desc.includes("داعم") ||
-      desc.includes("جيد")
-    ) {
-      return RelationshipNature.POSITIVE;
-    } else if (
-      desc.includes("سلبي") ||
-      desc.includes("معادي") ||
-      desc.includes("سيء")
-    ) {
-      return RelationshipNature.NEGATIVE;
-    } else if (
-      desc.includes("متغير") ||
-      desc.includes("متبدل") ||
-      desc.includes("غير مستقر")
-    ) {
-      return RelationshipNature.VOLATILE;
-    }
-
-    return RelationshipNature.NEUTRAL;
+    return inferFromKeywords(
+      description,
+      RELATIONSHIP_NATURE_MAPPINGS,
+      RelationshipNature.NEUTRAL
+    );
   }
 
-  private inferRelationshipDirection(
-    description: string
-  ): RelationshipDirection {
-    const desc = description.toLowerCase();
-
-    if (
-      desc.includes("أثر") ||
-      desc.includes("يسيطر") ||
-      desc.includes("يؤثر على")
-    ) {
-      return RelationshipDirection.UNIDIRECTIONAL;
-    }
-
-    return RelationshipDirection.BIDIRECTIONAL;
+  private inferRelationshipDirection(description: string): RelationshipDirection {
+    return inferFromKeywords(
+      description,
+      RELATIONSHIP_DIRECTION_MAPPINGS,
+      RelationshipDirection.BIDIRECTIONAL
+    );
   }
 
   private inferRelationshipStrength(description: string): number {
-    const desc = description.toLowerCase();
-
-    if (
-      desc.includes("قوي جداً") ||
-      desc.includes("عميق") ||
-      desc.includes("وثيق")
-    ) {
-      return 9;
-    } else if (desc.includes("قوي") || desc.includes("مهم")) {
-      return 7;
-    } else if (desc.includes("ضعيف") || desc.includes("سطحي")) {
-      return 3;
-    }
-
-    return 5; // متوسط
+    return inferFromKeywords(description, RELATIONSHIP_STRENGTH_MAPPINGS, 5);
   }
 
   private extractTriggers(description: string): string[] {
@@ -531,6 +515,28 @@ class RelationshipInferenceEngine {
     };
   }
 }
+
+// Declarative keyword mappings for conflict inference
+const CONFLICT_SUBJECT_MAPPINGS: KeywordMapping<ConflictSubject>[] = [
+  { keywords: ["حب", "علاقة", "زواج"], value: ConflictSubject.RELATIONSHIP },
+  { keywords: ["سلطة", "سيطرة", "حكم"], value: ConflictSubject.POWER },
+  { keywords: ["معتقد", "رأي", "فكر"], value: ConflictSubject.IDEOLOGY },
+  { keywords: ["مورد", "مال", "كنز"], value: ConflictSubject.RESOURCES },
+  { keywords: ["معلومات", "سر", "حقيقة"], value: ConflictSubject.INFORMATION },
+  { keywords: ["مكان", "أرض", "منزل"], value: ConflictSubject.TERRITORY },
+  { keywords: ["شرف", "كرامة", "سمعة"], value: ConflictSubject.HONOR },
+];
+
+const CONFLICT_SCOPE_MAPPINGS: KeywordMapping<ConflictScope>[] = [
+  { keywords: ["عالم", "مجتمع", "دولة"], value: ConflictScope.SOCIETAL },
+  { keywords: ["مجموعة", "فريق", "عائلة"], value: ConflictScope.GROUP },
+];
+
+const CONFLICT_STRENGTH_MAPPINGS: StrengthMapping[] = [
+  { keywords: ["شديد", "عنيف", "خطير"], value: 8 },
+  { keywords: ["معتدل", "متوسط"], value: 5 },
+  { keywords: ["خفيف", "بسيط"], value: 3 },
+];
 
 class ConflictInferenceEngine {
   constructor(private geminiService: GeminiService) {}
@@ -831,91 +837,23 @@ class ConflictInferenceEngine {
   }
 
   private inferConflictSubject(description: string): ConflictSubject {
-    const desc = description.toLowerCase();
-
-    if (
-      desc.includes("حب") ||
-      desc.includes("علاقة") ||
-      desc.includes("زواج")
-    ) {
-      return ConflictSubject.RELATIONSHIP;
-    } else if (
-      desc.includes("سلطة") ||
-      desc.includes("سيطرة") ||
-      desc.includes("حكم")
-    ) {
-      return ConflictSubject.POWER;
-    } else if (
-      desc.includes("معتقد") ||
-      desc.includes("رأي") ||
-      desc.includes("فكر")
-    ) {
-      return ConflictSubject.IDEOLOGY;
-    } else if (
-      desc.includes("مورد") ||
-      desc.includes("مال") ||
-      desc.includes("كنز")
-    ) {
-      return ConflictSubject.RESOURCES;
-    } else if (
-      desc.includes("معلومات") ||
-      desc.includes("سر") ||
-      desc.includes("حقيقة")
-    ) {
-      return ConflictSubject.INFORMATION;
-    } else if (
-      desc.includes("مكان") ||
-      desc.includes("أرض") ||
-      desc.includes("منزل")
-    ) {
-      return ConflictSubject.TERRITORY;
-    } else if (
-      desc.includes("شرف") ||
-      desc.includes("كرامة") ||
-      desc.includes("سمعة")
-    ) {
-      return ConflictSubject.HONOR;
-    }
-
-    return ConflictSubject.OTHER;
+    return inferFromKeywords(
+      description,
+      CONFLICT_SUBJECT_MAPPINGS,
+      ConflictSubject.OTHER
+    );
   }
 
   private inferConflictScope(description: string): ConflictScope {
-    const desc = description.toLowerCase();
-
-    if (
-      desc.includes("عالم") ||
-      desc.includes("مجتمع") ||
-      desc.includes("دولة")
-    ) {
-      return ConflictScope.SOCIETAL;
-    } else if (
-      desc.includes("مجموعة") ||
-      desc.includes("فريق") ||
-      desc.includes("عائلة")
-    ) {
-      return ConflictScope.GROUP;
-    }
-
-    return ConflictScope.PERSONAL;
+    return inferFromKeywords(
+      description,
+      CONFLICT_SCOPE_MAPPINGS,
+      ConflictScope.PERSONAL
+    );
   }
 
   private inferConflictStrength(description: string): number {
-    const desc = description.toLowerCase();
-
-    if (
-      desc.includes("شديد") ||
-      desc.includes("عنيف") ||
-      desc.includes("خطير")
-    ) {
-      return 8;
-    } else if (desc.includes("معتدل") || desc.includes("متوسط")) {
-      return 5;
-    } else if (desc.includes("خفيف") || desc.includes("بسيط")) {
-      return 3;
-    }
-
-    return 6; // افتراضي
+    return inferFromKeywords(description, CONFLICT_STRENGTH_MAPPINGS, 6);
   }
 
   private buildConflictContext(
