@@ -125,6 +125,13 @@ const HALLUCINATION_INDICATORS = [
 ];
 
 // ============================================
+// TYPE DEFINITIONS FOR INTERNAL USE
+// ============================================
+
+type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
+type CheckContext = { userId?: string; requestType?: string };
+
+// ============================================
 // MAIN SERVICE CLASS
 // ============================================
 
@@ -141,34 +148,20 @@ export class LLMGuardrailsService {
   private readonly MAX_RECENT_VIOLATIONS = 100;
   private readonly MAX_CONTENT_LENGTH = 100000; // 100KB max
 
-  /**
-   * Validates input text for prompt injection attacks and other security issues
-   */
-  checkInput(content: string, context?: { userId?: string; requestType?: string }): GuardrailResult {
-    this.metrics.totalRequests++;
-    
-    const violations: GuardrailViolation[] = [];
-    const warnings: string[] = [];
-    
-    // Check content length
-    if (content.length > this.MAX_CONTENT_LENGTH) {
-      violations.push({
-        type: 'other',
-        severity: 'high',
-        description: `Content too large (${content.length} characters, max ${this.MAX_CONTENT_LENGTH})`,
-      });
-    }
+  // ============================================
+  // PATTERN MATCHING HELPERS
+  // ============================================
 
-    // Check for prompt injection patterns
-    // Limit content length to prevent ReDoS attacks
+  /**
+   * Matches content against banned prompt injection patterns
+   */
+  private detectPromptInjections(content: string): GuardrailViolation[] {
     const contentToCheck = content.substring(0, MAX_PATTERN_CHECK_LENGTH);
+    const violations: GuardrailViolation[] = [];
 
     for (const pattern of BANNED_PATTERNS) {
       try {
-        // Reset lastIndex for global patterns
-        if (pattern instanceof RegExp) {
-          pattern.lastIndex = 0;
-        }
+        pattern.lastIndex = 0;
         const matches = contentToCheck.match(pattern);
         if (matches) {
           violations.push({
@@ -184,7 +177,15 @@ export class LLMGuardrailsService {
       }
     }
 
-    // Check for suspicious patterns
+    return violations;
+  }
+
+  /**
+   * Detects suspicious patterns and returns warnings
+   */
+  private detectSuspiciousPatterns(content: string): string[] {
+    const warnings: string[] = [];
+
     for (const pattern of SUSPICIOUS_PATTERNS) {
       const matches = content.match(pattern);
       if (matches && matches.length > 5) {
@@ -192,117 +193,117 @@ export class LLMGuardrailsService {
       }
     }
 
-    // Determine risk level
-    const hasCriticalViolation = violations.some(v => v.severity === 'critical');
-    const hasHighViolation = violations.some(v => v.severity === 'high');
-    const hasMediumViolation = violations.some(v => v.severity === 'medium');
-
-    let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
-    if (hasCriticalViolation) {
-      riskLevel = 'critical';
-    } else if (hasHighViolation) {
-      riskLevel = 'high';
-    } else if (hasMediumViolation || warnings.length > 0) {
-      riskLevel = 'medium';
-    }
-
-    const isAllowed = riskLevel !== 'critical' && riskLevel !== 'high';
-
-    // Record violations
-    this.recordViolations(violations);
-    
-    if (!isAllowed) {
-      this.metrics.blockedRequests++;
-      logger.warn('LLM Input blocked by guardrails', {
-        userId: context?.userId,
-        requestType: context?.requestType,
-        violations: violations.length,
-        riskLevel,
-      });
-
-      Sentry.captureException(new Error('Input validation failed'), {
-        extra: {
-          violations,
-          input: content.substring(0, 500),
-          riskLevel,
-          context,
-        },
-      });
-    }
-
-    return {
-      isAllowed,
-      riskLevel,
-      violations,
-      warnings,
-    };
+    return warnings;
   }
 
   /**
-   * Sanitizes output text to remove PII, harmful content, and hallucinations
+   * Detects harmful content patterns
    */
-  checkOutput(content: string, context?: { userId?: string; requestType?: string }): GuardrailResult {
+  private detectHarmfulContent(content: string): GuardrailViolation[] {
     const violations: GuardrailViolation[] = [];
-    const warnings: string[] = [];
-    let sanitizedContent = content;
 
-    // Detect and mask PII
-    const piiDetections = this.detectPII(content);
-    if (piiDetections.length > 0) {
-      violations.push({
-        type: 'pii',
-        severity: 'high',
-        description: `Detected ${piiDetections.length} pieces of personal information`,
-        matches: piiDetections.map(p => p.value),
-      });
-
-      // Sanitize PII
-      sanitizedContent = this.sanitizePII(content, piiDetections);
-    }
-
-    // Detect harmful content
     for (const pattern of HARMFUL_CONTENT_PATTERNS) {
       const matches = content.match(pattern);
       if (matches) {
         violations.push({
           type: 'harmful_content',
           severity: 'medium',
-          description: `Potentially harmful content detected`,
+          description: 'Potentially harmful content detected',
           pattern: pattern.source,
           matches,
         });
       }
     }
 
-    // Detect hallucination indicators
-    const hallucinationMatches = content.match(new RegExp(HALLUCINATION_INDICATORS.join('|'), 'gi'));
-    if (hallucinationMatches) {
-      warnings.push(`Potential hallucination indicators detected: ${hallucinationMatches.length}`);
-    }
+    return violations;
+  }
 
-    // Determine risk level
-    const hasHighViolation = violations.some(v => v.severity === 'high');
-    const hasMediumViolation = violations.some(v => v.severity === 'medium');
+  /**
+   * Detects hallucination indicator phrases
+   */
+  private detectHallucinationIndicators(content: string): string | null {
+    const hallucinationPattern = new RegExp(HALLUCINATION_INDICATORS.join('|'), 'gi');
+    const matches = content.match(hallucinationPattern);
 
-    let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
-    if (hasHighViolation) {
-      riskLevel = 'high';
-    } else if (hasMediumViolation || warnings.length > 0) {
-      riskLevel = 'medium';
-    }
+    return matches
+      ? `Potential hallucination indicators detected: ${matches.length}`
+      : null;
+  }
 
-    const isAllowed = true; // Output sanitization doesn't block, just sanitizes
+  // ============================================
+  // RISK LEVEL DETERMINATION
+  // ============================================
 
-    // Record violations
-    this.recordViolations(violations);
+  /**
+   * Determines the overall risk level from violations and warnings
+   */
+  private determineRiskLevel(violations: GuardrailViolation[], warnings: string[]): RiskLevel {
+    const severities = violations.map(v => v.severity);
 
+    if (severities.includes('critical')) return 'critical';
+    if (severities.includes('high')) return 'high';
+    if (severities.includes('medium') || warnings.length > 0) return 'medium';
+    return 'low';
+  }
+
+  /**
+   * Checks if the given risk level should block the request
+   */
+  private shouldBlock(riskLevel: RiskLevel): boolean {
+    return riskLevel === 'critical' || riskLevel === 'high';
+  }
+
+  // ============================================
+  // LOGGING AND REPORTING HELPERS
+  // ============================================
+
+  /**
+   * Reports a blocked input to logs and Sentry
+   */
+  private reportBlockedInput(
+    content: string,
+    violations: GuardrailViolation[],
+    riskLevel: RiskLevel,
+    context?: CheckContext
+  ): void {
+    this.metrics.blockedRequests++;
+
+    logger.warn('LLM Input blocked by guardrails', {
+      userId: context?.userId,
+      requestType: context?.requestType,
+      violations: violations.length,
+      riskLevel,
+    });
+
+    Sentry.captureException(new Error('Input validation failed'), {
+      extra: {
+        violations,
+        input: content.substring(0, 500),
+        riskLevel,
+        context,
+      },
+    });
+  }
+
+  /**
+   * Reports output processing results to logs and Sentry
+   */
+  private reportOutputProcessing(
+    content: string,
+    sanitizedContent: string,
+    violations: GuardrailViolation[],
+    warnings: string[],
+    riskLevel: RiskLevel,
+    piiDetected: boolean,
+    context?: CheckContext
+  ): void {
     logger.info('LLM Output processed by guardrails', {
       userId: context?.userId,
       requestType: context?.requestType,
       violations: violations.length,
       warnings: warnings.length,
       riskLevel,
-      piiDetected: piiDetections.length > 0,
+      piiDetected,
     });
 
     if (violations.length > 0) {
@@ -317,12 +318,95 @@ export class LLMGuardrailsService {
         },
       });
     }
+  }
+
+  // ============================================
+  // PUBLIC API METHODS
+  // ============================================
+
+  /**
+   * Validates input text for prompt injection attacks and other security issues
+   */
+  checkInput(content: string, context?: CheckContext): GuardrailResult {
+    this.metrics.totalRequests++;
+
+    const violations: GuardrailViolation[] = [];
+    const warnings: string[] = [];
+
+    // Check content length
+    if (content.length > this.MAX_CONTENT_LENGTH) {
+      violations.push({
+        type: 'other',
+        severity: 'high',
+        description: `Content too large (${content.length} characters, max ${this.MAX_CONTENT_LENGTH})`,
+      });
+    }
+
+    // Detect prompt injections
+    violations.push(...this.detectPromptInjections(content));
+
+    // Detect suspicious patterns
+    warnings.push(...this.detectSuspiciousPatterns(content));
+
+    // Determine risk and whether to block
+    const riskLevel = this.determineRiskLevel(violations, warnings);
+    const isAllowed = !this.shouldBlock(riskLevel);
+
+    // Record metrics and report if blocked
+    this.recordViolations(violations);
+
+    if (!isAllowed) {
+      this.reportBlockedInput(content, violations, riskLevel, context);
+    }
+
+    return { isAllowed, riskLevel, violations, warnings };
+  }
+
+  /**
+   * Sanitizes output text to remove PII, harmful content, and hallucinations
+   */
+  checkOutput(content: string, context?: CheckContext): GuardrailResult {
+    const violations: GuardrailViolation[] = [];
+    const warnings: string[] = [];
+    let sanitizedContent = content;
+
+    // Detect and sanitize PII
+    const piiDetections = this.detectPII(content);
+    if (piiDetections.length > 0) {
+      violations.push({
+        type: 'pii',
+        severity: 'high',
+        description: `Detected ${piiDetections.length} pieces of personal information`,
+        matches: piiDetections.map(p => p.value),
+      });
+      sanitizedContent = this.sanitizePII(content, piiDetections);
+    }
+
+    // Detect harmful content
+    violations.push(...this.detectHarmfulContent(content));
+
+    // Detect hallucination indicators
+    const hallucinationWarning = this.detectHallucinationIndicators(content);
+    if (hallucinationWarning) {
+      warnings.push(hallucinationWarning);
+    }
+
+    // Determine risk level (output sanitization doesn't block, just sanitizes)
+    const riskLevel = this.determineRiskLevel(violations, warnings);
+    const isAllowed = true;
+    const piiDetected = piiDetections.length > 0;
+
+    // Record metrics and report
+    this.recordViolations(violations);
+    this.reportOutputProcessing(
+      content, sanitizedContent, violations, warnings, riskLevel, piiDetected, context
+    );
 
     return {
       isAllowed,
       riskLevel,
       violations,
-      sanitizedContent: piiDetections.length > 0 ? sanitizedContent : content,
+      sanitizedContent: piiDetected ? sanitizedContent : content,
       warnings,
     };
   }
