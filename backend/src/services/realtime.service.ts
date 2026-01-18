@@ -46,6 +46,28 @@ export interface BroadcastOptions {
 }
 
 /**
+ * Log level type for consistent logging
+ */
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+/**
+ * Payload with optional queue and user routing (used for routing purposes)
+ */
+interface JobRoutablePayload {
+  queueName?: string;
+  userId?: string;
+}
+
+/**
+ * Payload with optional project, analysis, and user routing (used for routing purposes)
+ */
+interface AnalysisRoutablePayload {
+  analysisId?: string;
+  projectId?: string;
+  userId?: string;
+}
+
+/**
  * Unified Real-time Service
  * Provides a single interface to broadcast events via WebSocket and SSE
  */
@@ -154,6 +176,72 @@ class RealtimeService {
     this.toRoom(queueRoom, event, options);
   }
 
+  // ============================================================================
+  // Private Helper Methods - Consolidate repetitive routing and logging logic
+  // ============================================================================
+
+  /**
+   * Route event to queue and user based on payload properties
+   */
+  private routeJobEvent<T extends RealtimePayload>(
+    event: RealtimeEvent<T>,
+    payload: JobRoutablePayload,
+    options: BroadcastOptions
+  ): void {
+    if (payload.queueName) {
+      this.toQueue(payload.queueName, event, options);
+    }
+    if (payload.userId) {
+      this.toUser(payload.userId, event, options);
+    }
+  }
+
+  /**
+   * Route event to project, analysis room, and user based on payload properties
+   */
+  private routeAnalysisEvent<T extends RealtimePayload>(
+    event: RealtimeEvent<T>,
+    payload: AnalysisRoutablePayload,
+    options: BroadcastOptions
+  ): void {
+    if (payload.projectId) {
+      this.toProject(payload.projectId, event, options);
+    }
+    if (payload.analysisId) {
+      this.toRoom(`analysis:${payload.analysisId}`, event, options);
+    }
+    if (payload.userId) {
+      this.toUser(payload.userId, event, options);
+    }
+  }
+
+  /**
+   * Route system event based on options (user > room > broadcast)
+   */
+  private routeSystemEvent<T extends RealtimePayload>(
+    event: RealtimeEvent<T>,
+    options: BroadcastOptions
+  ): void {
+    if (options.userId) {
+      this.toUser(options.userId, event, options);
+    } else if (options.room) {
+      this.toRoom(options.room, event, options);
+    } else {
+      this.broadcast(event, options);
+    }
+  }
+
+  /**
+   * Log event with consistent formatting
+   */
+  private logEvent(level: LogLevel, message: string): void {
+    logger[level](`[Realtime] ${message}`);
+  }
+
+  // ============================================================================
+  // Job Event Methods
+  // ============================================================================
+
   /**
    * Emit job started event
    */
@@ -165,18 +253,8 @@ class RealtimeService {
       RealtimeEventType.JOB_STARTED,
       payload
     );
-
-    // Send to queue room
-    if (payload.queueName) {
-      this.toQueue(payload.queueName, event, options);
-    }
-
-    // Send to user if available
-    if (payload.userId) {
-      this.toUser(payload.userId, event, options);
-    }
-
-    logger.info(`[Realtime] Job started: ${payload.jobId}`);
+    this.routeJobEvent(event, payload, options);
+    this.logEvent('info', `Job started: ${payload.jobId}`);
   }
 
   /**
@@ -190,20 +268,8 @@ class RealtimeService {
       RealtimeEventType.JOB_PROGRESS,
       payload
     );
-
-    // Send to queue room
-    if (payload.queueName) {
-      this.toQueue(payload.queueName, event, options);
-    }
-
-    // Send to user if available
-    if (payload.userId) {
-      this.toUser(payload.userId, event, options);
-    }
-
-    logger.debug(
-      `[Realtime] Job progress: ${payload.jobId} - ${payload.progress}%`
-    );
+    this.routeJobEvent(event, payload, options);
+    this.logEvent('debug', `Job progress: ${payload.jobId} - ${payload.progress}%`);
   }
 
   /**
@@ -217,20 +283,8 @@ class RealtimeService {
       RealtimeEventType.JOB_COMPLETED,
       payload
     );
-
-    // Send to queue room
-    if (payload.queueName) {
-      this.toQueue(payload.queueName, event, options);
-    }
-
-    // Send to user if available
-    if (payload.userId) {
-      this.toUser(payload.userId, event, options);
-    }
-
-    logger.info(
-      `[Realtime] Job completed: ${payload.jobId} in ${payload.duration}ms`
-    );
+    this.routeJobEvent(event, payload, options);
+    this.logEvent('info', `Job completed: ${payload.jobId} in ${payload.duration}ms`);
   }
 
   /**
@@ -244,21 +298,13 @@ class RealtimeService {
       RealtimeEventType.JOB_FAILED,
       payload
     );
-
-    // Send to queue room
-    if (payload.queueName) {
-      this.toQueue(payload.queueName, event, options);
-    }
-
-    // Send to user if available
-    if (payload.userId) {
-      this.toUser(payload.userId, event, options);
-    }
-
-    logger.error(
-      `[Realtime] Job failed: ${payload.jobId} - ${payload.error}`
-    );
+    this.routeJobEvent(event, payload, options);
+    this.logEvent('error', `Job failed: ${payload.jobId} - ${payload.error}`);
   }
+
+  // ============================================================================
+  // Analysis Event Methods
+  // ============================================================================
 
   /**
    * Emit analysis progress event
@@ -271,24 +317,8 @@ class RealtimeService {
       RealtimeEventType.ANALYSIS_PROGRESS,
       payload
     );
-
-    // Send to project room
-    if (payload.projectId) {
-      this.toProject(payload.projectId, event, options);
-    }
-
-    // Send to analysis-specific room
-    const analysisRoom = `analysis:${payload.analysisId}`;
-    this.toRoom(analysisRoom, event, options);
-
-    // Send to user if available
-    if (payload.userId) {
-      this.toUser(payload.userId, event, options);
-    }
-
-    logger.debug(
-      `[Realtime] Analysis progress: ${payload.analysisId} - Station ${payload.currentStation}/${payload.totalStations}`
-    );
+    this.routeAnalysisEvent(event, payload, options);
+    this.logEvent('debug', `Analysis progress: ${payload.analysisId} - Station ${payload.currentStation}/${payload.totalStations}`);
   }
 
   /**
@@ -302,24 +332,32 @@ class RealtimeService {
       RealtimeEventType.ANALYSIS_STATION_COMPLETED,
       payload
     );
+    this.routeAnalysisEvent(event, payload, options);
+    this.logEvent('info', `Station completed: ${payload.stationName} in ${payload.duration}ms`);
+  }
 
-    // Send to project room
-    if (payload.projectId) {
-      this.toProject(payload.projectId, event, options);
-    }
+  // ============================================================================
+  // System Event Methods
+  // ============================================================================
 
-    // Send to analysis-specific room
-    const analysisRoom = `analysis:${payload.analysisId}`;
-    this.toRoom(analysisRoom, event, options);
-
-    // Send to user if available
-    if (payload.userId) {
-      this.toUser(payload.userId, event, options);
-    }
-
-    logger.info(
-      `[Realtime] Station completed: ${payload.stationName} in ${payload.duration}ms`
-    );
+  /**
+   * Emit system event with specified level
+   */
+  private emitSystemEvent(
+    eventType: RealtimeEventType,
+    level: 'info' | 'warning' | 'error',
+    message: string,
+    details?: any,
+    options: BroadcastOptions = {}
+  ): void {
+    const event = createRealtimeEvent<SystemEventPayload>(eventType, {
+      level,
+      message,
+      details,
+    });
+    this.routeSystemEvent(event, options);
+    const logLevel: LogLevel = level === 'warning' ? 'warn' : level;
+    this.logEvent(logLevel, `System ${level}: ${message}`);
   }
 
   /**
@@ -330,24 +368,7 @@ class RealtimeService {
     details?: any,
     options: BroadcastOptions = {}
   ): void {
-    const event = createRealtimeEvent<SystemEventPayload>(
-      RealtimeEventType.SYSTEM_INFO,
-      {
-        level: 'info',
-        message,
-        details,
-      }
-    );
-
-    if (options.userId) {
-      this.toUser(options.userId, event, options);
-    } else if (options.room) {
-      this.toRoom(options.room, event, options);
-    } else {
-      this.broadcast(event, options);
-    }
-
-    logger.info(`[Realtime] System info: ${message}`);
+    this.emitSystemEvent(RealtimeEventType.SYSTEM_INFO, 'info', message, details, options);
   }
 
   /**
@@ -358,24 +379,7 @@ class RealtimeService {
     details?: any,
     options: BroadcastOptions = {}
   ): void {
-    const event = createRealtimeEvent<SystemEventPayload>(
-      RealtimeEventType.SYSTEM_WARNING,
-      {
-        level: 'warning',
-        message,
-        details,
-      }
-    );
-
-    if (options.userId) {
-      this.toUser(options.userId, event, options);
-    } else if (options.room) {
-      this.toRoom(options.room, event, options);
-    } else {
-      this.broadcast(event, options);
-    }
-
-    logger.warn(`[Realtime] System warning: ${message}`);
+    this.emitSystemEvent(RealtimeEventType.SYSTEM_WARNING, 'warning', message, details, options);
   }
 
   /**
@@ -386,24 +390,7 @@ class RealtimeService {
     details?: any,
     options: BroadcastOptions = {}
   ): void {
-    const event = createRealtimeEvent<SystemEventPayload>(
-      RealtimeEventType.SYSTEM_ERROR,
-      {
-        level: 'error',
-        message,
-        details,
-      }
-    );
-
-    if (options.userId) {
-      this.toUser(options.userId, event, options);
-    } else if (options.room) {
-      this.toRoom(options.room, event, options);
-    } else {
-      this.broadcast(event, options);
-    }
-
-    logger.error(`[Realtime] System error: ${message}`);
+    this.emitSystemEvent(RealtimeEventType.SYSTEM_ERROR, 'error', message, details, options);
   }
 
   /**
