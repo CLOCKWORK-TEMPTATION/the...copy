@@ -60,12 +60,16 @@ interface CacheMetrics {
   sets: number;
   deletes: number;
   errors: number;
-  redisConnectionHealth: {
-    status: 'connected' | 'disconnected' | 'error';
-    lastCheck: number;
-    consecutiveFailures: number;
-  };
+  redisConnectionHealth: RedisHealthStatus;
 }
+
+interface RedisHealthStatus {
+  status: 'connected' | 'disconnected' | 'error';
+  lastCheck: number;
+  consecutiveFailures: number;
+}
+
+type RedisOperation<T> = () => Promise<T>;
 
 export class CacheService {
   private redis: RedisClientType | null = null;
@@ -198,12 +202,95 @@ export class CacheService {
   private updateRedisHealth(status: 'connected' | 'disconnected' | 'error'): void {
     this.metrics.redisConnectionHealth.status = status;
     this.metrics.redisConnectionHealth.lastCheck = Date.now();
-    
+
     if (status === 'error' || status === 'disconnected') {
       this.metrics.redisConnectionHealth.consecutiveFailures++;
     } else {
       this.metrics.redisConnectionHealth.consecutiveFailures = 0;
     }
+  }
+
+  /**
+   * Check if Redis is available for operations
+   */
+  private isRedisAvailable(): boolean {
+    return this.redis !== null && this.redis.isOpen;
+  }
+
+  /**
+   * Execute a Redis operation with error handling and metrics tracking
+   * Returns null if Redis is unavailable or the operation fails
+   */
+  private async executeRedisOperation<T>(
+    operation: RedisOperation<T>,
+    operationName: string
+  ): Promise<T | null> {
+    if (!this.isRedisAvailable()) {
+      return null;
+    }
+
+    try {
+      const result = await operation();
+      this.updateRedisHealth('connected');
+      return result;
+    } catch (error) {
+      logger.error(`Redis ${operationName} error:`, error);
+      this.metrics.errors++;
+      this.updateRedisHealth('error');
+      this.captureError(error, operationName, 'redis');
+      return null;
+    }
+  }
+
+  /**
+   * Capture error to Sentry if configured
+   */
+  private captureError(
+    error: unknown,
+    operation: string,
+    layer?: string
+  ): void {
+    if (!Sentry) return;
+
+    Sentry.captureException(error, {
+      tags: {
+        component: 'cache-service',
+        operation,
+        ...(layer && { layer }),
+      },
+      level: 'warning',
+    });
+  }
+
+  /**
+   * Check if an L1 cache entry is still valid (not expired)
+   */
+  private isEntryValid(entry: CacheEntry<unknown>): boolean {
+    const age = Date.now() - entry.timestamp;
+    const maxAge = entry.ttl * 1000;
+    return age < maxAge;
+  }
+
+  /**
+   * Validate and normalize TTL value
+   */
+  private normalizeTTL(ttl: number): number {
+    if (ttl <= 0 || ttl > this.MAX_TTL) {
+      logger.warn(`Invalid TTL ${ttl}, using default: ${this.DEFAULT_TTL}`);
+      return this.DEFAULT_TTL;
+    }
+    return ttl;
+  }
+
+  /**
+   * Check if value size is within limits
+   */
+  private isValueSizeValid(serialized: string): boolean {
+    if (serialized.length > this.MAX_VALUE_SIZE) {
+      logger.warn(`Value too large (${serialized.length} bytes), skipping cache`);
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -223,78 +310,73 @@ export class CacheService {
    */
   async get<T>(key: string): Promise<T | null> {
     try {
-      // Try L1 cache first
-      const memEntry = this.memoryCache.get(key);
-      if (memEntry) {
-        const age = Date.now() - memEntry.timestamp;
-        const maxAge = memEntry.ttl * 1000;
-
-        if (age < maxAge) {
-          logger.debug(`Cache hit (L1): ${key}`);
-          this.metrics.hits.l1++;
-          this.metrics.hits.total++;
-          
-          
-          return memEntry.data as T;
-        } else {
-          // Expired, remove from L1
-          this.memoryCache.delete(key);
-        }
+      // Try L1 (memory) cache first
+      const l1Result = this.getFromL1Cache<T>(key);
+      if (l1Result !== null) {
+        return l1Result;
       }
 
       // Try L2 (Redis) cache
-      if (this.redis && this.redis.isOpen) {
-        const redisStartTime = Date.now();
-        try {
-          const value = await this.redis.get(key);
-          const redisLatency = Date.now() - redisStartTime;
-          
-          if (value && typeof value === 'string') {
-            logger.debug(`Cache hit (L2): ${key}`);
-            const parsed = JSON.parse(value) as T;
-
-            // Populate L1 cache
-            this.setMemoryCache(key, parsed, this.DEFAULT_TTL);
-
-            this.metrics.hits.l2++;
-            this.metrics.hits.total++;
-            this.updateRedisHealth('connected');
-            
-
-            return parsed;
-          }
-        } catch (redisError) {
-          logger.error('Redis get error:', redisError);
-          this.metrics.errors++;
-          this.updateRedisHealth('error');
-          
-          if (Sentry) {
-            Sentry.captureException(redisError, {
-              tags: { component: 'cache-service', operation: 'get', layer: 'redis' },
-              level: 'warning',
-            });
-          }
-        }
+      const l2Result = await this.getFromL2Cache<T>(key);
+      if (l2Result !== null) {
+        return l2Result;
       }
 
+      // Cache miss
       logger.debug(`Cache miss: ${key}`);
       this.metrics.misses++;
-      
-      
       return null;
     } catch (error) {
       logger.error('Cache get error:', error);
       this.metrics.errors++;
-      
-      
-      if (Sentry) {
-        Sentry.captureException(error, {
-          tags: { component: 'cache-service', operation: 'get' },
-        });
-      }
-      
+      this.captureError(error, 'get');
       return null;
     }
+  }
+
+  /**
+   * Attempt to get value from L1 (memory) cache
+   */
+  private getFromL1Cache<T>(key: string): T | null {
+    const memEntry = this.memoryCache.get(key);
+    if (!memEntry) {
+      return null;
+    }
+
+    if (this.isEntryValid(memEntry)) {
+      logger.debug(`Cache hit (L1): ${key}`);
+      this.metrics.hits.l1++;
+      this.metrics.hits.total++;
+      return memEntry.data as T;
+    }
+
+    // Entry expired, remove it
+    this.memoryCache.delete(key);
+    return null;
+  }
+
+  /**
+   * Attempt to get value from L2 (Redis) cache
+   */
+  private async getFromL2Cache<T>(key: string): Promise<T | null> {
+    const value = await this.executeRedisOperation(
+      () => this.redis!.get(key),
+      'get'
+    );
+
+    if (!value || typeof value !== 'string') {
+      return null;
+    }
+
+    logger.debug(`Cache hit (L2): ${key}`);
+    const parsed = JSON.parse(value) as T;
+
+    // Populate L1 cache for faster subsequent access
+    this.setMemoryCache(key, parsed, this.DEFAULT_TTL);
+
+    this.metrics.hits.l2++;
+    this.metrics.hits.total++;
+    return parsed;
   }
 
   /**
@@ -302,62 +384,39 @@ export class CacheService {
    */
   async set<T>(key: string, value: T, ttl: number = this.DEFAULT_TTL): Promise<void> {
     try {
-      // Validate TTL
-      if (ttl <= 0 || ttl > this.MAX_TTL) {
-        logger.warn(`Invalid TTL ${ttl}, using default: ${this.DEFAULT_TTL}`);
-        ttl = this.DEFAULT_TTL;
-      }
-
-      // Validate value size
+      const normalizedTTL = this.normalizeTTL(ttl);
       const serialized = JSON.stringify(value);
-      if (serialized.length > this.MAX_VALUE_SIZE) {
-        logger.warn(`Value too large (${serialized.length} bytes), skipping cache`);
+
+      if (!this.isValueSizeValid(serialized)) {
         return;
       }
 
-      // Set in L1 (memory)
-      this.setMemoryCache(key, value, ttl);
+      // Always set in L1 (memory)
+      this.setMemoryCache(key, value, normalizedTTL);
 
-      // Set in L2 (Redis)
-      if (this.redis && this.redis.isOpen) {
-        const redisStartTime = Date.now();
-        try {
-          await this.redis.setEx(key, ttl, serialized);
-          const redisLatency = Date.now() - redisStartTime;
-          
-          logger.debug(`Cache set (L1+L2): ${key}, TTL: ${ttl}s`);
-          this.metrics.sets++;
-          this.updateRedisHealth('connected');
-          
-        } catch (redisError) {
-          logger.error('Redis set error:', redisError);
-          this.metrics.errors++;
-          this.updateRedisHealth('error');
-          
-          
-          if (Sentry) {
-            Sentry.captureException(redisError, {
-              tags: { component: 'cache-service', operation: 'set', layer: 'redis' },
-              level: 'warning',
-            });
-          }
-        }
-      } else {
-        logger.debug(`Cache set (L1 only): ${key}, TTL: ${ttl}s`);
-        this.metrics.sets++;
-        
-      }
+      // Attempt to set in L2 (Redis)
+      const redisSuccess = await this.setInL2Cache(key, serialized, normalizedTTL);
+      const layer = redisSuccess ? 'L1+L2' : 'L1 only';
+
+      logger.debug(`Cache set (${layer}): ${key}, TTL: ${normalizedTTL}s`);
+      this.metrics.sets++;
     } catch (error) {
       logger.error('Cache set error:', error);
       this.metrics.errors++;
-      
-      
-      if (Sentry) {
-        Sentry.captureException(error, {
-          tags: { component: 'cache-service', operation: 'set' },
-        });
-      }
+      this.captureError(error, 'set');
     }
+  }
+
+  /**
+   * Attempt to set value in L2 (Redis) cache
+   * Returns true if successful, false otherwise
+   */
+  private async setInL2Cache(key: string, serialized: string, ttl: number): Promise<boolean> {
+    const result = await this.executeRedisOperation(
+      () => this.redis!.setEx(key, ttl, serialized),
+      'set'
+    );
+    return result !== null;
   }
 
   /**
@@ -365,67 +424,73 @@ export class CacheService {
    */
   async delete(key: string): Promise<void> {
     try {
-      // Delete from L1
+      // Delete from L1 (memory)
       this.memoryCache.delete(key);
 
-      // Delete from L2
-      if (this.redis && this.redis.isOpen) {
-        await this.redis.del(key);
-      }
+      // Delete from L2 (Redis)
+      await this.executeRedisOperation(
+        () => this.redis!.del(key),
+        'delete'
+      );
 
       this.metrics.deletes++;
       logger.debug(`Cache deleted: ${key}`);
     } catch (error) {
       logger.error('Cache delete error:', error);
       this.metrics.errors++;
-      
-      if (Sentry) {
-        Sentry.captureException(error, {
-          tags: { component: 'cache-service', operation: 'delete' },
-          level: 'warning',
-        });
-      }
+      this.captureError(error, 'delete');
     }
   }
 
   /**
-   * Clear all cache
+   * Clear all cache or entries matching a pattern
    */
   async clear(pattern?: string): Promise<void> {
     try {
       if (pattern) {
-        // Clear specific pattern
-        const keysToDelete: string[] = [];
-
-        this.memoryCache.forEach((_, key) => {
-          if (key.startsWith(pattern)) {
-            keysToDelete.push(key);
-          }
-        });
-
-        keysToDelete.forEach(key => this.memoryCache.delete(key));
-
-        if (this.redis && this.redis.isOpen) {
-          const keys = await this.redis.keys(`${pattern}*`);
-          if (keys.length > 0) {
-            await this.redis.del(keys);
-          }
-        }
-
-        logger.info(`Cache cleared for pattern: ${pattern}`);
+        await this.clearByPattern(pattern);
       } else {
-        // Clear all
-        this.memoryCache.clear();
-
-        if (this.redis && this.redis.isOpen) {
-          await this.redis.flushDb();
-        }
-
-        logger.info('All cache cleared');
+        await this.clearAll();
       }
     } catch (error) {
       logger.error('Cache clear error:', error);
+      this.captureError(error, 'clear');
     }
+  }
+
+  /**
+   * Clear cache entries matching a specific pattern
+   */
+  private async clearByPattern(pattern: string): Promise<void> {
+    // Clear matching entries from L1
+    const keysToDelete = Array.from(this.memoryCache.keys())
+      .filter(key => key.startsWith(pattern));
+    keysToDelete.forEach(key => this.memoryCache.delete(key));
+
+    // Clear matching entries from L2
+    await this.executeRedisOperation(async () => {
+      const keys = await this.redis!.keys(`${pattern}*`);
+      if (keys.length > 0) {
+        await this.redis!.del(keys);
+      }
+      return keys.length;
+    }, 'clear-pattern');
+
+    logger.info(`Cache cleared for pattern: ${pattern}`);
+  }
+
+  /**
+   * Clear all cache entries
+   */
+  private async clearAll(): Promise<void> {
+    this.memoryCache.clear();
+
+    await this.executeRedisOperation(
+      () => this.redis!.flushDb(),
+      'clear-all'
+    );
+
+    logger.info('All cache cleared');
   }
 
   /**
@@ -451,25 +516,19 @@ export class CacheService {
    * Start periodic cleanup of expired memory cache entries
    */
   private startMemoryCacheCleanup(): void {
+    const CLEANUP_INTERVAL_MS = 60000; // Run every minute
+
     this.cleanupInterval = setInterval(() => {
-      const now = Date.now();
-      const keysToDelete: string[] = [];
+      const expiredKeys = Array.from(this.memoryCache.entries())
+        .filter(([, entry]) => !this.isEntryValid(entry))
+        .map(([key]) => key);
 
-      this.memoryCache.forEach((entry, key) => {
-        const age = now - entry.timestamp;
-        const maxAge = entry.ttl * 1000;
+      expiredKeys.forEach(key => this.memoryCache.delete(key));
 
-        if (age >= maxAge) {
-          keysToDelete.push(key);
-        }
-      });
-
-      keysToDelete.forEach(key => this.memoryCache.delete(key));
-
-      if (keysToDelete.length > 0) {
-        logger.debug(`Cleaned up ${keysToDelete.length} expired cache entries`);
+      if (expiredKeys.length > 0) {
+        logger.debug(`Cleaned up ${expiredKeys.length} expired cache entries`);
       }
-    }, 60000); // Run every minute
+    }, CLEANUP_INTERVAL_MS);
   }
 
   /**
@@ -482,16 +541,25 @@ export class CacheService {
     hitRate: number;
   } {
     const totalRequests = this.metrics.hits.total + this.metrics.misses;
-    const hitRate = totalRequests > 0 
-      ? (this.metrics.hits.total / totalRequests) * 100 
-      : 0;
+    const hitRate = this.calculateHitRate(totalRequests);
 
     return {
       memorySize: this.memoryCache.size,
-      redisStatus: this.redis?.isOpen ? 'connected' : 'disconnected',
+      redisStatus: this.isRedisAvailable() ? 'connected' : 'disconnected',
       metrics: { ...this.metrics },
-      hitRate: Math.round(hitRate * 100) / 100, // Round to 2 decimal places
+      hitRate,
     };
+  }
+
+  /**
+   * Calculate cache hit rate percentage
+   */
+  private calculateHitRate(totalRequests: number): number {
+    if (totalRequests === 0) {
+      return 0;
+    }
+    const rate = (this.metrics.hits.total / totalRequests) * 100;
+    return Math.round(rate * 100) / 100; // Round to 2 decimal places
   }
 
   /**
