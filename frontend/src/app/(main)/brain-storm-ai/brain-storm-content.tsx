@@ -392,10 +392,10 @@ export default function BrainStormContent() {
           },
         ]);
       }
-    } catch (err) {
-      console.error("[BrainStorm] Debate error:", err);
+    } catch (error) {
+      console.error("[BrainStorm] Debate error:", error);
       // تحديث رسالة الخطأ الرئيسية
-      const errorMessage = err instanceof Error ? err.message : "فشل في تنفيذ النقاش";
+      const errorMessage = error instanceof Error ? error.message : "فشل في تنفيذ النقاش";
       setError(errorMessage);
       agents.forEach((agent) => {
         updateAgentState(agent.id, { status: "error", lastMessage: "فشل" });
