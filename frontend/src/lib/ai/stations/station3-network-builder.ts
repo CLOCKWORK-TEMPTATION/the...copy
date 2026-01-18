@@ -52,156 +52,6 @@ export enum ConflictPhase {
   RESOLVED = "resolved",
 }
 
-// ============================================================================
-// Inference Rules Configuration
-// ============================================================================
-// Rule-based inference system for cleaner, more maintainable keyword matching
-
-interface InferenceRule<T> {
-  keywords: string[];
-  value: T;
-}
-
-function findMatchingRule<T>(
-  description: string,
-  rules: InferenceRule<T>[],
-  defaultValue: T
-): T {
-  const desc = description.toLowerCase();
-  const matchedRule = rules.find((rule) =>
-    rule.keywords.some((keyword) => desc.includes(keyword))
-  );
-  return matchedRule?.value ?? defaultValue;
-}
-
-// Relationship Type Inference Rules
-const RELATIONSHIP_TYPE_RULES: InferenceRule<RelationshipType>[] = [
-  {
-    keywords: ["أسرة", "أب", "أم", "أخ", "أخت"],
-    value: RelationshipType.FAMILY,
-  },
-  {
-    keywords: ["صديق", "رفاق"],
-    value: RelationshipType.FRIENDSHIP,
-  },
-  {
-    keywords: ["حب", "علاقة عاطفية", "زواج"],
-    value: RelationshipType.ROMANTIC,
-  },
-  {
-    keywords: ["عمل", "زميل", "مدير"],
-    value: RelationshipType.PROFESSIONAL,
-  },
-  {
-    keywords: ["عدو", "خصم", "منافس"],
-    value: RelationshipType.ANTAGONISTIC,
-  },
-  {
-    keywords: ["معلم", "تلميذ", "مرشد"],
-    value: RelationshipType.MENTORSHIP,
-  },
-];
-
-// Relationship Nature Inference Rules
-const RELATIONSHIP_NATURE_RULES: InferenceRule<RelationshipNature>[] = [
-  {
-    keywords: ["إيجابي", "داعم", "جيد"],
-    value: RelationshipNature.POSITIVE,
-  },
-  {
-    keywords: ["سلبي", "معادي", "سيء"],
-    value: RelationshipNature.NEGATIVE,
-  },
-  {
-    keywords: ["متغير", "متبدل", "غير مستقر"],
-    value: RelationshipNature.VOLATILE,
-  },
-];
-
-// Relationship Direction Inference Rules
-const RELATIONSHIP_DIRECTION_RULES: InferenceRule<RelationshipDirection>[] = [
-  {
-    keywords: ["أثر", "يسيطر", "يؤثر على"],
-    value: RelationshipDirection.UNIDIRECTIONAL,
-  },
-];
-
-// Relationship Strength Inference Rules
-const RELATIONSHIP_STRENGTH_RULES: InferenceRule<number>[] = [
-  {
-    keywords: ["قوي جداً", "عميق", "وثيق"],
-    value: 9,
-  },
-  {
-    keywords: ["قوي", "مهم"],
-    value: 7,
-  },
-  {
-    keywords: ["ضعيف", "سطحي"],
-    value: 3,
-  },
-];
-
-// Conflict Subject Inference Rules
-const CONFLICT_SUBJECT_RULES: InferenceRule<ConflictSubject>[] = [
-  {
-    keywords: ["حب", "علاقة", "زواج"],
-    value: ConflictSubject.RELATIONSHIP,
-  },
-  {
-    keywords: ["سلطة", "سيطرة", "حكم"],
-    value: ConflictSubject.POWER,
-  },
-  {
-    keywords: ["معتقد", "رأي", "فكر"],
-    value: ConflictSubject.IDEOLOGY,
-  },
-  {
-    keywords: ["مورد", "مال", "كنز"],
-    value: ConflictSubject.RESOURCES,
-  },
-  {
-    keywords: ["معلومات", "سر", "حقيقة"],
-    value: ConflictSubject.INFORMATION,
-  },
-  {
-    keywords: ["مكان", "أرض", "منزل"],
-    value: ConflictSubject.TERRITORY,
-  },
-  {
-    keywords: ["شرف", "كرامة", "سمعة"],
-    value: ConflictSubject.HONOR,
-  },
-];
-
-// Conflict Scope Inference Rules
-const CONFLICT_SCOPE_RULES: InferenceRule<ConflictScope>[] = [
-  {
-    keywords: ["عالم", "مجتمع", "دولة"],
-    value: ConflictScope.SOCIETAL,
-  },
-  {
-    keywords: ["مجموعة", "فريق", "عائلة"],
-    value: ConflictScope.GROUP,
-  },
-];
-
-// Conflict Strength Inference Rules
-const CONFLICT_STRENGTH_RULES: InferenceRule<number>[] = [
-  {
-    keywords: ["شديد", "عنيف", "خطير"],
-    value: 8,
-  },
-  {
-    keywords: ["معتدل", "متوسط"],
-    value: 5,
-  },
-  {
-    keywords: ["خفيف", "بسيط"],
-    value: 3,
-  },
-];
-
 export interface Character {
   id: string;
   name: string;
@@ -393,6 +243,64 @@ export interface Station3Output {
   };
 }
 
+/**
+ * Configuration for keyword-based inference.
+ * Maps a set of keywords to a result value.
+ */
+interface KeywordMapping<T> {
+  keywords: string[];
+  value: T;
+}
+
+/**
+ * Finds the first matching value from keyword mappings, or returns the default.
+ * This replaces repetitive if/else chains with a declarative approach.
+ */
+function inferFromKeywords<T>(
+  description: string,
+  mappings: KeywordMapping<T>[],
+  defaultValue: T
+): T {
+  const desc = description.toLowerCase();
+  for (const mapping of mappings) {
+    if (mapping.keywords.some((keyword) => desc.includes(keyword))) {
+      return mapping.value;
+    }
+  }
+  return defaultValue;
+}
+
+// Declarative keyword mappings for relationship inference
+const RELATIONSHIP_TYPE_MAPPINGS: KeywordMapping<RelationshipType>[] = [
+  { keywords: ["أسرة", "أب", "أم", "أخ", "أخت"], value: RelationshipType.FAMILY },
+  { keywords: ["صديق", "رفاق"], value: RelationshipType.FRIENDSHIP },
+  { keywords: ["حب", "علاقة عاطفية", "زواج"], value: RelationshipType.ROMANTIC },
+  { keywords: ["عمل", "زميل", "مدير"], value: RelationshipType.PROFESSIONAL },
+  { keywords: ["عدو", "خصم", "منافس"], value: RelationshipType.ANTAGONISTIC },
+  { keywords: ["معلم", "تلميذ", "مرشد"], value: RelationshipType.MENTORSHIP },
+];
+
+const RELATIONSHIP_NATURE_MAPPINGS: KeywordMapping<RelationshipNature>[] = [
+  { keywords: ["إيجابي", "داعم", "جيد"], value: RelationshipNature.POSITIVE },
+  { keywords: ["سلبي", "معادي", "سيء"], value: RelationshipNature.NEGATIVE },
+  { keywords: ["متغير", "متبدل", "غير مستقر"], value: RelationshipNature.VOLATILE },
+];
+
+const RELATIONSHIP_DIRECTION_MAPPINGS: KeywordMapping<RelationshipDirection>[] = [
+  { keywords: ["أثر", "يسيطر", "يؤثر على"], value: RelationshipDirection.UNIDIRECTIONAL },
+];
+
+interface StrengthMapping {
+  keywords: string[];
+  value: number;
+}
+
+const RELATIONSHIP_STRENGTH_MAPPINGS: StrengthMapping[] = [
+  { keywords: ["قوي جداً", "عميق", "وثيق"], value: 9 },
+  { keywords: ["قوي", "مهم"], value: 7 },
+  { keywords: ["ضعيف", "سطحي"], value: 3 },
+];
+
 class RelationshipInferenceEngine {
   constructor(private geminiService: GeminiService) {}
 
@@ -515,33 +423,31 @@ class RelationshipInferenceEngine {
   }
 
   private inferRelationshipType(description: string): RelationshipType {
-    return findMatchingRule(
+    return inferFromKeywords(
       description,
-      RELATIONSHIP_TYPE_RULES,
+      RELATIONSHIP_TYPE_MAPPINGS,
       RelationshipType.OTHER
     );
   }
 
   private inferRelationshipNature(description: string): RelationshipNature {
-    return findMatchingRule(
+    return inferFromKeywords(
       description,
-      RELATIONSHIP_NATURE_RULES,
+      RELATIONSHIP_NATURE_MAPPINGS,
       RelationshipNature.NEUTRAL
     );
   }
 
-  private inferRelationshipDirection(
-    description: string
-  ): RelationshipDirection {
-    return findMatchingRule(
+  private inferRelationshipDirection(description: string): RelationshipDirection {
+    return inferFromKeywords(
       description,
-      RELATIONSHIP_DIRECTION_RULES,
+      RELATIONSHIP_DIRECTION_MAPPINGS,
       RelationshipDirection.BIDIRECTIONAL
     );
   }
 
   private inferRelationshipStrength(description: string): number {
-    return findMatchingRule(description, RELATIONSHIP_STRENGTH_RULES, 5);
+    return inferFromKeywords(description, RELATIONSHIP_STRENGTH_MAPPINGS, 5);
   }
 
   private extractTriggers(description: string): string[] {
@@ -609,6 +515,28 @@ class RelationshipInferenceEngine {
     };
   }
 }
+
+// Declarative keyword mappings for conflict inference
+const CONFLICT_SUBJECT_MAPPINGS: KeywordMapping<ConflictSubject>[] = [
+  { keywords: ["حب", "علاقة", "زواج"], value: ConflictSubject.RELATIONSHIP },
+  { keywords: ["سلطة", "سيطرة", "حكم"], value: ConflictSubject.POWER },
+  { keywords: ["معتقد", "رأي", "فكر"], value: ConflictSubject.IDEOLOGY },
+  { keywords: ["مورد", "مال", "كنز"], value: ConflictSubject.RESOURCES },
+  { keywords: ["معلومات", "سر", "حقيقة"], value: ConflictSubject.INFORMATION },
+  { keywords: ["مكان", "أرض", "منزل"], value: ConflictSubject.TERRITORY },
+  { keywords: ["شرف", "كرامة", "سمعة"], value: ConflictSubject.HONOR },
+];
+
+const CONFLICT_SCOPE_MAPPINGS: KeywordMapping<ConflictScope>[] = [
+  { keywords: ["عالم", "مجتمع", "دولة"], value: ConflictScope.SOCIETAL },
+  { keywords: ["مجموعة", "فريق", "عائلة"], value: ConflictScope.GROUP },
+];
+
+const CONFLICT_STRENGTH_MAPPINGS: StrengthMapping[] = [
+  { keywords: ["شديد", "عنيف", "خطير"], value: 8 },
+  { keywords: ["معتدل", "متوسط"], value: 5 },
+  { keywords: ["خفيف", "بسيط"], value: 3 },
+];
 
 class ConflictInferenceEngine {
   constructor(private geminiService: GeminiService) {}
@@ -909,23 +837,23 @@ class ConflictInferenceEngine {
   }
 
   private inferConflictSubject(description: string): ConflictSubject {
-    return findMatchingRule(
+    return inferFromKeywords(
       description,
-      CONFLICT_SUBJECT_RULES,
+      CONFLICT_SUBJECT_MAPPINGS,
       ConflictSubject.OTHER
     );
   }
 
   private inferConflictScope(description: string): ConflictScope {
-    return findMatchingRule(
+    return inferFromKeywords(
       description,
-      CONFLICT_SCOPE_RULES,
+      CONFLICT_SCOPE_MAPPINGS,
       ConflictScope.PERSONAL
     );
   }
 
   private inferConflictStrength(description: string): number {
-    return findMatchingRule(description, CONFLICT_STRENGTH_RULES, 6);
+    return inferFromKeywords(description, CONFLICT_STRENGTH_MAPPINGS, 6);
   }
 
   private buildConflictContext(
