@@ -716,11 +716,284 @@ function sendBlockResponse(
 }
 
 // ============================================================================
+// WAF Event Factory (reduces code duplication)
+// ============================================================================
+
+interface WAFEventParams {
+  eventType: WAFEventType;
+  ruleId: string;
+  ruleName: string;
+  severity: WAFEvent["severity"];
+  ip: string;
+  method: string;
+  path: string;
+  userAgent: string;
+  matchedValue: string;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Factory function for creating WAF events
+ * Centralizes event creation to reduce code duplication
+ */
+function createWAFEvent(params: WAFEventParams): WAFEvent {
+  return {
+    timestamp: new Date(),
+    eventType: params.eventType,
+    ruleId: params.ruleId,
+    ruleName: params.ruleName,
+    severity: params.severity,
+    ip: params.ip,
+    method: params.method,
+    path: params.path,
+    userAgent: params.userAgent,
+    matchedValue: params.matchedValue,
+    action: wafConfig.mode === "block" ? "blocked" : "monitored",
+    details: params.details || {},
+  };
+}
+
+// ============================================================================
+// WAF Check Handlers (Strategy Pattern)
+// ============================================================================
+
+interface RequestContext {
+  ip: string;
+  userAgent: string;
+  path: string;
+  method: string;
+}
+
+interface CheckResult {
+  blocked: boolean;
+  statusCode?: number;
+  message?: string;
+}
+
+type CheckHandler = (
+  req: Request,
+  res: Response,
+  ctx: RequestContext
+) => CheckResult;
+
+/**
+ * IP blacklist check handler
+ */
+const checkIPBlacklist: CheckHandler = (_req, _res, ctx) => {
+  if (!isIPBlacklisted(ctx.ip)) {
+    return { blocked: false };
+  }
+
+  logWAFEvent(
+    createWAFEvent({
+      eventType: "IP_BLOCKED",
+      ruleId: "IP_BL",
+      ruleName: "IP Blacklist",
+      severity: "high",
+      ...ctx,
+      matchedValue: ctx.ip,
+    })
+  );
+
+  if (wafConfig.mode === "block") {
+    return { blocked: true, statusCode: 403, message: "عنوان IP محظور" };
+  }
+  return { blocked: false };
+};
+
+/**
+ * User-Agent blacklist check handler
+ */
+const checkUserAgentBlacklist: CheckHandler = (_req, _res, ctx) => {
+  if (!isUserAgentBlacklisted(ctx.userAgent)) {
+    return { blocked: false };
+  }
+
+  logWAFEvent(
+    createWAFEvent({
+      eventType: "BOT_DETECTED",
+      ruleId: "UA_BL",
+      ruleName: "User-Agent Blacklist",
+      severity: "medium",
+      ...ctx,
+      matchedValue: ctx.userAgent,
+    })
+  );
+
+  if (wafConfig.mode === "block") {
+    return { blocked: true, statusCode: 403, message: "طلب غير مصرح به" };
+  }
+  return { blocked: false };
+};
+
+/**
+ * Rate limit check handler
+ */
+const checkRateLimitHandler: CheckHandler = (_req, res, ctx) => {
+  if (!wafConfig.rules.rateLimit) {
+    return { blocked: false };
+  }
+
+  const rateCheck = checkRateLimit(ctx.ip);
+  res.setHeader("X-RateLimit-Remaining", rateCheck.remaining.toString());
+
+  if (rateCheck.allowed) {
+    return { blocked: false };
+  }
+
+  logWAFEvent(
+    createWAFEvent({
+      eventType: "RATE_LIMIT_EXCEEDED",
+      ruleId: "RL",
+      ruleName: "Rate Limit",
+      severity: "medium",
+      ...ctx,
+      matchedValue: `Exceeded ${wafConfig.rateLimit.maxRequests} requests`,
+      details: {
+        windowMs: wafConfig.rateLimit.windowMs,
+        maxRequests: wafConfig.rateLimit.maxRequests,
+      },
+    })
+  );
+
+  if (wafConfig.mode === "block") {
+    return {
+      blocked: true,
+      statusCode: 429,
+      message: "تم تجاوز الحد المسموح من الطلبات",
+    };
+  }
+  return { blocked: false };
+};
+
+/**
+ * Rule category configuration for pattern-based checks
+ */
+interface RuleCategory {
+  rules: WAFRule[];
+  eventType: WAFEventType;
+  configKey: keyof WAFConfig["rules"];
+}
+
+const RULE_CATEGORIES: RuleCategory[] = [
+  { rules: SQL_INJECTION_PATTERNS, eventType: "SQL_INJECTION", configKey: "sqlInjection" },
+  { rules: XSS_PATTERNS, eventType: "XSS_ATTACK", configKey: "xss" },
+  { rules: COMMAND_INJECTION_PATTERNS, eventType: "COMMAND_INJECTION", configKey: "commandInjection" },
+  { rules: PATH_TRAVERSAL_PATTERNS, eventType: "PATH_TRAVERSAL", configKey: "pathTraversal" },
+  { rules: PROTOCOL_ATTACK_PATTERNS, eventType: "PROTOCOL_ATTACK", configKey: "protocolAttack" },
+  { rules: BOT_DETECTION_PATTERNS, eventType: "BOT_DETECTED", configKey: "botProtection" },
+];
+
+/**
+ * Check a single rule and log/block if matched
+ */
+function processRuleMatch(
+  req: Request,
+  rule: WAFRule,
+  eventType: WAFEventType,
+  ctx: RequestContext
+): CheckResult {
+  const result = checkRule(req, rule);
+  if (!result.matched) {
+    return { blocked: false };
+  }
+
+  const action =
+    wafConfig.mode === "block" && rule.action === "block"
+      ? "blocked"
+      : "monitored";
+
+  const event = createWAFEvent({
+    eventType,
+    ruleId: rule.id,
+    ruleName: rule.name,
+    severity: rule.severity,
+    ...ctx,
+    matchedValue: result.value,
+    details: { description: rule.description },
+  });
+  event.action = action;
+
+  logWAFEvent(event);
+
+  if (wafConfig.mode === "block" && rule.action === "block") {
+    return { blocked: true };
+  }
+  return { blocked: false };
+}
+
+/**
+ * Pattern-based rules check handler
+ */
+const checkPatternRules: CheckHandler = (req, _res, ctx) => {
+  for (const { rules, eventType, configKey } of RULE_CATEGORIES) {
+    if (!wafConfig.rules[configKey]) continue;
+
+    for (const rule of rules) {
+      const result = processRuleMatch(req, rule, eventType, ctx);
+      if (result.blocked) {
+        return result;
+      }
+    }
+  }
+  return { blocked: false };
+};
+
+/**
+ * Custom rules check handler
+ */
+const checkCustomRules: CheckHandler = (req, _res, ctx) => {
+  for (const rule of wafConfig.customRules) {
+    const result = processRuleMatch(req, rule, "CUSTOM_RULE_MATCH", ctx);
+    if (result.blocked) {
+      return result;
+    }
+  }
+  return { blocked: false };
+};
+
+/**
+ * Execute a pipeline of check handlers
+ * Stops at the first blocking result
+ */
+function executeCheckPipeline(
+  handlers: CheckHandler[],
+  req: Request,
+  res: Response,
+  ctx: RequestContext
+): CheckResult | null {
+  for (const handler of handlers) {
+    const result = handler(req, res, ctx);
+    if (result.blocked) {
+      return result;
+    }
+  }
+  return null;
+}
+
+// ============================================================================
 // WAF Middleware
 // ============================================================================
 
 /**
+ * Check handlers pipeline - order matters for security
+ * 1. IP blacklist (highest priority - immediately block known bad actors)
+ * 2. User-Agent blacklist (block known attack tools)
+ * 3. Rate limiting (prevent abuse before expensive pattern checks)
+ * 4. Pattern-based rules (SQL injection, XSS, etc.)
+ * 5. Custom rules (user-defined patterns)
+ */
+const WAF_CHECK_PIPELINE: CheckHandler[] = [
+  checkIPBlacklist,
+  checkUserAgentBlacklist,
+  checkRateLimitHandler,
+  checkPatternRules,
+  checkCustomRules,
+];
+
+/**
  * Main WAF middleware
+ * Refactored to use Strategy pattern with a check handler pipeline
  */
 export function wafMiddleware(
   req: Request,
@@ -732,161 +1005,27 @@ export function wafMiddleware(
     return next();
   }
 
-  const ip = getClientIP(req);
-  const userAgent = req.headers["user-agent"] || "";
-  const path = req.path;
+  const ctx: RequestContext = {
+    ip: getClientIP(req),
+    userAgent: req.headers["user-agent"] || "",
+    path: req.path,
+    method: req.method,
+  };
 
-  // Check whitelist first
-  if (isIPWhitelisted(ip) || isPathWhitelisted(path)) {
+  // Check whitelist first (bypass all checks)
+  if (isIPWhitelisted(ctx.ip) || isPathWhitelisted(ctx.path)) {
     return next();
   }
 
-  // Check IP blacklist
-  if (isIPBlacklisted(ip)) {
-    const event: WAFEvent = {
-      timestamp: new Date(),
-      eventType: "IP_BLOCKED",
-      ruleId: "IP_BL",
-      ruleName: "IP Blacklist",
-      severity: "high",
-      ip,
-      method: req.method,
-      path,
-      userAgent,
-      matchedValue: ip,
-      action: wafConfig.mode === "block" ? "blocked" : "monitored",
-      details: {},
-    };
-    logWAFEvent(event);
+  // Execute check pipeline
+  const blockResult = executeCheckPipeline(WAF_CHECK_PIPELINE, req, res, ctx);
 
-    if (wafConfig.mode === "block") {
-      return sendBlockResponse(res, 403, "عنوان IP محظور");
-    }
-  }
-
-  // Check User-Agent blacklist
-  if (isUserAgentBlacklisted(userAgent)) {
-    const event: WAFEvent = {
-      timestamp: new Date(),
-      eventType: "BOT_DETECTED",
-      ruleId: "UA_BL",
-      ruleName: "User-Agent Blacklist",
-      severity: "medium",
-      ip,
-      method: req.method,
-      path,
-      userAgent,
-      matchedValue: userAgent,
-      action: wafConfig.mode === "block" ? "blocked" : "monitored",
-      details: {},
-    };
-    logWAFEvent(event);
-
-    if (wafConfig.mode === "block") {
-      return sendBlockResponse(res, 403, "طلب غير مصرح به");
-    }
-  }
-
-  // Check rate limiting
-  if (wafConfig.rules.rateLimit) {
-    const rateCheck = checkRateLimit(ip);
-    res.setHeader("X-RateLimit-Remaining", rateCheck.remaining.toString());
-
-    if (!rateCheck.allowed) {
-      const event: WAFEvent = {
-        timestamp: new Date(),
-        eventType: "RATE_LIMIT_EXCEEDED",
-        ruleId: "RL",
-        ruleName: "Rate Limit",
-        severity: "medium",
-        ip,
-        method: req.method,
-        path,
-        userAgent,
-        matchedValue: `Exceeded ${wafConfig.rateLimit.maxRequests} requests`,
-        action: wafConfig.mode === "block" ? "blocked" : "monitored",
-        details: {
-          windowMs: wafConfig.rateLimit.windowMs,
-          maxRequests: wafConfig.rateLimit.maxRequests,
-        },
-      };
-      logWAFEvent(event);
-
-      if (wafConfig.mode === "block") {
-        return sendBlockResponse(res, 429, "تم تجاوز الحد المسموح من الطلبات");
-      }
-    }
-  }
-
-  // Check all rule categories
-  const allRules: { rules: WAFRule[]; eventType: WAFEventType; configKey: keyof WAFConfig["rules"] }[] = [
-    { rules: SQL_INJECTION_PATTERNS, eventType: "SQL_INJECTION", configKey: "sqlInjection" },
-    { rules: XSS_PATTERNS, eventType: "XSS_ATTACK", configKey: "xss" },
-    { rules: COMMAND_INJECTION_PATTERNS, eventType: "COMMAND_INJECTION", configKey: "commandInjection" },
-    { rules: PATH_TRAVERSAL_PATTERNS, eventType: "PATH_TRAVERSAL", configKey: "pathTraversal" },
-    { rules: PROTOCOL_ATTACK_PATTERNS, eventType: "PROTOCOL_ATTACK", configKey: "protocolAttack" },
-    { rules: BOT_DETECTION_PATTERNS, eventType: "BOT_DETECTED", configKey: "botProtection" },
-  ];
-
-  for (const { rules, eventType, configKey } of allRules) {
-    if (!wafConfig.rules[configKey]) continue;
-
-    for (const rule of rules) {
-      const result = checkRule(req, rule);
-      if (result.matched) {
-        const event: WAFEvent = {
-          timestamp: new Date(),
-          eventType,
-          ruleId: rule.id,
-          ruleName: rule.name,
-          severity: rule.severity,
-          ip,
-          method: req.method,
-          path,
-          userAgent,
-          matchedValue: result.value,
-          action:
-            wafConfig.mode === "block" && rule.action === "block"
-              ? "blocked"
-              : "monitored",
-          details: { description: rule.description },
-        };
-        logWAFEvent(event);
-
-        if (wafConfig.mode === "block" && rule.action === "block") {
-          return sendBlockResponse(res);
-        }
-      }
-    }
-  }
-
-  // Check custom rules
-  for (const rule of wafConfig.customRules) {
-    const result = checkRule(req, rule);
-    if (result.matched) {
-      const event: WAFEvent = {
-        timestamp: new Date(),
-        eventType: "CUSTOM_RULE_MATCH",
-        ruleId: rule.id,
-        ruleName: rule.name,
-        severity: rule.severity,
-        ip,
-        method: req.method,
-        path,
-        userAgent,
-        matchedValue: result.value,
-        action:
-          wafConfig.mode === "block" && rule.action === "block"
-            ? "blocked"
-            : "monitored",
-        details: { description: rule.description },
-      };
-      logWAFEvent(event);
-
-      if (wafConfig.mode === "block" && rule.action === "block") {
-        return sendBlockResponse(res);
-      }
-    }
+  if (blockResult?.blocked) {
+    return sendBlockResponse(
+      res,
+      blockResult.statusCode || 403,
+      blockResult.message
+    );
   }
 
   next();
