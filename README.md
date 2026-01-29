@@ -45,26 +45,36 @@ pnpm kill:dev
 - **AI**: Google Gemini AI + Groq SDK + Genkit
 - **Monitoring**: Sentry + OpenTelemetry + Prometheus
 
-## 📱 Applications (14 Apps)
+## 📱 Applications (13 Core Apps)
 
 <div dir="rtl">
 
-المنصة تحتوي على 14 تطبيقاً متخصصاً:
+المنصة تحتوي على **13 تطبيقاً أساسياً** متخصصاً:
 
-1. **استوديو المخرج** - Directors Studio
-2. **استوديو الممثل الذكي** - Actor AI Arabic  
-3. **استوديو الكتابة الإبداعية** - Arabic Creative Writing Studio
-4. **استوديو هندسة التوجيهات** - Arabic Prompt Engineering Studio
-5. **محطات التحليل السبع** - Analysis
-6. **منصة العصف الذهني (جولز)** - Brainstorm
-7. **العصف الذهني الذكي** - Brain Storm AI
-8. **تقرير التحليل** - Breakdown
-9. **استوديو التصوير السينمائي** - Cinematography Studio
-10. **التطوير الإبداعي** - Development
-11. **محرر السيناريو** - Editor
-12. **لوحة المقاييس** - Metrics Dashboard
-13. **الصفحة الجديدة** - New
-14. **مكتبة المكونات** - UI Components Library
+### تطبيقات الإنتاج (Production)
+1. **تحليل السيناريو** (ScriptBreakdown AI) - `/breakdown`
+2. **استوديو الأزياء** (CineFit Pro) - `/new`
+3. **استوديو التصوير السينمائي** (Cinematography Studio) - `/cinematography-studio`
+
+### تطبيقات الإبداع (Creative)
+4. **محرر السيناريو** (Screenplay Editor) - `/editor`
+5. **مدير الديكور والفن** (CineArchitect AI) - `/art-director`
+6. **استوديو الممثل** (ActorAI Studio) - `/actorai-arabic`
+7. **استوديو الكتابة الإبداعية** (Creative Writing Studio) - `/arabic-creative-writing-studio`
+8. **العصف الذهني الذكي** (Brain Storm AI) - `/brain-storm-ai`
+9. **استوديو هندسة التوجيهات** (Prompt Engineering Studio) - `/arabic-prompt-engineering-studio`
+
+### تطبيقات التحليل (Analysis)
+10. **محطات التحليل السبع** (Seven Stations Analysis) - `/analysis`
+
+### تطبيقات الإدارة (Management)
+11. **استوديو المخرج** (Director's Studio) - `/directors-studio`
+12. **ميزانية الإنتاج** (FilmBudget AI) - `/BUDGET/app`
+13. **إدارة المساعدين** (BreakApp Runner Management) - `/BREAKAPP`
+
+---
+
+**🔍 عرض شامل لجميع التطبيقات:** [صفحة التطبيقات](/apps-overview)
 
 للمزيد من التفاصيل حول كل تطبيق، راجع [التوثيق الشامل](./PROJECT_DOCUMENTATION_AR.md).
 
