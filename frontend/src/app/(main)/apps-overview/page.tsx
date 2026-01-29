@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 export default function AppsOverviewPage() {
-  // Group apps by category
-  const appsByCategory = platformApps.reduce((acc, app) => {
+  // Get only enabled apps and group them by category
+  const enabledApps = platformApps.filter(app => app.enabled)
+  
+  const appsByCategory = enabledApps.reduce((acc, app) => {
     if (!acc[app.category]) {
       acc[app.category] = []
     }
@@ -107,14 +109,6 @@ export default function AppsOverviewPage() {
                         </Button>
                       </Link>
                     </div>
-
-                    {!app.enabled && (
-                      <div className="mt-3 text-center">
-                        <Badge variant="outline" className="border-gray-600 text-gray-400">
-                          قريباً
-                        </Badge>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}

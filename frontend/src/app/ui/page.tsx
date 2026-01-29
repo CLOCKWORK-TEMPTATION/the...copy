@@ -14,7 +14,8 @@ const GRID_CENTER_START_INDEX = 5
 const enabledApps = getEnabledApps()
 
 // Create mapping for grid cells (0-15, excluding center cells 5, 6, 9, 10)
-// This gives us 12 available cells for apps
+// This gives us 12 available cells for apps (grid shows first 12 apps)
+// For all 13 apps, use the /apps-overview page
 const availableGridCells = [0, 1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15]
 
 // Map apps to grid cells
@@ -45,6 +46,17 @@ export default function UILauncherPage() {
     >
       {/* Full-bleed Grid Container - no sidebar, no topbar */}
       <div className="w-full h-full p-3 md:p-4">
+        {/* Note about all apps */}
+        <div className="absolute top-4 left-4 z-10">
+          <Link
+            href="/apps-overview"
+            className="text-xs md:text-sm text-[#FFD700]/80 hover:text-[#FFD700] transition-colors flex items-center gap-1"
+          >
+            <span>عرض جميع التطبيقات (13)</span>
+            <span>→</span>
+          </Link>
+        </div>
+
         <div className="grid grid-cols-4 grid-rows-4 gap-2 md:gap-3 w-full h-full">
           {Array.from({ length: 16 }, (_, i) => {
             const isCenterCell = CENTER_CELLS.includes(i)

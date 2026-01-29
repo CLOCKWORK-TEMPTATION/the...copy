@@ -149,9 +149,9 @@ export const platformApps: PlatformApp[] = [
   },
   {
     id: "prompt-engineering",
-    name: "Prompt Engineering Studio",
-    nameAr: "استوديو هندسة التوجيهات",
-    description: "أدوات متقدمة لتطوير وتحسين التوجيهات للذكاء الاصطناعي",
+    name: "Arabic Prompt Engineering Studio",
+    nameAr: "استوديو هندسة التوجيهات العربي",
+    description: "أدوات متقدمة لتطوير وتحسين التوجيهات للذكاء الاصطناعي باللغة العربية",
     icon: "⚡",
     path: "/arabic-prompt-engineering-studio",
     color: "from-cyan-600 to-blue-600",
