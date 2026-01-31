@@ -1,35 +1,52 @@
 /**
- * Agent Debator - وكيل المناظرة
- * Handles individual agent participation in debates
- * المرحلة 3 - Multi-Agent Debate System
+ * وكيل المناظرة - Agent Debator
+ * 
+ * @module agentDebator
+ * @description
+ * يعالج مشاركة الوكيل الفردي في المناظرات.
+ * جزء من المرحلة 3 - نظام المناظرة متعدد الوكلاء
  */
 
 import { BaseAgent } from '../shared/BaseAgent';
 import { geminiService } from '@/services/gemini.service';
+import { logger } from '@/utils/logger';
 import {
   DebateRole,
   DebateArgument,
-  DebatePosition,
   Refutation,
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * AgentDebator class
- * Wraps a BaseAgent to participate in debates
+ * فئة وكيل المناظرة
+ * 
+ * @description
+ * تغلّف BaseAgent للمشاركة في المناظرات.
+ * توفر وظائف تقديم الحجج والرد والتصويت.
  */
 export class AgentDebator {
+  /** الوكيل الأساسي */
   private agent: BaseAgent;
+  /** دور الوكيل في المناظرة */
   private role: DebateRole;
+  /** سجل حجج المناظرة */
   private debateHistory: DebateArgument[] = [];
 
+  /**
+   * منشئ فئة وكيل المناظرة
+   * 
+   * @param agent - الوكيل الأساسي
+   * @param role - دور الوكيل في المناظرة
+   */
   constructor(agent: BaseAgent, role: DebateRole) {
     this.agent = agent;
     this.role = role;
   }
 
   /**
-   * Get agent name
+   * الحصول على اسم الوكيل
+   * 
+   * @returns اسم الوكيل
    */
   getAgentName(): string {
     const config = this.agent.getConfig();
@@ -37,15 +54,24 @@ export class AgentDebator {
   }
 
   /**
-   * Get agent role
+   * الحصول على دور الوكيل
+   * 
+   * @returns دور الوكيل في المناظرة
    */
   getRole(): DebateRole {
     return this.role;
   }
 
   /**
-   * Present initial argument
    * تقديم الحجة الأولية
+   * 
+   * @description
+   * يقوم الوكيل بتقديم حجته حول الموضوع المطروح
+   * 
+   * @param topic - موضوع المناظرة
+   * @param context - السياق الإضافي (اختياري)
+   * @param previousArguments - الحجج السابقة (اختياري)
+   * @returns وعد بالحجة المقدمة
    */
   async presentArgument(
     topic: string,
@@ -53,13 +79,13 @@ export class AgentDebator {
     previousArguments?: DebateArgument[]
   ): Promise<DebateArgument> {
     const agentName = this.getAgentName();
-    console.log(`[AgentDebator] ${agentName} presenting argument for: ${topic}`);
+    logger.info("تقديم حجة في المناظرة", { agentName, topic });
 
-    // Build prompt based on role
-    let prompt = this.buildArgumentPrompt(topic, context, previousArguments);
+    // بناء النص بناءً على الدور
+    const prompt = this.buildArgumentPrompt(topic, context, previousArguments);
 
     try {
-      // Get agent's analysis
+      // الحصول على تحليل الوكيل
       const result = await this.agent.executeTask({
         input: prompt,
         options: {
@@ -70,7 +96,7 @@ export class AgentDebator {
         context: context || '',
       });
 
-      // Parse and structure the argument
+      // تحليل وهيكلة الحجة
       const argument: DebateArgument = {
         id: uuidv4(),
         agentName,
@@ -86,9 +112,12 @@ export class AgentDebator {
       this.debateHistory.push(argument);
       return argument;
     } catch (error) {
-      console.error(`[AgentDebator] Error presenting argument:`, error);
+      logger.error("فشل في تقديم الحجة", {
+        agentName,
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
 
-      // Fallback argument
+      // حجة احتياطية
       return {
         id: uuidv4(),
         agentName,
@@ -103,15 +132,24 @@ export class AgentDebator {
   }
 
   /**
-   * Refute an existing argument
    * الرد على حجة موجودة
+   * 
+   * @description
+   * يقوم الوكيل بتحليل ونقد حجة موجودة
+   * 
+   * @param targetArgument - الحجة المستهدفة
+   * @param context - السياق الإضافي (اختياري)
+   * @returns وعد بالرد على الحجة
    */
   async refuteArgument(
     targetArgument: DebateArgument,
     context?: string
   ): Promise<Refutation> {
     const agentName = this.getAgentName();
-    console.log(`[AgentDebator] ${agentName} refuting argument from ${targetArgument.agentName}`);
+    logger.debug("الرد على حجة", {
+      agentName,
+      targetAgent: targetArgument.agentName,
+    });
 
     const prompt = `
 قم بتحليل ونقد الحجة التالية:
@@ -154,7 +192,10 @@ ${context ? `\n**السياق الإضافي:**\n${context}` : ''}
 
       return refutation;
     } catch (error) {
-      console.error(`[AgentDebator] Error refuting argument:`, error);
+      logger.error("فشل في الرد على الحجة", {
+        agentName,
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
 
       return {
         targetArgumentId: targetArgument.id,
@@ -167,15 +208,24 @@ ${context ? `\n**السياق الإضافي:**\n${context}` : ''}
   }
 
   /**
-   * Vote on arguments
    * التصويت على الحجج
+   * 
+   * @description
+   * يقوم الوكيل بتقييم جميع الحجج وإعطاء درجات
+   * 
+   * @param debateArguments - مصفوفة الحجج المراد تقييمها
+   * @param topic - موضوع المناظرة
+   * @returns وعد بخريطة الأصوات (معرّف الحجة -> الدرجة)
    */
   async voteOnArguments(
     debateArguments: DebateArgument[],
     topic: string
   ): Promise<Map<string, number>> {
     const agentName = this.getAgentName();
-    console.log(`[AgentDebator] ${agentName} voting on ${debateArguments.length} arguments`);
+    logger.debug("التصويت على الحجج", {
+      agentName,
+      argumentCount: debateArguments.length,
+    });
 
     const votes = new Map<string, number>();
 
@@ -214,10 +264,10 @@ ${arg.position}
         maxTokens: 2048,
       });
 
-      // Parse voting results (simplified - in production, use structured output)
+      // تحليل نتائج التصويت
       const lines = result.split('\n');
       debateArguments.forEach((arg, idx) => {
-        // Try to extract vote scores from the response
+        // محاولة استخراج درجات التصويت من الاستجابة
         const scoreMatch = lines.find(line =>
           line.includes(`${idx + 1}`) || (arg.agentName && line.includes(arg.agentName))
         );
@@ -230,17 +280,20 @@ ${arg.position}
           }
         }
 
-        // Default vote if parsing failed
+        // تصويت افتراضي إذا فشل التحليل
         if (!votes.has(arg.id)) {
-          votes.set(arg.id, arg.confidence * 0.8); // Base vote on confidence
+          votes.set(arg.id, arg.confidence * 0.8); // التصويت الأساسي بناءً على الثقة
         }
       });
 
       return votes;
     } catch (error) {
-      console.error(`[AgentDebator] Error voting:`, error);
+      logger.error("فشل في التصويت", {
+        agentName,
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
 
-      // Fallback: vote based on confidence scores
+      // تصويت احتياطي بناءً على درجات الثقة
       debateArguments.forEach(arg => {
         votes.set(arg.id, arg.confidence * 0.7);
       });
@@ -250,7 +303,15 @@ ${arg.position}
   }
 
   /**
-   * Build argument prompt based on role
+   * بناء نص الحجة بناءً على الدور
+   * 
+   * @description
+   * يبني النص المناسب للحجة حسب دور الوكيل في المناظرة
+   * 
+   * @param topic - موضوع المناظرة
+   * @param context - السياق الإضافي
+   * @param previousArguments - الحجج السابقة
+   * @returns نص الحجة المبني
    */
   private buildArgumentPrompt(
     topic: string,
@@ -289,10 +350,16 @@ ${arg.position}
   }
 
   /**
-   * Extract reasoning from text
+   * استخراج التبرير من النص
+   * 
+   * @description
+   * يبحث عن أنماط التبرير في النص العربي
+   * 
+   * @param text - النص المراد تحليله
+   * @returns التبرير المستخرج
    */
   private extractReasoning(text: string): string {
-    // Look for reasoning patterns in Arabic
+    // البحث عن أنماط التبرير بالعربية
     const patterns = [
       /لأن[^\.]+\./g,
       /بسبب[^\.]+\./g,
@@ -308,16 +375,22 @@ ${arg.position}
       }
     }
 
-    return reasoning || text.substring(0, 200); // Fallback to first 200 chars
+    return reasoning || text.substring(0, 200); // احتياطي: أول 200 حرف
   }
 
   /**
-   * Extract evidence from text
+   * استخراج الأدلة من النص
+   * 
+   * @description
+   * يبحث عن النقاط المرقمة والأدلة في النص
+   * 
+   * @param text - النص المراد تحليله
+   * @returns مصفوفة الأدلة المستخرجة
    */
   private extractEvidence(text: string): string[] {
     const evidence: string[] = [];
 
-    // Look for bullet points or numbered lists
+    // البحث عن النقاط المرقمة أو القوائم
     const lines = text.split('\n');
     for (const line of lines) {
       if (line.match(/^[\-\*\•]\s/) || line.match(/^\d+[\.\)]\s/)) {
@@ -325,7 +398,7 @@ ${arg.position}
       }
     }
 
-    // If no structured evidence found, extract sentences with key indicators
+    // إذا لم يتم العثور على أدلة منظمة، استخراج الجمل مع المؤشرات الرئيسية
     if (evidence.length === 0) {
       const sentences = text.match(/[^\.!؟]+[\.!؟]/g) || [];
       const keyPhrases = ['مثل', 'على سبيل المثال', 'الدليل', 'يظهر', 'يوضح', 'تشير'];
@@ -337,29 +410,41 @@ ${arg.position}
       }
     }
 
-    return evidence.slice(0, 5); // Limit to 5 pieces of evidence
+    return evidence.slice(0, 5); // تحديد بـ 5 أدلة كحد أقصى
   }
 
   /**
-   * Calculate refutation strength
+   * حساب قوة الرد
+   * 
+   * @description
+   * يحسب قوة الرد بناءً على ثقة الراد والحجة الأصلية
+   * 
+   * @param refuterConfidence - ثقة الوكيل المردود
+   * @param originalConfidence - ثقة الحجة الأصلية
+   * @returns قوة الرد (0-1)
    */
   private calculateRefutationStrength(
     refuterConfidence: number,
     originalConfidence: number
   ): number {
-    // Higher refuter confidence and lower original confidence = stronger refutation
+    // ثقة أعلى للراد + ثقة أقل للأصلي = رد أقوى
     return (refuterConfidence + (1 - originalConfidence)) / 2;
   }
 
   /**
-   * Get debate history
+   * الحصول على سجل المناظرة
+   * 
+   * @returns نسخة من سجل الحجج
    */
   getDebateHistory(): DebateArgument[] {
     return [...this.debateHistory];
   }
 
   /**
-   * Clear debate history
+   * مسح سجل المناظرة
+   * 
+   * @description
+   * يمسح جميع الحجج المسجلة للوكيل
    */
   clearHistory(): void {
     this.debateHistory = [];
