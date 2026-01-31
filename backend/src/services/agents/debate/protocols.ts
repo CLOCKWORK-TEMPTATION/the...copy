@@ -1,10 +1,14 @@
 /**
- * Debate Protocols
- * بروتوكولات المناظرة - High-level debate orchestration functions
- * المرحلة 3 - Multi-Agent Debate System
+ * بروتوكولات المناظرة - Debate Protocols
+ * 
+ * @module protocols
+ * @description
+ * وظائف تنسيق المناظرة عالية المستوى.
+ * جزء من المرحلة 3 - نظام المناظرة متعدد الوكلاء
  */
 
 import { BaseAgent } from '../shared/BaseAgent';
+import { logger } from '@/utils/logger';
 import {
   DebateConfig,
   DebateParticipant,
@@ -18,8 +22,17 @@ import { StandardAgentOutput } from '../shared/standardAgentPattern';
 import { selectDebatingAgents } from './selection';
 
 /**
- * Start a debate session
  * بدء جلسة مناظرة
+ * 
+ * @description
+ * يبدأ جلسة مناظرة جديدة مع الوكلاء المحددين
+ * 
+ * @param topic - موضوع المناظرة
+ * @param availableAgents - الوكلاء المتاحين للمشاركة
+ * @param context - السياق الإضافي (اختياري)
+ * @param config - إعدادات المناظرة (اختياري)
+ * @returns وعد بنتيجة المناظرة
+ * @throws خطأ إذا كان عدد الوكلاء أقل من 2
  */
 export async function startDebate(
   topic: string,
@@ -27,16 +40,16 @@ export async function startDebate(
   context?: string,
   config?: Partial<DebateConfig>
 ): Promise<StandardAgentOutput> {
-  console.log(`[DebateProtocol] Starting debate on: ${topic}`);
+  logger.info("بدء جلسة مناظرة", { topic, agentCount: availableAgents.length });
 
-  // Select participating agents
+  // اختيار الوكلاء المشاركين
   const participants = selectDebatingAgents(availableAgents, config);
 
   if (participants.length < 2) {
     throw new Error('يجب أن يكون هناك على الأقل وكيلان للمناظرة');
   }
 
-  // Create moderator and run debate
+  // إنشاء المنسق وتشغيل المناظرة
   const moderator = new DebateModerator(topic, participants, config);
   const result = await moderator.runDebate(context);
 
@@ -44,8 +57,16 @@ export async function startDebate(
 }
 
 /**
- * Present arguments from all participants
  * تقديم الحجج من جميع المشاركين
+ * 
+ * @description
+ * يجمع الحجج من جميع المشاركين في المناظرة
+ * 
+ * @param topic - موضوع المناظرة
+ * @param participants - المشاركون في المناظرة
+ * @param context - السياق الإضافي (اختياري)
+ * @param previousArguments - الحجج السابقة (اختياري)
+ * @returns وعد بمصفوفة الحجج المقدمة
  */
 export async function presentArguments(
   topic: string,
@@ -53,14 +74,14 @@ export async function presentArguments(
   context?: string,
   previousArguments?: DebateArgument[]
 ): Promise<DebateArgument[]> {
-  console.log(`[DebateProtocol] Collecting arguments from ${participants.length} participants`);
+  logger.debug("جمع الحجج من المشاركين", { participantCount: participants.length });
 
   const argumentPromises = participants.map(async participant => {
     try {
       const agentName = participant.agent.getConfig().name;
-      console.log(`[DebateProtocol] Getting argument from ${agentName}`);
+      logger.debug("الحصول على حجة من وكيل", { agentName });
 
-      // Build prompt based on role
+      // بناء النص بناءً على الدور
       const prompt = buildArgumentPrompt(
         topic,
         participant.role,
@@ -92,34 +113,43 @@ export async function presentArguments(
 
       return argument;
     } catch (error) {
-      console.error(`[DebateProtocol] Error getting argument from participant:`, error);
+      logger.error("فشل في الحصول على حجة من المشارك", {
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
       return null;
     }
   });
 
   const debateArguments = await Promise.all(argumentPromises);
 
-  // Filter out failed arguments
+  // تصفية الحجج الفاشلة
   return debateArguments.filter((arg): arg is DebateArgument => arg !== null);
 }
 
 /**
- * Refute arguments
  * الرد على الحجج
+ * 
+ * @description
+ * يجمع الردود من المشاركين على حجج الآخرين
+ * 
+ * @param args - الحجج المراد الرد عليها
+ * @param participants - المشاركون في المناظرة
+ * @param context - السياق الإضافي (اختياري)
+ * @returns وعد بمصفوفة الردود
  */
 export async function refuteArguments(
   args: DebateArgument[],
   participants: DebateParticipant[],
   context?: string
 ): Promise<DebateArgument[]> {
-  console.log(`[DebateProtocol] Refuting ${args.length} arguments`);
+  logger.debug("جمع الردود على الحجج", { argumentCount: args.length });
 
   const refutations: DebateArgument[] = [];
 
   for (const participant of participants) {
     const agentName = participant.agent.getConfig().name;
 
-    // Each agent refutes arguments from other agents
+    // كل وكيل يرد على حجج الوكلاء الآخرين
     const otherArguments = args.filter(arg => arg.agentName !== agentName);
 
     if (otherArguments.length === 0) continue;
@@ -151,7 +181,10 @@ export async function refuteArguments(
 
       refutations.push(refutation);
     } catch (error) {
-      console.error(`[DebateProtocol] Error getting refutation from ${agentName}:`, error);
+      logger.error("فشل في الحصول على رد من وكيل", {
+        agentName,
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
     }
   }
 
@@ -159,15 +192,22 @@ export async function refuteArguments(
 }
 
 /**
- * Synthesize consensus from arguments
  * توليف التوافق من الحجج
+ * 
+ * @description
+ * يحلل الحجج ويحاول الوصول إلى توافق
+ * 
+ * @param args - الحجج المراد تحليلها
+ * @param topic - موضوع المناظرة
+ * @param synthesizer - وكيل التوليف (اختياري)
+ * @returns وعد بنتيجة التوافق
  */
 export async function synthesizeConsensus(
   args: DebateArgument[],
   topic: string,
   synthesizer?: BaseAgent
 ): Promise<ConsensusResult> {
-  console.log(`[DebateProtocol] Synthesizing consensus from ${args.length} arguments`);
+  logger.debug("توليف التوافق من الحجج", { argumentCount: args.length });
 
   if (args.length === 0) {
     return {
@@ -182,24 +222,24 @@ export async function synthesizeConsensus(
   }
 
   try {
-    // Use synthesizer agent if provided, otherwise create synthesis directly
+    // استخدام وكيل التوليف إذا كان متاحاً، وإلا إنشاء توليف مباشر
     const synthesisText = synthesizer
       ? await getSynthesizerAgentOutput(synthesizer, args, topic)
       : await generateDirectSynthesis(args, topic);
 
-    // Analyze consensus points
+    // تحليل نقاط التوافق
     const { consensusPoints, disagreementPoints } = await analyzeConsensusPoints(
       args,
       synthesisText
     );
 
-    // Calculate agreement score
+    // حساب درجة التوافق
     const agreementScore = calculateAgreementScore(args, consensusPoints);
 
-    // Determine if consensus is achieved (threshold 0.75)
+    // تحديد ما إذا تم تحقيق التوافق (الحد 0.75)
     const achieved = agreementScore >= 0.75;
 
-    // Get participating agents
+    // الحصول على الوكلاء المشاركين
     const participatingAgents = Array.from(
       new Set(args.map(arg => arg.agentName))
     );
@@ -214,7 +254,9 @@ export async function synthesizeConsensus(
       confidence: agreementScore,
     };
   } catch (error) {
-    console.error(`[DebateProtocol] Error synthesizing consensus:`, error);
+    logger.error("فشل في توليف التوافق", {
+      error: error instanceof Error ? error.message : 'خطأ غير معروف',
+    });
 
     return {
       achieved: false,
@@ -229,19 +271,26 @@ export async function synthesizeConsensus(
 }
 
 /**
- * Vote on best response
  * التصويت على أفضل رد
+ * 
+ * @description
+ * يجمع أصوات المشاركين على الحجج ويحدد الفائز
+ * 
+ * @param args - الحجج المراد التصويت عليها
+ * @param participants - المشاركون في المناظرة
+ * @param topic - موضوع المناظرة
+ * @returns وعد بنتيجة التصويت شاملة الفائز
  */
 export async function voteOnBestResponse(
   args: DebateArgument[],
   participants: DebateParticipant[],
   topic: string
 ): Promise<{ argumentId: string; votes: Vote[]; winner: DebateArgument }> {
-  console.log(`[DebateProtocol] Voting on ${args.length} arguments`);
+  logger.debug("التصويت على الحجج", { argumentCount: args.length });
 
   const allVotes: Vote[] = [];
 
-  // Each participant votes on all arguments
+  // كل مشارك يصوت على جميع الحجج
   for (const participant of participants) {
     const agentName = participant.agent.getConfig().name;
 
@@ -256,15 +305,18 @@ export async function voteOnBestResponse(
         },
       });
 
-      // Parse votes from response
+      // تحليل الأصوات من الاستجابة
       const votes = parseVotesFromResponse(result.text, args, agentName);
       allVotes.push(...votes);
     } catch (error) {
-      console.error(`[DebateProtocol] Error getting votes from ${agentName}:`, error);
+      logger.error("فشل في الحصول على أصوات من وكيل", {
+        agentName,
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
     }
   }
 
-  // Calculate vote scores for each argument
+  // حساب درجات التصويت لكل حجة
   const scoreMap = new Map<string, number>();
   args.forEach(arg => scoreMap.set(arg.id, 0));
 
@@ -273,7 +325,7 @@ export async function voteOnBestResponse(
     scoreMap.set(vote.argumentId, currentScore + vote.score);
   });
 
-  // Find winner (highest score)
+  // تحديد الفائز (أعلى درجة)
   let maxScore = 0;
   let winnerId = args[0].id;
 

@@ -6,18 +6,72 @@ import {
 } from "./standardAgentPattern";
 import { executeStandardAgentPattern } from "./standardAgentPattern";
 import { geminiService } from "@/services/gemini.service";
+import { logger } from "@/utils/logger";
 
 /**
- * Base Agent Class - النمط القياسي لجميع الوكلاء
- * يطبق: RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
+ * واجهة إعدادات الوكيل
+ * 
+ * @description
+ * تحدد هيكل كائن إعدادات الوكيل
+ */
+export interface AgentConfig {
+  /** اسم الوكيل */
+  name: string;
+  /** نوع المهمة */
+  taskType: TaskType;
+  /** الحد الأدنى للثقة */
+  confidenceFloor: number;
+  /** دعم RAG */
+  supportsRAG: boolean;
+  /** دعم النقد الذاتي */
+  supportsSelfCritique: boolean;
+  /** دعم القواعد الدستورية */
+  supportsConstitutional: boolean;
+  /** دعم قياس عدم اليقين */
+  supportsUncertainty: boolean;
+  /** دعم كشف الهلوسة */
+  supportsHallucination: boolean;
+  /** دعم المناظرة */
+  supportsDebate: boolean;
+}
+
+/**
+ * الفئة الأساسية للوكيل - Base Agent Class
+ * 
+ * @description
+ * النمط القياسي لجميع الوكلاء في النظام.
+ * يطبق سلسلة المعالجة: RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
  * إخراج نصي فقط - لا JSON في الواجهة
+ * 
+ * @example
+ * ```typescript
+ * class MyAgent extends BaseAgent {
+ *   constructor() {
+ *     super('MyAgent', TaskType.ANALYSIS, 'system prompt');
+ *   }
+ *   protected buildPrompt(input: StandardAgentInput): string {
+ *     return `Analyze: ${input.input}`;
+ *   }
+ * }
+ * ```
  */
 export abstract class BaseAgent {
+  /** اسم الوكيل - Agent name */
   protected name: string;
+  /** نوع المهمة - Task type */
   protected taskType: TaskType;
+  /** تعليمات النظام - System prompt */
   protected systemPrompt: string;
+  /** الحد الأدنى للثقة - Minimum confidence threshold */
   protected confidenceFloor: number = 0.7;
 
+  /**
+   * منشئ الفئة الأساسية للوكيل
+   * 
+   * @param name - اسم الوكيل المعرّف
+   * @param taskType - نوع المهمة التي يقوم بها الوكيل
+   * @param systemPrompt - تعليمات النظام الأساسية للوكيل
+   */
   constructor(name: string, taskType: TaskType, systemPrompt: string) {
     this.name = name;
     this.taskType = taskType;
@@ -25,18 +79,25 @@ export abstract class BaseAgent {
   }
 
   /**
-   * Execute task with standard agent pattern
-   * Input: { input, options, context }
-   * Output: { text, confidence, notes } - نصي فقط
+   * تنفيذ المهمة باستخدام النمط القياسي للوكيل
+   * 
+   * @description
+   * يقوم بتنفيذ المهمة المطلوبة مع تطبيق جميع مراحل المعالجة
+   * المدخلات: { input, options, context }
+   * المخرجات: { text, confidence, notes } - نصي فقط
+   * 
+   * @param input - مدخلات الوكيل تشمل النص والخيارات والسياق
+   * @returns وعد بنتيجة التنفيذ مع نص الإخراج ودرجة الثقة والملاحظات
+   * @throws يعيد نتيجة احتياطية في حالة الخطأ بدلاً من رمي استثناء
    */
   async executeTask(input: StandardAgentInput): Promise<StandardAgentOutput> {
-    console.log(`[${this.name}] Starting task execution...`);
+    logger.info(`بدء تنفيذ المهمة`, { agentName: this.name, taskType: this.taskType });
 
     try {
-      // Build the base prompt from input
+      // بناء النص الأساسي من المدخلات
       const basePrompt = this.buildPrompt(input);
 
-      // Merge options with agent defaults
+      // دمج الخيارات مع القيم الافتراضية للوكيل
       const options: StandardAgentOptions = {
         temperature: input.options?.temperature ?? 0.7,
         maxTokens: input.options?.maxTokens ?? 48192,
@@ -46,7 +107,7 @@ export abstract class BaseAgent {
         enableLogging: input.options?.enableLogging ?? true,
       };
 
-      // Execute standard pattern
+      // تنفيذ النمط القياسي
       const result = await executeStandardAgentPattern(basePrompt, options, {
         ...(typeof input.context === "object" ? input.context : {}),
         taskType: this.taskType,
@@ -54,20 +115,24 @@ export abstract class BaseAgent {
         systemPrompt: this.systemPrompt,
       });
 
-      // Add agent-specific post-processing if needed
+      // تطبيق المعالجة اللاحقة الخاصة بالوكيل
       const processedResult = await this.postProcess(result);
 
-      // Log completion
-      console.log(
-        `[${this.name}] Task completed with confidence: ${processedResult.confidence}`
-      );
+      // تسجيل الإكمال
+      logger.info(`اكتمل تنفيذ المهمة`, {
+        agentName: this.name,
+        confidence: processedResult.confidence,
+      });
 
       return processedResult;
     } catch (error) {
-      // SECURITY FIX: Pass this.name as separate argument to prevent format string injection
-      console.error("[Agent] Task execution failed for", this.name, ":", error);
+      // تسجيل الخطأ بشكل آمن
+      logger.error(`فشل في تنفيذ المهمة`, {
+        agentName: this.name,
+        error: error instanceof Error ? error.message : "خطأ غير معروف",
+      });
 
-      // Return graceful fallback - نص بسيط مع ثقة منخفضة
+      // إرجاع نتيجة احتياطية - نص بسيط مع ثقة منخفضة
       return {
         text: await this.getFallbackResponse(input),
         confidence: 0.3,
@@ -87,28 +152,46 @@ export abstract class BaseAgent {
   }
 
   /**
-   * Build the prompt from input - to be implemented by each agent
+   * بناء النص من المدخلات - يجب تنفيذه في كل وكيل فرعي
+   * 
+   * @description
+   * طريقة مجردة يجب تنفيذها في الفئات الفرعية لبناء النص المطلوب
+   * 
+   * @param input - مدخلات الوكيل
+   * @returns النص المبني للمعالجة
    */
   protected abstract buildPrompt(input: StandardAgentInput): string;
 
   /**
-   * Optional post-processing - agents can override this
+   * المعالجة اللاحقة - يمكن للوكلاء الفرعية تجاوز هذه الطريقة
+   * 
+   * @description
+   * معالجة اختيارية بعد الحصول على النتيجة الأولية
+   * 
+   * @param output - نتيجة المعالجة الأولية
+   * @returns النتيجة بعد المعالجة اللاحقة
    */
   protected async postProcess(
     output: StandardAgentOutput
   ): Promise<StandardAgentOutput> {
-    // Default: no post-processing
+    // افتراضي: لا توجد معالجة لاحقة
     return output;
   }
 
   /**
-   * Generate fallback response when execution fails
+   * توليد استجابة احتياطية عند فشل التنفيذ
+   * 
+   * @description
+   * يُستخدم لتوفير استجابة بديلة في حالة فشل المعالجة الرئيسية
+   * 
+   * @param input - مدخلات الوكيل الأصلية
+   * @returns نص الاستجابة الاحتياطية
    */
   protected async getFallbackResponse(
     input: StandardAgentInput
   ): Promise<string> {
     try {
-      // Try simple generation with system prompt only
+      // محاولة التوليد البسيط باستخدام تعليمات النظام فقط
       const fallbackPrompt = `${this.systemPrompt}\n\nالمهمة: ${input.input}\n\nقدم إجابة مختصرة ومباشرة.`;
 
       const response = await geminiService.generateContent(fallbackPrompt, {
@@ -123,9 +206,14 @@ export abstract class BaseAgent {
   }
 
   /**
-   * Get agent configuration
+   * الحصول على إعدادات الوكيل
+   * 
+   * @description
+   * يُرجع كائن يحتوي على جميع إعدادات وقدرات الوكيل
+   * 
+   * @returns كائن إعدادات الوكيل
    */
-  getConfig() {
+  getConfig(): AgentConfig {
     return {
       name: this.name,
       taskType: this.taskType,
@@ -140,9 +228,14 @@ export abstract class BaseAgent {
   }
 
   /**
-   * Set confidence floor for this agent
+   * تعيين الحد الأدنى للثقة لهذا الوكيل
+   * 
+   * @description
+   * يحدد الحد الأدنى المقبول لدرجة الثقة (بين 0 و 1)
+   * 
+   * @param threshold - قيمة الحد الأدنى للثقة (0-1)
    */
-  setConfidenceFloor(threshold: number) {
+  setConfidenceFloor(threshold: number): void {
     this.confidenceFloor = Math.max(0, Math.min(1, threshold));
   }
 }

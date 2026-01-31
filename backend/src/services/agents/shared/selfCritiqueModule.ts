@@ -1,27 +1,62 @@
 /**
  * وحدة النقد الذاتي - Self-Critique Module
- * يمكن استخدامها من أي وكيل لتحسين مخرجاته
- *
- * Based on Self-Refine and Constitutional AI research
+ * 
+ * @module selfCritiqueModule
+ * @description
+ * وحدة متخصصة في تحسين مخرجات الوكلاء من خلال دورات النقد الذاتي.
+ * يمكن استخدامها من أي وكيل لتحسين جودة النتائج بشكل تكراري.
+ * 
+ * مبنية على أبحاث Self-Refine و Constitutional AI
+ * 
+ * @example
+ * ```typescript
+ * const result = await selfCritiqueModule.applySelfCritique(
+ *   output,
+ *   'تحليل الشخصيات',
+ *   { projectName: 'مشروع فيلم' },
+ *   3
+ * );
+ * ```
  */
 
 import { SelfCritiqueResult } from "@core/types";
 import { geminiService } from "@/services/gemini.service";
+import { logger } from "@/utils/logger";
 
+/**
+ * فئة وحدة النقد الذاتي
+ * 
+ * @description
+ * توفر آليات لتحسين المخرجات من خلال:
+ * 1. توليد نقد للمخرج الحالي
+ * 2. تحديد ما إذا كان التحسين مطلوباً
+ * 3. تحسين المخرج بناءً على النقد
+ * 4. حساب درجة التحسين
+ */
 export class SelfCritiqueModule {
   /**
    * تطبيق النقد الذاتي على مخرج
-   * Apply self-critique to improve output
+   * 
+   * @description
+   * يقوم بتشغيل دورات متكررة من النقد والتحسين حتى الوصول
+   * إلى نتيجة مرضية أو استنفاد عدد التكرارات المسموح
+   * 
+   * @param output - النص المراد تحسينه
+   * @param task - وصف المهمة الأصلية
+   * @param context - سياق إضافي للمساعدة في التحسين
+   * @param maxIterations - الحد الأقصى لعدد التكرارات (افتراضي: 3)
+   * @returns وعد بنتيجة النقد الذاتي تشمل النص المحسّن ودرجة التحسين
    */
   async applySelfCritique(
     output: string,
     task: string,
-    context: any,
+    context: Record<string, unknown>,
     maxIterations: number = 3
   ): Promise<SelfCritiqueResult> {
-    console.log(
-      `[Self-Critique] Starting with max ${maxIterations} iterations`
-    );
+    logger.info("بدء عملية النقد الذاتي", {
+      maxIterations,
+      outputLength: output.length,
+    });
 
     let currentOutput = output;
     const critiques: string[] = [];
@@ -29,9 +64,12 @@ export class SelfCritiqueModule {
 
     for (let i = 0; i < maxIterations; i++) {
       iteration = i + 1;
-      console.log(`[Self-Critique] Iteration ${iteration}/${maxIterations}`);
+      logger.debug("تكرار النقد الذاتي", {
+        iteration,
+        maxIterations,
+      });
 
-      // Reflection phase: نقد المخرج الحالي
+      // مرحلة التأمل: نقد المخرج الحالي
       const critique = await this.generateCritique(
         currentOutput,
         task,
@@ -39,20 +77,21 @@ export class SelfCritiqueModule {
       );
       critiques.push(critique);
 
-      // Check if improvement is needed
+      // التحقق مما إذا كان التحسين مطلوباً
       const needsImprovement = await this.needsImprovement(
         currentOutput,
         critique
       );
 
       if (!needsImprovement) {
-        console.log(
-          `[Self-Critique] Output is good enough after ${iteration} iterations`
-        );
+        logger.info("المخرج جيد بما فيه الكفاية", {
+          iteration,
+          totalIterations: maxIterations,
+        });
         break;
       }
 
-      // Refinement phase: تحسين المخرج
+      // مرحلة التحسين: تحسين المخرج
       currentOutput = await this.refineOutput(
         currentOutput,
         critique,
@@ -61,15 +100,16 @@ export class SelfCritiqueModule {
       );
     }
 
-    // Calculate improvement score
+    // حساب درجة التحسين
     const improvementScore = await this.calculateImprovement(
       output,
       currentOutput
     );
 
-    console.log(
-      `[Self-Critique] Complete. Improvement: ${(improvementScore * 100).toFixed(1)}%`
-    );
+    logger.info("اكتملت عملية النقد الذاتي", {
+      improvementPercentage: (improvementScore * 100).toFixed(1),
+      totalIterations: iteration,
+    });
 
     return {
       improved: improvementScore > 0.1,
@@ -84,12 +124,20 @@ export class SelfCritiqueModule {
 
   /**
    * توليد نقد للمخرج
-   * Generate critique for output
+   * 
+   * @description
+   * يستخدم نموذج اللغة لتوليد تقييم نقدي شامل للمخرج
+   * يشمل نقاط القوة والضعف والتحسينات المقترحة
+   * 
+   * @param output - النص المراد نقده
+   * @param task - وصف المهمة الأصلية
+   * @param context - السياق الإضافي
+   * @returns وعد بنص النقد
    */
   private async generateCritique(
     output: string,
     task: string,
-    context: any
+    context: Record<string, unknown>
   ): Promise<string> {
     const critiquePrompt = `
 أنت ناقد محترف متخصص في المحتوى الدرامي.
@@ -117,14 +165,22 @@ ${output}
     try {
       return await geminiService.generateContent(critiquePrompt);
     } catch (error) {
-      console.error("[Self-Critique] Error generating critique:", error);
+      logger.error("فشل في توليد النقد", {
+        error: error instanceof Error ? error.message : "خطأ غير معروف",
+      });
       return "لا يوجد نقد متاح";
     }
   }
 
   /**
    * فحص إذا كان المخرج يحتاج تحسين
-   * Check if output needs improvement
+   * 
+   * @description
+   * يحلل النقد لتحديد ما إذا كان المخرج يحتاج إلى تحسين إضافي
+   * 
+   * @param output - النص الحالي
+   * @param critique - النقد المولّد
+   * @returns وعد بقيمة منطقية تشير إلى الحاجة للتحسين
    */
   private async needsImprovement(
     output: string,
@@ -146,20 +202,30 @@ ${critique}
       const result = await geminiService.generateContent(checkPrompt);
       return result.trim().toLowerCase().includes("yes");
     } catch (error) {
-      console.error("[Self-Critique] Error checking improvement need:", error);
-      return false; // Default to no improvement needed on error
+      logger.error("فشل في التحقق من الحاجة للتحسين", {
+        error: error instanceof Error ? error.message : "خطأ غير معروف",
+      });
+      return false; // افتراضي: لا حاجة للتحسين في حالة الخطأ
     }
   }
 
   /**
    * تحسين المخرج بناءً على النقد
-   * Refine output based on critique
+   * 
+   * @description
+   * يولّد نسخة محسّنة من المخرج بناءً على النقد والملاحظات
+   * 
+   * @param output - النص الحالي
+   * @param critique - النقد المولّد
+   * @param task - وصف المهمة الأصلية
+   * @param context - السياق الإضافي
+   * @returns وعد بالنص المحسّن
    */
   private async refineOutput(
     output: string,
     critique: string,
     task: string,
-    context: any
+    context: Record<string, unknown>
   ): Promise<string> {
     const refinementPrompt = `
 المهمة الأصلية:
@@ -187,20 +253,28 @@ ${critique}
     try {
       return await geminiService.generateContent(refinementPrompt);
     } catch (error) {
-      console.error("[Self-Critique] Error refining output:", error);
-      return output; // Return original on error
+      logger.error("فشل في تحسين المخرج", {
+        error: error instanceof Error ? error.message : "خطأ غير معروف",
+      });
+      return output; // إرجاع الأصلي في حالة الخطأ
     }
   }
 
   /**
    * حساب درجة التحسين
-   * Calculate improvement score
+   * 
+   * @description
+   * يقيس مدى التحسين بين النص الأصلي والمحسّن على مقياس من 0 إلى 1
+   * 
+   * @param original - النص الأصلي
+   * @param refined - النص المحسّن
+   * @returns وعد بدرجة التحسين (0-1)
    */
   private async calculateImprovement(
     original: string,
     refined: string
   ): Promise<number> {
-    // Simple comparison - can be enhanced with more sophisticated metrics
+    // مقارنة بسيطة - يمكن تحسينها بمقاييس أكثر تطوراً
     if (original === refined) return 0;
 
     const assessmentPrompt = `
@@ -227,11 +301,13 @@ ${refined.substring(0, 1500)}
       const score = parseFloat(result.trim());
       return isNaN(score) ? 0.5 : Math.min(Math.max(score, 0), 1);
     } catch (error) {
-      console.error("[Self-Critique] Error calculating improvement:", error);
-      return 0.5; // Default to medium improvement
+      logger.error("فشل في حساب درجة التحسين", {
+        error: error instanceof Error ? error.message : "خطأ غير معروف",
+      });
+      return 0.5; // افتراضي: تحسين متوسط
     }
   }
 }
 
-// Export singleton instance
+/** نسخة مفردة من وحدة النقد الذاتي للاستخدام المشترك */
 export const selfCritiqueModule = new SelfCritiqueModule();

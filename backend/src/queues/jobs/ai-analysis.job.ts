@@ -1,103 +1,204 @@
 /**
+ * معالج مهام تحليل الذكاء الاصطناعي في الخلفية
  * AI Analysis Background Job Processor
  *
- * Handles long-running AI analysis tasks in the background
+ * @module ai-analysis.job
+ * @description
+ * يعالج مهام تحليل الذكاء الاصطناعي طويلة المدى في الخلفية.
+ * يدعم تحليل المشاهد والشخصيات واللقطات والمشاريع.
  */
 
 import { Job } from 'bullmq';
 import { queueManager, QueueName } from '@/queues/queue.config';
+import { logger } from '@/utils/logger';
 
-// Job data types
+/**
+ * واجهة بيانات مهمة تحليل الذكاء الاصطناعي
+ * 
+ * @description
+ * تحدد هيكل البيانات المطلوبة لتنفيذ مهمة التحليل
+ */
 export interface AIAnalysisJobData {
+  /** نوع الكيان المراد تحليله */
   type: 'scene' | 'character' | 'shot' | 'project';
+  /** معرّف الكيان */
   entityId: string;
+  /** معرّف المستخدم صاحب الطلب */
   userId: string;
+  /** نوع التحليل المطلوب */
   analysisType: 'full' | 'quick' | 'detailed';
-  options?: Record<string, any>;
+  /** خيارات إضافية للتحليل */
+  options?: Record<string, unknown>;
 }
 
+/**
+ * واجهة نتيجة تحليل الذكاء الاصطناعي
+ * 
+ * @description
+ * تحدد هيكل النتيجة المُرجعة من مهمة التحليل
+ */
 export interface AIAnalysisResult {
+  /** معرّف الكيان المُحلّل */
   entityId: string;
+  /** نوع الكيان */
   entityType: string;
-  analysis: any;
+  /** نتيجة التحليل */
+  analysis: AnalysisOutput;
+  /** تاريخ إنشاء النتيجة */
   generatedAt: Date;
+  /** وقت المعالجة بالميلي ثانية */
   processingTime: number;
 }
 
 /**
- * Process AI analysis job
+ * واجهة مخرجات التحليل
+ */
+interface AnalysisOutput {
+  /** النتيجة الخام من Gemini */
+  raw: string;
+  /** تاريخ التحليل */
+  analyzedAt: string;
+  /** نوع التحليل */
+  analysisType: string;
+}
+
+/**
+ * واجهة نتيجة تحليل المشهد
+ */
+interface SceneAnalysisResult {
+  sceneId: string;
+  analysis: AnalysisOutput;
+}
+
+/**
+ * واجهة نتيجة تحليل الشخصية
+ */
+interface CharacterAnalysisResult {
+  characterId: string;
+  analysis: AnalysisOutput;
+}
+
+/**
+ * واجهة نتيجة تحليل اللقطة
+ */
+interface ShotAnalysisResult {
+  shotId: string;
+  analysis: AnalysisOutput;
+}
+
+/**
+ * واجهة نتيجة تحليل المشروع
+ */
+interface ProjectAnalysisResult {
+  projectId: string;
+  analysis: AnalysisOutput;
+}
+
+/**
+ * معالجة مهمة تحليل الذكاء الاصطناعي
+ * 
+ * @description
+ * الوظيفة الرئيسية التي تعالج مهام التحليل وتوجهها للمعالج المناسب
+ * 
+ * @param job - كائن المهمة من BullMQ يحتوي على البيانات المطلوبة
+ * @returns وعد بنتيجة التحليل
+ * @throws خطأ إذا فشلت عملية التحليل
  */
 async function processAIAnalysis(job: Job<AIAnalysisJobData>): Promise<AIAnalysisResult> {
   const startTime = Date.now();
-  const { type, entityId, userId, analysisType, options } = job.data;
+  const { type, entityId, analysisType, options } = job.data;
 
-  console.log(`[AIAnalysis] Processing ${analysisType} analysis for ${type} ${entityId}`);
+  logger.info("بدء معالجة مهمة تحليل الذكاء الاصطناعي", {
+    jobId: job.id,
+    type,
+    entityId,
+    analysisType,
+  });
 
-  // Update job progress
+  // تحديث تقدم المهمة
   await job.updateProgress(10);
 
   try {
-    let analysis: any;
+    let analysisResult: SceneAnalysisResult | CharacterAnalysisResult | ShotAnalysisResult | ProjectAnalysisResult;
 
-    // Route to appropriate analysis handler
+    // توجيه للمعالج المناسب حسب نوع الكيان
     switch (type) {
       case 'scene':
-        analysis = await analyzeScene(entityId, analysisType, options);
+        analysisResult = await analyzeScene(entityId, analysisType, options);
         break;
       case 'character':
-        analysis = await analyzeCharacter(entityId, analysisType, options);
+        analysisResult = await analyzeCharacter(entityId, analysisType, options);
         break;
       case 'shot':
-        analysis = await analyzeShot(entityId, analysisType, options);
+        analysisResult = await analyzeShot(entityId, analysisType, options);
         break;
       case 'project':
-        analysis = await analyzeProject(entityId, analysisType, options);
+        analysisResult = await analyzeProject(entityId, analysisType, options);
         break;
       default:
-        throw new Error(`Unknown analysis type: ${type}`);
+        throw new Error(`نوع تحليل غير معروف: ${type}`);
     }
 
     await job.updateProgress(100);
 
     const processingTime = Date.now() - startTime;
 
-    console.log(`[AIAnalysis] Completed in ${processingTime}ms`);
+    logger.info("اكتملت مهمة التحليل بنجاح", {
+      jobId: job.id,
+      processingTime,
+    });
 
     return {
       entityId,
       entityType: type,
-      analysis,
+      analysis: analysisResult.analysis,
       generatedAt: new Date(),
       processingTime,
     };
   } catch (error) {
-    console.error(`[AIAnalysis] Error processing job ${job.id}:`, error);
+    logger.error("فشل في معالجة مهمة التحليل", {
+      jobId: job.id,
+      error: error instanceof Error ? error.message : "خطأ غير معروف",
+    });
     throw error;
   }
 }
 
 /**
- * Get Gemini service instance (lazy load to avoid circular dependencies)
+ * الحصول على خدمة Gemini (تحميل كسول لتجنب التبعيات الدائرية)
+ * 
+ * @description
+ * يقوم بتحميل خدمة Gemini بشكل ديناميكي عند الحاجة
+ * 
+ * @returns وعد بنسخة من خدمة Gemini
  */
-async function getGeminiService() {
+async function getGeminiService(): Promise<InstanceType<typeof import('@/services/gemini.service').GeminiService>> {
   const { GeminiService } = await import('@/services/gemini.service');
   return new GeminiService();
 }
 
 /**
- * Analyze a scene
+ * تحليل مشهد
+ * 
+ * @description
+ * يقوم بتحليل مشهد محدد باستخدام خدمة Gemini
+ * 
+ * @param sceneId - معرّف المشهد
+ * @param analysisType - نوع التحليل المطلوب
+ * @param options - خيارات إضافية تشمل نص المشهد
+ * @returns وعد بنتيجة تحليل المشهد
  */
 async function analyzeScene(
   sceneId: string,
   analysisType: string,
-  options?: Record<string, any>
-): Promise<any> {
+  options?: Record<string, unknown>
+): Promise<SceneAnalysisResult> {
   const gemini = await getGeminiService();
 
-  // Fetch scene data (placeholder - replace with actual DB query)
-  const sceneText = options?.text || `Scene ${sceneId} content`;
+  // جلب بيانات المشهد (مكان مخصص - استبدل باستعلام قاعدة البيانات الفعلي)
+  const sceneText = (options?.text as string) || `Scene ${sceneId} content`;
 
-  // Use Gemini to analyze the scene
+  // استخدام Gemini لتحليل المشهد
   const analysis = await gemini.analyzeText(sceneText, 'structure');
 
   return {
@@ -111,19 +212,27 @@ async function analyzeScene(
 }
 
 /**
- * Analyze a character
+ * تحليل شخصية
+ * 
+ * @description
+ * يقوم بتحليل شخصية محددة باستخدام خدمة Gemini
+ * 
+ * @param characterId - معرّف الشخصية
+ * @param analysisType - نوع التحليل المطلوب
+ * @param options - خيارات إضافية تشمل نص الشخصية
+ * @returns وعد بنتيجة تحليل الشخصية
  */
 async function analyzeCharacter(
   characterId: string,
   analysisType: string,
-  options?: Record<string, any>
-): Promise<any> {
+  options?: Record<string, unknown>
+): Promise<CharacterAnalysisResult> {
   const gemini = await getGeminiService();
 
-  // Fetch character data (placeholder - replace with actual DB query)
-  const characterText = options?.text || `Character ${characterId} information`;
+  // جلب بيانات الشخصية (مكان مخصص - استبدل باستعلام قاعدة البيانات الفعلي)
+  const characterText = (options?.text as string) || `Character ${characterId} information`;
 
-  // Use Gemini to analyze the character
+  // استخدام Gemini لتحليل الشخصية
   const analysis = await gemini.analyzeText(characterText, 'characters');
 
   return {
@@ -137,19 +246,27 @@ async function analyzeCharacter(
 }
 
 /**
- * Analyze a shot
+ * تحليل لقطة
+ * 
+ * @description
+ * يقوم بتحليل لقطة محددة باستخدام خدمة Gemini
+ * 
+ * @param shotId - معرّف اللقطة
+ * @param analysisType - نوع التحليل المطلوب
+ * @param options - خيارات إضافية تشمل نص اللقطة
+ * @returns وعد بنتيجة تحليل اللقطة
  */
 async function analyzeShot(
   shotId: string,
   analysisType: string,
-  options?: Record<string, any>
-): Promise<any> {
+  options?: Record<string, unknown>
+): Promise<ShotAnalysisResult> {
   const gemini = await getGeminiService();
 
-  // Fetch shot data (placeholder - replace with actual DB query)
-  const shotText = options?.text || `Shot ${shotId} details`;
+  // جلب بيانات اللقطة (مكان مخصص - استبدل باستعلام قاعدة البيانات الفعلي)
+  const shotText = (options?.text as string) || `Shot ${shotId} details`;
 
-  // Use Gemini to analyze the shot
+  // استخدام Gemini لتحليل اللقطة
   const analysis = await gemini.analyzeText(shotText, analysisType);
 
   return {
@@ -163,19 +280,27 @@ async function analyzeShot(
 }
 
 /**
- * Analyze a project
+ * تحليل مشروع
+ * 
+ * @description
+ * يقوم بتحليل مشروع كامل باستخدام خدمة Gemini
+ * 
+ * @param projectId - معرّف المشروع
+ * @param analysisType - نوع التحليل المطلوب
+ * @param options - خيارات إضافية تشمل نص المشروع
+ * @returns وعد بنتيجة تحليل المشروع
  */
 async function analyzeProject(
   projectId: string,
   analysisType: string,
-  options?: Record<string, any>
-): Promise<any> {
+  options?: Record<string, unknown>
+): Promise<ProjectAnalysisResult> {
   const gemini = await getGeminiService();
 
-  // Fetch project data (placeholder - replace with actual DB query)
-  const projectText = options?.text || `Project ${projectId} overview`;
+  // جلب بيانات المشروع (مكان مخصص - استبدل باستعلام قاعدة البيانات الفعلي)
+  const projectText = (options?.text as string) || `Project ${projectId} overview`;
 
-  // Use Gemini to analyze the entire project
+  // استخدام Gemini لتحليل المشروع بالكامل
   const analysis = await gemini.analyzeText(projectText, 'structure');
 
   return {
@@ -189,7 +314,13 @@ async function analyzeProject(
 }
 
 /**
- * Add AI analysis job to queue
+ * إضافة مهمة تحليل ذكاء اصطناعي إلى قائمة الانتظار
+ * 
+ * @description
+ * يقوم بإنشاء مهمة جديدة وإضافتها إلى قائمة انتظار التحليل
+ * 
+ * @param data - بيانات المهمة المطلوبة
+ * @returns وعد بمعرّف المهمة المُنشأة
  */
 export async function queueAIAnalysis(data: AIAnalysisJobData): Promise<string> {
   const queue = queueManager.getQueue(QueueName.AI_ANALYSIS);
@@ -203,24 +334,32 @@ export async function queueAIAnalysis(data: AIAnalysisJobData): Promise<string> 
     },
   });
 
-  console.log(`[AIAnalysis] Job ${job.id} queued for ${data.type} ${data.entityId}`);
+  logger.info("تم إضافة مهمة التحليل إلى قائمة الانتظار", {
+    jobId: job.id,
+    type: data.type,
+    entityId: data.entityId,
+  });
 
   return job.id!;
 }
 
 /**
- * Register AI analysis worker
+ * تسجيل عامل تحليل الذكاء الاصطناعي
+ * 
+ * @description
+ * يقوم بتسجيل العامل المسؤول عن معالجة مهام التحليل
+ * يدعم معالجة 3 مهام بشكل متزامن مع حد أقصى 5 مهام في الثانية
  */
 export function registerAIAnalysisWorker(): void {
   queueManager.registerWorker(QueueName.AI_ANALYSIS, processAIAnalysis, {
-    concurrency: 3, // Process 3 AI analyses concurrently
+    concurrency: 3, // معالجة 3 تحليلات بشكل متزامن
     limiter: {
       max: 5,
-      duration: 1000, // Max 5 jobs per second
+      duration: 1000, // حد أقصى 5 مهام في الثانية
     },
   });
 
-  console.log('[AIAnalysis] Worker registered');
+  logger.info("تم تسجيل عامل تحليل الذكاء الاصطناعي");
 }
 
 export default {

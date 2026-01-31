@@ -1,22 +1,33 @@
 /**
- * Agent Selection for Debates
- * اختيار الوكلاء للمناظرة
- * المرحلة 3 - Multi-Agent Debate System
+ * اختيار الوكلاء للمناظرة - Agent Selection for Debates
+ * 
+ * @module selection
+ * @description
+ * يوفر وظائف لاختيار وتعيين أدوار الوكلاء في المناظرة.
+ * جزء من المرحلة 3 - نظام المناظرة متعدد الوكلاء
  */
 
 import { BaseAgent } from '../shared/BaseAgent';
+import { logger } from '@/utils/logger';
 import { DebateConfig, DebateParticipant, DebateRole } from './types';
 import { TaskType } from '../core/enums';
 
 /**
- * Select debating agents from available agents
  * اختيار الوكلاء المشاركين في المناظرة
+ * 
+ * @description
+ * يختار الوكلاء المناسبين من القائمة المتاحة ويعين لهم أدواراً
+ * 
+ * @param availableAgents - الوكلاء المتاحون
+ * @param config - إعدادات المناظرة (اختياري)
+ * @returns قائمة المشاركين مع أدوارهم
+ * @throws خطأ إذا لم يكن هناك وكلاء متاحون
  */
 export function selectDebatingAgents(
   availableAgents: BaseAgent[],
   config?: Partial<DebateConfig>
 ): DebateParticipant[] {
-  console.log(`[AgentSelection] Selecting agents from ${availableAgents.length} available agents`);
+  logger.info("اختيار الوكلاء للمناظرة", { availableCount: availableAgents.length });
 
   if (availableAgents.length === 0) {
     throw new Error('لا توجد وكلاء متاحة للمناظرة');
@@ -25,25 +36,26 @@ export function selectDebatingAgents(
   const maxParticipants = config?.maxParticipants || 5;
   const minParticipants = config?.minParticipants || 2;
 
-  // Select agents and assign roles
+  // اختيار الوكلاء وتعيين الأدوار
   const participants: DebateParticipant[] = [];
 
-  // 1. Balance agent types
+  // 1. موازنة أنواع الوكلاء
   const balancedAgents = balanceAgentTypes(availableAgents, maxParticipants);
 
-  // 2. Avoid redundancy (don't select multiple agents of same type)
+  // 2. تجنب التكرار (عدم اختيار وكلاء متعددين من نفس النوع)
   const uniqueAgents = avoidRedundancy(balancedAgents);
 
-  // 3. Assign roles to selected agents
+  // 3. تعيين الأدوار للوكلاء المختارين
   const agentsWithRoles = assignRoles(uniqueAgents);
 
-  // 4. Ensure minimum participants
+  // 4. ضمان الحد الأدنى من المشاركين
   if (agentsWithRoles.length < minParticipants) {
-    console.warn(
-      `[AgentSelection] Only ${agentsWithRoles.length} agents selected, less than minimum ${minParticipants}`
-    );
+    logger.warn("عدد الوكلاء المختارين أقل من الحد الأدنى", {
+      selected: agentsWithRoles.length,
+      minimum: minParticipants,
+    });
 
-    // Add more agents if available
+    // إضافة وكلاء إضافيين إذا كانوا متاحين
     const remainingAgents = availableAgents.filter(
       agent => !agentsWithRoles.some(p => p.agent === agent)
     );
@@ -61,22 +73,25 @@ export function selectDebatingAgents(
     }
   }
 
-  // 5. Limit to max participants
+  // 5. تحديد العدد الأقصى للمشاركين
   const finalParticipants = agentsWithRoles.slice(0, maxParticipants);
 
-  console.log(
-    `[AgentSelection] Selected ${finalParticipants.length} agents for debate`
-  );
+  logger.info("تم اختيار الوكلاء للمناظرة", { count: finalParticipants.length });
 
   return finalParticipants;
 }
 
 /**
- * Assign roles to agents
  * تعيين الأدوار للوكلاء
+ * 
+ * @description
+ * يعين دوراً مناسباً لكل وكيل بناءً على خصائصه
+ * 
+ * @param agents - مصفوفة الوكلاء
+ * @returns مصفوفة المشاركين مع أدوارهم
  */
 export function assignRoles(agents: BaseAgent[]): DebateParticipant[] {
-  console.log(`[AgentSelection] Assigning roles to ${agents.length} agents`);
+  logger.debug("تعيين الأدوار للوكلاء", { count: agents.length });
 
   const participants: DebateParticipant[] = [];
 
@@ -127,20 +142,26 @@ export function assignRoles(agents: BaseAgent[]): DebateParticipant[] {
 }
 
 /**
- * Balance agent types for diversity
  * موازنة أنواع الوكلاء لتحقيق التنوع
+ * 
+ * @description
+ * يختار مزيجاً متوازناً من الوكلاء التحليليين والإبداعيين والمتكاملين
+ * 
+ * @param agents - مصفوفة الوكلاء
+ * @param maxCount - الحد الأقصى لعدد الوكلاء
+ * @returns مصفوفة الوكلاء المتوازنة
  */
 export function balanceAgentTypes(
   agents: BaseAgent[],
   maxCount: number
 ): BaseAgent[] {
-  console.log(`[AgentSelection] Balancing agent types (max: ${maxCount})`);
+  logger.debug("موازنة أنواع الوكلاء", { maxCount });
 
   if (agents.length <= maxCount) {
     return agents;
   }
 
-  // Categorize agents by task type
+  // تصنيف الوكلاء حسب نوع المهمة
   const analyticAgents: BaseAgent[] = [];
   const creativeAgents: BaseAgent[] = [];
   const integratedAgents: BaseAgent[] = [];
@@ -164,22 +185,22 @@ export function balanceAgentTypes(
     }
   });
 
-  // Select balanced mix
+  // اختيار مزيج متوازن
   const balanced: BaseAgent[] = [];
   const slotsPerCategory = Math.floor(maxCount / 3);
 
-  // Take from each category
+  // الأخذ من كل فئة
   balanced.push(...analyticAgents.slice(0, slotsPerCategory));
   balanced.push(...creativeAgents.slice(0, slotsPerCategory));
   balanced.push(...integratedAgents.slice(0, slotsPerCategory));
 
-  // Fill remaining slots with others
+  // ملء الفتحات المتبقية بالآخرين
   const remaining = maxCount - balanced.length;
   if (remaining > 0) {
     balanced.push(...otherAgents.slice(0, remaining));
   }
 
-  // If still not enough, add more from any category
+  // إذا لم يكن كافياً، أضف المزيد من أي فئة
   if (balanced.length < maxCount) {
     const allRemaining = [
       ...analyticAgents.slice(slotsPerCategory),
@@ -190,16 +211,21 @@ export function balanceAgentTypes(
     balanced.push(...allRemaining.slice(0, maxCount - balanced.length));
   }
 
-  console.log(`[AgentSelection] Balanced to ${balanced.length} agents`);
+  logger.debug("تم موازنة الوكلاء", { count: balanced.length });
   return balanced.slice(0, maxCount);
 }
 
 /**
- * Avoid redundancy - select unique agent types
  * تجنب التكرار - اختيار أنواع وكلاء فريدة
+ * 
+ * @description
+ * يزيل الوكلاء المكررين من نفس النوع للحصول على تنوع أفضل
+ * 
+ * @param agents - مصفوفة الوكلاء
+ * @returns مصفوفة الوكلاء الفريدين
  */
 export function avoidRedundancy(agents: BaseAgent[]): BaseAgent[] {
-  console.log(`[AgentSelection] Removing redundant agents`);
+  logger.debug("إزالة الوكلاء المكررين");
 
   const seenTaskTypes = new Set<TaskType>();
   const uniqueAgents: BaseAgent[] = [];
@@ -208,12 +234,12 @@ export function avoidRedundancy(agents: BaseAgent[]): BaseAgent[] {
     const config = agent.getConfig();
     const taskType = config.taskType;
 
-    // Allow multiple analytic and creative agents, but avoid exact duplicates
+    // السماح بتعدد الوكلاء التحليليين والإبداعيين، لكن تجنب التكرار التام
     if (!seenTaskTypes.has(taskType)) {
       uniqueAgents.push(agent);
       seenTaskTypes.add(taskType);
     } else {
-      // Allow one duplicate for major categories
+      // السماح بتكرار واحد للفئات الرئيسية
       if (
         isAnalyticTask(taskType) &&
         uniqueAgents.filter(a => isAnalyticTask(a.getConfig().taskType))
@@ -230,9 +256,10 @@ export function avoidRedundancy(agents: BaseAgent[]): BaseAgent[] {
     }
   }
 
-  console.log(
-    `[AgentSelection] Reduced from ${agents.length} to ${uniqueAgents.length} unique agents`
-  );
+  logger.debug("تم تقليص الوكلاء المكررين", {
+    original: agents.length,
+    unique: uniqueAgents.length,
+  });
 
   return uniqueAgents;
 }

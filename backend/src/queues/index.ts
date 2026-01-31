@@ -1,7 +1,11 @@
 /**
+ * نقطة الدخول لنظام قوائم الانتظار
  * Queue System Entry Point
  *
- * Initializes all workers and exports queue utilities
+ * @module queues
+ * @description
+ * يقوم بتهيئة جميع العمال وتصدير أدوات قوائم الانتظار.
+ * يدعم معالجة المهام في الخلفية باستخدام BullMQ و Redis.
  */
 
 import { registerAIAnalysisWorker } from './jobs/ai-analysis.job';
@@ -11,73 +15,81 @@ import { queueManager } from './queue.config';
 import { checkRedisVersion } from '@/config/redis.config';
 import { logger } from '@/utils/logger';
 
+/** حالة تفعيل نظام قوائم الانتظار */
 let queueSystemEnabled = false;
 
 /**
- * Initialize all workers
+ * تهيئة جميع العمال
+ * 
+ * @description
+ * يتحقق من توافق إصدار Redis ثم يسجل جميع معالجات المهام.
+ * في حالة عدم التوافق، يتم تعطيل نظام قوائم الانتظار مع استمرار عمل التطبيق.
+ * 
+ * @returns وعد يكتمل عند انتهاء التهيئة
  */
 export async function initializeWorkers(): Promise<void> {
-  console.log('[QueueSystem] Initializing workers...');
+  logger.info("بدء تهيئة نظام قوائم الانتظار");
 
-  // Check Redis version compatibility
+  // التحقق من توافق إصدار Redis
   const versionCheck = await checkRedisVersion();
 
   if (!versionCheck.compatible) {
+    logger.warn("إصدار Redis غير متوافق مع BullMQ", {
+      currentVersion: versionCheck.version,
+      requiredVersion: versionCheck.minVersion,
+      reason: versionCheck.reason,
+    });
+    
     logger.warn(
-      `[QueueSystem] Redis version ${versionCheck.version} is not compatible with BullMQ. ` +
-      `Minimum required version: ${versionCheck.minVersion}. ` +
-      `Reason: ${versionCheck.reason}. ` +
-      `Queue system will be disabled. The application will continue to work without background jobs.`
+      "تم تعطيل نظام قوائم الانتظار. التطبيق سيستمر في العمل بدون المهام الخلفية. " +
+      "لتفعيل النظام: قم بترقية Redis إلى الإصدار المطلوب أو استخدم خدمة Redis سحابية."
     );
-    console.warn(
-      `\n⚠️  REDIS VERSION INCOMPATIBILITY DETECTED ⚠️\n` +
-      `   Current Redis version: ${versionCheck.version}\n` +
-      `   Required minimum version: ${versionCheck.minVersion}\n` +
-      `   Reason: ${versionCheck.reason}\n` +
-      `   \n` +
-      `   The queue system (BullMQ) has been disabled.\n` +
-      `   Background jobs will not be processed.\n` +
-      `   \n` +
-      `   To enable the queue system:\n` +
-      `   - Upgrade Redis to version ${versionCheck.minVersion} or higher\n` +
-      `   - On Windows: Use WSL2 with Redis or Memurai (https://www.memurai.com/)\n` +
-      `   - Or use a cloud Redis service (e.g., Redis Cloud, AWS ElastiCache)\n` +
-      `\n`
-    );
+    
     queueSystemEnabled = false;
     return;
   }
 
-  logger.info(
-    `[QueueSystem] Redis version ${versionCheck.version} is compatible with BullMQ`
-  );
+  logger.info("إصدار Redis متوافق مع BullMQ", {
+    version: versionCheck.version,
+  });
 
-  // Register all job processors
+  // تسجيل جميع معالجات المهام
   registerAIAnalysisWorker();
   registerDocumentProcessingWorker();
   registerCacheWarmingWorker();
 
   queueSystemEnabled = true;
-  console.log('[QueueSystem] All workers initialized');
+  logger.info("تم تهيئة جميع عمال قوائم الانتظار بنجاح");
 }
 
 /**
- * Check if queue system is enabled
+ * التحقق من حالة تفعيل نظام قوائم الانتظار
+ * 
+ * @description
+ * يُستخدم للتحقق مما إذا كان نظام قوائم الانتظار مفعلاً
+ * قبل محاولة إضافة مهام جديدة
+ * 
+ * @returns قيمة منطقية تشير إلى حالة التفعيل
  */
 export function isQueueSystemEnabled(): boolean {
   return queueSystemEnabled;
 }
 
 /**
- * Shutdown all workers and queues
+ * إيقاف جميع العمال وقوائم الانتظار
+ * 
+ * @description
+ * يقوم بإغلاق جميع الاتصالات والموارد بشكل نظيف
+ * 
+ * @returns وعد يكتمل عند انتهاء الإيقاف
  */
 export async function shutdownQueues(): Promise<void> {
-  console.log('[QueueSystem] Shutting down...');
+  logger.info("بدء إيقاف نظام قوائم الانتظار");
   await queueManager.close();
-  console.log('[QueueSystem] Shutdown complete');
+  logger.info("تم إيقاف نظام قوائم الانتظار بنجاح");
 }
 
-// Export queue manager and job functions
+// تصدير مدير قوائم الانتظار ووظائف المهام
 export { queueManager, QueueName } from './queue.config';
 export { queueAIAnalysis } from './jobs/ai-analysis.job';
 export { queueDocumentProcessing } from './jobs/document-processing.job';

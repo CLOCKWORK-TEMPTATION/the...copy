@@ -1,20 +1,32 @@
 /**
- * Debate Resolution System
- * نظام حل المناظرة
- * المرحلة 3 - Multi-Agent Debate System
+ * نظام حل المناظرة - Debate Resolution System
+ * 
+ * @module resolution
+ * @description
+ * يوفر وظائف لحساب درجات التوافق وتحديد نقاط الاتفاق والاختلاف.
+ * جزء من المرحلة 3 - نظام المناظرة متعدد الوكلاء
  */
 
 import { geminiService } from '@/services/gemini.service';
+import { logger } from '@/utils/logger';
 import { DebateArgument, ConsensusResult, Vote } from './types';
 
 /**
- * Calculate agreement score between arguments
  * حساب درجة التوافق بين الحجج
+ * 
+ * @description
+ * يحسب درجة التوافق باستخدام ثلاث طرق:
+ * - تباين الثقة (30%)
+ * - تشابه المواقف عبر الذكاء الاصطناعي (50%)
+ * - تداخل الأدلة (20%)
+ * 
+ * @param args - مصفوفة الحجج المراد تحليلها
+ * @returns وعد بدرجة التوافق (0-1)
  */
 export async function calculateAgreementScore(
   args: DebateArgument[]
 ): Promise<number> {
-  console.log(`[Resolution] Calculating agreement score for ${args.length} arguments`);
+  logger.debug("حساب درجة التوافق", { argumentCount: args.length });
 
   if (args.length === 0) {
     return 0;
@@ -25,31 +37,33 @@ export async function calculateAgreementScore(
   }
 
   try {
-    // Method 1: Confidence variance (30%)
+    // الطريقة 1: تباين الثقة (30%)
     const confidenceScore = calculateConfidenceAgreement(args);
 
-    // Method 2: Position similarity via AI (50%)
+    // الطريقة 2: تشابه المواقف عبر الذكاء الاصطناعي (50%)
     const positionScore = await calculatePositionSimilarity(args);
 
-    // Method 3: Evidence overlap (20%)
+    // الطريقة 3: تداخل الأدلة (20%)
     const evidenceScore = calculateEvidenceOverlap(args);
 
-    // Weighted combination
+    // الدمج المرجح
     const agreementScore =
       confidenceScore * 0.3 + positionScore * 0.5 + evidenceScore * 0.2;
 
-    console.log(
-      `[Resolution] Agreement score: ${agreementScore.toFixed(3)} ` +
-        `(confidence: ${confidenceScore.toFixed(3)}, ` +
-        `position: ${positionScore.toFixed(3)}, ` +
-        `evidence: ${evidenceScore.toFixed(3)})`
-    );
+    logger.info("تم حساب درجة التوافق", {
+      agreementScore: agreementScore.toFixed(3),
+      confidenceScore: confidenceScore.toFixed(3),
+      positionScore: positionScore.toFixed(3),
+      evidenceScore: evidenceScore.toFixed(3),
+    });
 
     return Math.min(1, Math.max(0, agreementScore));
   } catch (error) {
-    console.error(`[Resolution] Error calculating agreement score:`, error);
+    logger.error("فشل في حساب درجة التوافق", {
+      error: error instanceof Error ? error.message : 'خطأ غير معروف',
+    });
 
-    // Fallback: use average confidence
+    // احتياطي: استخدام متوسط الثقة
     const avgConfidence =
       args.reduce((sum, arg) => sum + arg.confidence, 0) / args.length;
     return avgConfidence;
@@ -57,14 +71,20 @@ export async function calculateAgreementScore(
 }
 
 /**
- * Identify consensus points from arguments
- * تحديد نقاط التوافق
+ * تحديد نقاط التوافق من الحجج
+ * 
+ * @description
+ * يستخدم الذكاء الاصطناعي لتحليل الحجج وتحديد النقاط المشتركة
+ * 
+ * @param args - مصفوفة الحجج
+ * @param topic - موضوع المناظرة
+ * @returns وعد بمصفوفة نقاط التوافق
  */
 export async function identifyConsensusPoints(
   args: DebateArgument[],
   topic: string
 ): Promise<string[]> {
-  console.log(`[Resolution] Identifying consensus points`);
+  logger.debug("تحديد نقاط التوافق");
 
   if (args.length === 0) {
     return [];
@@ -94,26 +114,34 @@ ${arg.position}
       maxTokens: 2048,
     });
 
-    // Extract consensus points
+    // استخراج نقاط التوافق
     const points = extractBulletPoints(response);
 
-    console.log(`[Resolution] Found ${points.length} consensus points`);
+    logger.info("تم تحديد نقاط التوافق", { count: points.length });
     return points;
   } catch (error) {
-    console.error(`[Resolution] Error identifying consensus points:`, error);
+    logger.error("فشل في تحديد نقاط التوافق", {
+      error: error instanceof Error ? error.message : 'خطأ غير معروف',
+    });
     return [];
   }
 }
 
 /**
- * Identify disagreement points
  * تحديد نقاط الاختلاف
+ * 
+ * @description
+ * يستخدم الذكاء الاصطناعي لتحليل الحجج وتحديد النقاط المختلف عليها
+ * 
+ * @param args - مصفوفة الحجج
+ * @param topic - موضوع المناظرة
+ * @returns وعد بمصفوفة نقاط الاختلاف
  */
 export async function identifyDisagreementPoints(
   args: DebateArgument[],
   topic: string
 ): Promise<string[]> {
-  console.log(`[Resolution] Identifying disagreement points`);
+  logger.debug("تحديد نقاط الاختلاف");
 
   if (args.length === 0) {
     return [];
@@ -142,29 +170,36 @@ ${arg.position}
       maxTokens: 2048,
     });
 
-    // Extract disagreement points
+    // استخراج نقاط الاختلاف
     const points = extractBulletPoints(response);
 
-    console.log(`[Resolution] Found ${points.length} disagreement points`);
+    logger.info("تم تحديد نقاط الاختلاف", { count: points.length });
     return points;
   } catch (error) {
-    console.error(`[Resolution] Error identifying disagreement points:`, error);
+    logger.error("فشل في تحديد نقاط الاختلاف", {
+      error: error instanceof Error ? error.message : 'خطأ غير معروف',
+    });
     return [];
   }
 }
 
 /**
- * Resolve disagreements and find middle ground
  * حل الخلافات وإيجاد أرضية مشتركة
+ * 
+ * @description
+ * يولّد حلولاً توفيقية لنقاط الاختلاف
+ * 
+ * @param args - مصفوفة الحجج
+ * @param disagreementPoints - نقاط الاختلاف المحددة
+ * @param topic - موضوع المناظرة
+ * @returns وعد بنص الحل التوفيقي
  */
 export async function resolveDisagreements(
   args: DebateArgument[],
   disagreementPoints: string[],
   topic: string
 ): Promise<string> {
-  console.log(
-    `[Resolution] Resolving ${disagreementPoints.length} disagreement points`
-  );
+  logger.debug("حل الخلافات", { disagreementCount: disagreementPoints.length });
 
   if (disagreementPoints.length === 0) {
     return 'لا توجد نقاط اختلاف كبيرة للحل';
@@ -195,17 +230,27 @@ ${arg.position.substring(0, 400)}
       maxTokens: 4096,
     });
 
-    console.log(`[Resolution] Generated resolution for disagreements`);
+    logger.info("تم توليد الحل التوفيقي للخلافات");
     return response;
   } catch (error) {
-    console.error(`[Resolution] Error resolving disagreements:`, error);
+    logger.error("فشل في حل الخلافات", {
+      error: error instanceof Error ? error.message : 'خطأ غير معروف',
+    });
     return 'خطأ في توليد الحل التوفيقي';
   }
 }
 
 /**
- * Generate final synthesis from all arguments
  * توليف نهائي من جميع الحجج
+ * 
+ * @description
+ * يولّد توليفاً شاملاً يجمع نقاط التوافق والاختلاف
+ * 
+ * @param args - مصفوفة الحجج
+ * @param consensusPoints - نقاط التوافق
+ * @param disagreementPoints - نقاط الاختلاف
+ * @param topic - موضوع المناظرة
+ * @returns وعد بنص التوليف النهائي
  */
 export async function generateFinalSynthesis(
   args: DebateArgument[],
@@ -213,7 +258,7 @@ export async function generateFinalSynthesis(
   disagreementPoints: string[],
   topic: string
 ): Promise<string> {
-  console.log(`[Resolution] Generating final synthesis`);
+  logger.debug("توليد التوليف النهائي");
 
   if (args.length === 0) {
     return 'لا توجد حجج لتوليفها';
@@ -253,35 +298,43 @@ ${arg.position}
       maxTokens: 8192,
     });
 
-    console.log(`[Resolution] Final synthesis generated`);
+    logger.info("تم توليد التوليف النهائي");
     return synthesis;
   } catch (error) {
-    console.error(`[Resolution] Error generating final synthesis:`, error);
+    logger.error("فشل في توليد التوليف النهائي", {
+      error: error instanceof Error ? error.message : 'خطأ غير معروف',
+    });
     return 'خطأ في توليف النتيجة النهائية';
   }
 }
 
 /**
- * Build complete consensus result
  * بناء نتيجة التوافق الكاملة
+ * 
+ * @description
+ * يجمع كل خطوات تحليل التوافق في نتيجة واحدة شاملة
+ * 
+ * @param args - مصفوفة الحجج
+ * @param topic - موضوع المناظرة
+ * @returns وعد بنتيجة التوافق الكاملة
  */
 export async function buildConsensusResult(
   args: DebateArgument[],
   topic: string
 ): Promise<ConsensusResult> {
-  console.log(`[Resolution] Building consensus result`);
+  logger.info("بناء نتيجة التوافق الكاملة");
 
   try {
-    // 1. Calculate agreement score
+    // 1. حساب درجة التوافق
     const agreementScore = await calculateAgreementScore(args);
 
-    // 2. Identify consensus and disagreement points
+    // 2. تحديد نقاط التوافق والاختلاف
     const [consensusPoints, disagreementPoints] = await Promise.all([
       identifyConsensusPoints(args, topic),
       identifyDisagreementPoints(args, topic),
     ]);
 
-    // 3. Generate final synthesis
+    // 3. توليد التوليف النهائي
     const finalSynthesis = await generateFinalSynthesis(
       args,
       consensusPoints,
@@ -289,10 +342,10 @@ export async function buildConsensusResult(
       topic
     );
 
-    // 4. Determine if consensus is achieved (threshold: 0.75)
+    // 4. تحديد ما إذا تم تحقيق التوافق (الحد: 0.75)
     const achieved = agreementScore >= 0.75;
 
-    // 5. Get participating agents
+    // 5. الحصول على الوكلاء المشاركين
     const participatingAgents = Array.from(
       new Set(args.map(arg => arg.agentName))
     );
@@ -307,7 +360,9 @@ export async function buildConsensusResult(
       confidence: agreementScore,
     };
   } catch (error) {
-    console.error(`[Resolution] Error building consensus result:`, error);
+    logger.error("فشل في بناء نتيجة التوافق", {
+      error: error instanceof Error ? error.message : 'خطأ غير معروف',
+    });
 
     return {
       achieved: false,
@@ -322,23 +377,28 @@ export async function buildConsensusResult(
 }
 
 /**
- * Calculate votes and determine winner
  * حساب الأصوات وتحديد الفائز
+ * 
+ * @description
+ * يجمع الأصوات ويحدد الحجة الفائزة
+ * 
+ * @param votes - مصفوفة الأصوات
+ * @returns كائن يحتوي على درجات الحجج ومعرّف الفائز
  */
 export function calculateVoteResults(
   votes: Vote[]
 ): { argumentScores: Map<string, number>; winnerId: string | null } {
-  console.log(`[Resolution] Calculating vote results from ${votes.length} votes`);
+  logger.debug("حساب نتائج التصويت", { voteCount: votes.length });
 
   const argumentScores = new Map<string, number>();
 
-  // Aggregate votes
+  // تجميع الأصوات
   votes.forEach(vote => {
     const currentScore = argumentScores.get(vote.argumentId) || 0;
     argumentScores.set(vote.argumentId, currentScore + vote.score);
   });
 
-  // Find winner (highest score)
+  // تحديد الفائز (أعلى درجة)
   let maxScore = 0;
   let winnerId: string | null = null;
 
@@ -349,17 +409,21 @@ export function calculateVoteResults(
     }
   });
 
-  console.log(
-    `[Resolution] Vote winner: ${winnerId} with score ${maxScore.toFixed(2)}`
-  );
+  logger.info("تم تحديد الفائز في التصويت", {
+    winnerId,
+    maxScore: maxScore.toFixed(2),
+  });
 
   return { argumentScores, winnerId };
 }
 
-// ===== Helper Functions =====
+// ===== وظائف مساعدة =====
 
 /**
- * Calculate agreement based on confidence variance
+ * حساب التوافق بناءً على تباين الثقة
+ * 
+ * @param args - مصفوفة الحجج
+ * @returns درجة التوافق بناءً على الثقة
  */
 function calculateConfidenceAgreement(args: DebateArgument[]): number {
   const confidences = args.map(arg => arg.confidence);
@@ -370,14 +434,17 @@ function calculateConfidenceAgreement(args: DebateArgument[]): number {
     confidences.reduce((sum, c) => sum + Math.pow(c - avgConfidence, 2), 0) /
     confidences.length;
 
-  // Lower variance = higher agreement
+  // تباين أقل = توافق أعلى
   const agreementScore = 1 - Math.min(1, variance * 2);
 
   return agreementScore;
 }
 
 /**
- * Calculate position similarity using AI
+ * حساب تشابه المواقف باستخدام الذكاء الاصطناعي
+ * 
+ * @param args - مصفوفة الحجج
+ * @returns وعد بدرجة التشابه
  */
 async function calculatePositionSimilarity(
   args: DebateArgument[]
@@ -411,13 +478,15 @@ ${arg.position.substring(0, 300)}
     });
 
     const match = response.match(/(\d+\.?\d*)/);
-    if (match && match[1]) {
+    if (match?.[1]) {
       return Math.min(1, Math.max(0, parseFloat(match[1])));
     }
 
-    return 0.5; // Default
+    return 0.5; // القيمة الافتراضية
   } catch (error) {
-    console.error(`[Resolution] Error calculating position similarity:`, error);
+    logger.error("فشل في حساب تشابه المواقف", {
+      error: error instanceof Error ? error.message : 'خطأ غير معروف',
+    });
     return 0.5;
   }
 }
