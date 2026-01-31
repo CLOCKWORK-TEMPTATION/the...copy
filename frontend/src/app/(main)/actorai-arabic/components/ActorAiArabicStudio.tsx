@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+/**
+ * @fileoverview استوديو الممثل الذكي - المكون الرئيسي
+ * تطبيق شامل لتدريب الممثلين باستخدام الذكاء الاصطناعي
+ * يتضمن: تحليل النصوص، شريك المشهد، تمارين الصوت، التحليل البصري، وغيرها
+ */
+
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,330 +32,44 @@ import {
 } from "@/components/ui/select";
 import { VoiceCoach } from "./VoiceCoach";
 
-// ==================== أنواع البيانات ====================
+// استيراد الأنواع والثوابت من الملفات المنفصلة
+import type {
+  User,
+  Script,
+  Recording,
+  AnalysisResult,
+  ChatMessage,
+  VocalExercise,
+  ViewType,
+  SceneRhythmAnalysis,
+  WebcamAnalysisResult,
+  WebcamSession,
+  MemorizationStats,
+  TeleprompterSettings,
+  BlockingMark,
+  CameraEyeSettings,
+  HolographicPartner,
+  GestureControl,
+  TempoLevel,
+  AlertSeverity,
+  BlinkRateStatus,
+} from "../types";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import {
+  SAMPLE_SCRIPT,
+  VOCAL_EXERCISES,
+  ACTING_METHODOLOGIES,
+  AR_FEATURES,
+  GESTURE_CONTROLS,
+  DEFAULT_VALUES,
+  AI_PARTNER_RESPONSES,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  SHOT_TYPES,
+} from "../types/constants";
 
-interface Script {
-  id: string;
-  title: string;
-  author: string;
-  content: string;
-  uploadDate: string;
-  status: "analyzed" | "processing" | "pending";
-}
-
-interface Recording {
-  id: string;
-  title: string;
-  duration: string;
-  date: string;
-  score: number;
-}
-
-interface AnalysisResult {
-  objectives: {
-    main: string;
-    scene: string;
-    beats: string[];
-  };
-  obstacles: {
-    internal: string[];
-    external: string[];
-  };
-  emotionalArc: Array<{
-    beat: number;
-    emotion: string;
-    intensity: number;
-  }>;
-  coachingTips: string[];
-}
-
-interface ChatMessage {
-  role: "user" | "ai";
-  text: string;
-  typing?: boolean;
-}
-
-interface VocalExercise {
-  id: string;
-  name: string;
-  description: string;
-  duration: string;
-  category: "breathing" | "articulation" | "projection" | "resonance";
-}
-
-type ViewType = "home" | "demo" | "dashboard" | "login" | "register" | "vocal" | "voicecoach" | "rhythm" | "webcam" | "ar" | "memorization";
-
-// ==================== أنواع بيانات تحليل الإيقاع ====================
-
-interface RhythmPoint {
-  position: number; // موضع في النص (0-100%)
-  intensity: number; // شدة الإيقاع (0-100)
-  tempo: "slow" | "medium" | "fast" | "very-fast";
-  emotion: string;
-  beat: string; // وصف اللحظة
-}
-
-interface MonotonyAlert {
-  startPosition: number;
-  endPosition: number;
-  severity: "low" | "medium" | "high";
-  description: string;
-  suggestion: string;
-}
-
-interface RhythmComparison {
-  aspect: string;
-  yourScore: number;
-  optimalScore: number;
-  difference: number;
-  feedback: string;
-}
-
-interface EmotionalColorSuggestion {
-  segment: string;
-  currentEmotion: string;
-  suggestedEmotion: string;
-  technique: string;
-  example: string;
-}
-
-interface SceneRhythmAnalysis {
-  overallTempo: "slow" | "medium" | "fast";
-  rhythmScore: number; // 0-100
-  rhythmMap: RhythmPoint[];
-  monotonyAlerts: MonotonyAlert[];
-  comparisons: RhythmComparison[];
-  emotionalSuggestions: EmotionalColorSuggestion[];
-  peakMoments: string[];
-  valleyMoments: string[];
-  summary: string;
-}
-
-// واجهة تحليل الأداء البصري
-interface WebcamAnalysisResult {
-  eyeLine: {
-    direction: "up" | "down" | "left" | "right" | "center" | "audience";
-    consistency: number; // نسبة مئوية
-    alerts: string[];
-  };
-  expressionSync: {
-    score: number; // نسبة مئوية
-    matchedEmotions: string[];
-    mismatches: string[];
-  };
-  blinkRate: {
-    rate: number; // عدد الرمشات في الدقيقة
-    status: "normal" | "high" | "low";
-    tensionIndicator: number; // مستوى التوتر 0-100
-  };
-  blocking: {
-    spaceUsage: number; // نسبة استخدام المساحة
-    movements: string[];
-    suggestions: string[];
-  };
-  alerts: string[];
-  overallScore: number;
-  timestamp: string;
-}
-
-interface WebcamSession {
-  id: string;
-  date: string;
-  duration: string;
-  score: number;
-  alerts: string[];
-}
-
-// ==================== واجهات وضع اختبار الحفظ ====================
-
-interface MemorizationStats {
-  totalAttempts: number;
-  correctWords: number;
-  incorrectWords: number;
-  hesitationCount: number;
-  weakPoints: string[];
-  averageResponseTime: number;
-}
-
-// ==================== أنواع AR/MR ====================
-
-interface ARFeature {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  status: "ready" | "coming_soon";
-}
-
-interface TeleprompterSettings {
-  speed: number;
-  fontSize: number;
-  opacity: number;
-  position: "top" | "center" | "bottom";
-}
-
-interface BlockingMark {
-  id: string;
-  x: number;
-  y: number;
-  label: string;
-  color: string;
-}
-
-interface CameraEyeSettings {
-  focalLength: number;
-  shotType: "closeup" | "medium" | "wide" | "extreme_wide";
-  aspectRatio: "16:9" | "2.35:1" | "4:3" | "1:1";
-}
-
-interface HolographicPartner {
-  character: string;
-  emotion: string;
-  intensity: number;
-  isActive: boolean;
-}
-
-interface GestureControl {
-  type: "eye" | "hand" | "head" | "voice";
-  action: string;
-  enabled: boolean;
-}
-
-// ==================== البيانات التجريبية ====================
-
-const SAMPLE_SCRIPT = `المشهد الأول - حديقة المنزل - ليلاً
-
-يقف أحمد تحت شرفة ليلى، ينظر إليها بشوق.
-
-أحمد:
-يا ليلى، يا قمر الليل، أنتِ نور عيني وروحي.
-كيف أستطيع أن أعيش بعيداً عنكِ؟
-
-تظهر ليلى على الشرفة.
-
-ليلى:
-يا أحمد، قلبي معك، لكن العائلة تقف بيننا.
-ماذا سنفعل؟
-
-أحمد:
-سأجد طريقة، مهما كانت الصعوبات.
-حبنا أقوى من كل العوائق.`;
-
-const VOCAL_EXERCISES: VocalExercise[] = [
-  {
-    id: "1",
-    name: "تمرين التنفس العميق",
-    description: "استنشق ببطء لمدة 4 ثوان، احبس النفس 4 ثوان، ثم أخرج الهواء لمدة 4 ثوان",
-    duration: "5 دقائق",
-    category: "breathing",
-  },
-  {
-    id: "2",
-    name: "تمرين الحروف المتحركة",
-    description: "ردد الحروف: آ - إي - أو - إييي - أووو مع التركيز على وضوح كل حرف",
-    duration: "3 دقائق",
-    category: "articulation",
-  },
-  {
-    id: "3",
-    name: "تمرين الإسقاط الصوتي",
-    description: "تخيل أن صوتك يصل لنهاية القاعة، ردد جملة 'أنا هنا' بصوت واضح ومُسقَط",
-    duration: "4 دقائق",
-    category: "projection",
-  },
-  {
-    id: "4",
-    name: "تمرين الرنين",
-    description: "أغلق فمك وهمهم بصوت 'ممممم' مع الشعور بالاهتزاز في الوجه والصدر",
-    duration: "3 دقائق",
-    category: "resonance",
-  },
-  {
-    id: "5",
-    name: "أعاصير اللسان",
-    description: "ردد بسرعة: 'قرقر القمري فوق قمة القرية' - كرر 5 مرات",
-    duration: "2 دقائق",
-    category: "articulation",
-  },
-  {
-    id: "6",
-    name: "تمرين الحجاب الحاجز",
-    description: "ضع يدك على بطنك، استنشق حتى تشعر ببطنك يرتفع، ثم أخرج الهواء مع صوت 'هااا'",
-    duration: "4 دقائق",
-    category: "breathing",
-  },
-];
-
-const ACTING_METHODOLOGIES = [
-  { id: "stanislavsky", name: "طريقة ستانيسلافسكي", nameEn: "Stanislavsky Method" },
-  { id: "meisner", name: "تقنية مايسنر", nameEn: "Meisner Technique" },
-  { id: "chekhov", name: "تقنية مايكل تشيخوف", nameEn: "Michael Chekhov" },
-  { id: "hagen", name: "أوتا هاجن", nameEn: "Uta Hagen" },
-  { id: "practical", name: "الجماليات العملية", nameEn: "Practical Aesthetics" },
-];
-
-// ==================== بيانات AR/MR ====================
-
-const AR_FEATURES: ARFeature[] = [
-  {
-    id: "teleprompter",
-    name: "Teleprompter معلق",
-    description: "نص معلق في الفراغ يتبع نظرتك مع التمرير التلقائي",
-    icon: "📜",
-    status: "ready",
-  },
-  {
-    id: "blocking",
-    name: "علامات Blocking",
-    description: "علامات ثلاثية الأبعاد على الأرض لتحديد مواقع الحركة",
-    icon: "🎯",
-    status: "ready",
-  },
-  {
-    id: "camera_eye",
-    name: "عين الكاميرا",
-    description: "إطار كاميرا افتراضي لفهم الـ Framing والتكوين",
-    icon: "📷",
-    status: "ready",
-  },
-  {
-    id: "holographic_partner",
-    name: "شريك هولوغرافي",
-    description: "شخصية ثلاثية الأبعاد للتدريب على المشاهد الثنائية",
-    icon: "👤",
-    status: "ready",
-  },
-  {
-    id: "gesture_control",
-    name: "تحكم بالإيماءات",
-    description: "تحكم بالعين واليد والرأس والصوت",
-    icon: "👁️",
-    status: "ready",
-  },
-];
-
-const SHOT_TYPES = [
-  { id: "extreme_wide", name: "لقطة واسعة جداً", nameEn: "Extreme Wide Shot" },
-  { id: "wide", name: "لقطة واسعة", nameEn: "Wide Shot" },
-  { id: "medium", name: "لقطة متوسطة", nameEn: "Medium Shot" },
-  { id: "closeup", name: "لقطة قريبة", nameEn: "Close-up" },
-];
-
-const GESTURE_CONTROLS: GestureControl[] = [
-  { type: "eye", action: "النظر للأعلى = تمرير النص", enabled: true },
-  { type: "eye", action: "الرمش المزدوج = إيقاف/تشغيل", enabled: true },
-  { type: "hand", action: "رفع اليد = إيقاف الشريك", enabled: true },
-  { type: "hand", action: "إشارة OK = استمرار", enabled: true },
-  { type: "head", action: "إيماءة الرأس = الموافقة", enabled: true },
-  { type: "voice", action: "'توقف' = إيقاف المشهد", enabled: true },
-  { type: "voice", action: "'أعد' = إعادة السطر", enabled: true },
-];
+// استيراد الخطافات المخصصة
+import { useNotification } from "../hooks/useNotification";
 
 // ==================== المكون الرئيسي ====================
 
