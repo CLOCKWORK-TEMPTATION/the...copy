@@ -1,6 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+/**
+ * مكون استوديو السينما الذكي (CineAIStudio)
+ *
+ * @description
+ * السبب وراء هذا التصميم:
+ * - توفير واجهة متكاملة لمديري التصوير السينمائي
+ * - تنظيم الأدوات حسب مراحل الإنتاج (ما قبل/أثناء/ما بعد)
+ * - دعم أدوات الذكاء الاصطناعي لتحليل ومحاكاة التصوير
+ *
+ * الأدوات المتاحة:
+ * - محاكي العدسات (Lens Simulator)
+ * - التدرج اللوني (Color Grading)
+ * - حاسبة عمق الميدان (DOF Calculator)
+ *
+ * @module CineAIStudio
+ */
+
+import React, { useMemo, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,80 +42,128 @@ import {
   ArrowLeft,
   Play,
   Clock,
+  type LucideIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import PreProductionTools from "./tools/PreProductionTools";
 import ProductionTools from "./tools/ProductionTools";
 import PostProductionTools from "./tools/PostProductionTools";
+import {
+  useCineStudio,
+  type Phase,
+  type VisualMood,
+  isValidTabValue,
+} from "../hooks/useCineStudio";
 
-// Dynamically import new components
+// === التحميل الديناميكي للمكونات الثقيلة ===
+
+/**
+ * مكون التحميل المشترك
+ * السبب: تجنب تكرار كود التحميل لكل مكون
+ */
+const LoadingFallback: React.FC<{ message: string }> = ({ message }) => (
+  <div className="flex items-center justify-center h-96 bg-zinc-900 rounded-lg">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4" />
+      <p className="text-zinc-400">{message}</p>
+    </div>
+  </div>
+);
+
+/**
+ * محاكي العدسات - تحميل ديناميكي
+ * السبب: تقليل حجم الحزمة الأولية
+ */
 const LensSimulator = dynamic(
   () => import("@/components/ui/lens-simulator"),
   {
-    loading: () => (
-      <div className="flex items-center justify-center h-96 bg-zinc-900 rounded-lg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
-          <p className="text-zinc-400">جاري تحميل محاكي العدسات...</p>
-        </div>
-      </div>
-    ),
+    loading: () => <LoadingFallback message="جاري تحميل محاكي العدسات..." />,
     ssr: false,
   }
 );
 
+/**
+ * معاينة التدرج اللوني - تحميل ديناميكي
+ */
 const ColorGradingPreview = dynamic(
   () => import("@/components/ui/color-grading-preview"),
   {
-    loading: () => (
-      <div className="flex items-center justify-center h-96 bg-zinc-900 rounded-lg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
-          <p className="text-zinc-400">جاري تحميل معاينة الألوان...</p>
-        </div>
-      </div>
-    ),
+    loading: () => <LoadingFallback message="جاري تحميل معاينة الألوان..." />,
     ssr: false,
   }
 );
 
+/**
+ * حاسبة عمق الميدان - تحميل ديناميكي
+ */
 const DOFCalculator = dynamic(
   () => import("@/components/ui/dof-calculator"),
   {
-    loading: () => (
-      <div className="flex items-center justify-center h-96 bg-zinc-900 rounded-lg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
-          <p className="text-zinc-400">جاري تحميل حاسبة عمق الميدان...</p>
-        </div>
-      </div>
-    ),
+    loading: () => <LoadingFallback message="جاري تحميل حاسبة عمق الميدان..." />,
     ssr: false,
   }
 );
 
-type Phase = "pre" | "production" | "post";
-type TabValue = "pre-production" | "production" | "post-production";
+// === واجهات الأنواع ===
 
-const tabValueByPhase: Record<Phase, TabValue> = {
-  pre: "pre-production",
-  production: "production",
-  post: "post-production",
-};
+/**
+ * واجهة تعريف الأداة
+ * السبب: توحيد شكل بيانات كل أداة في النظام
+ */
+interface Tool {
+  /** معرّف الأداة الفريد */
+  id: string;
+  /** اسم الأداة بالعربية */
+  name: string;
+  /** اسم الأداة بالإنجليزية */
+  nameEn: string;
+  /** أيقونة الأداة */
+  icon: LucideIcon;
+  /** وصف مختصر للأداة */
+  description: string;
+  /** تدرج لوني للخلفية */
+  color: string;
+  /** حالة التوفر */
+  status: "available" | "coming-soon";
+}
 
-const phaseByTab: Record<TabValue, Phase> = {
-  "pre-production": "pre",
-  production: "production",
-  "post-production": "post",
-};
+/**
+ * واجهة الإحصائية
+ * السبب: توحيد شكل الإحصائيات في الترويسة
+ */
+interface Stat {
+  /** تسمية الإحصائية */
+  label: string;
+  /** قيمة الإحصائية */
+  value: string;
+  /** أيقونة الإحصائية */
+  icon: LucideIcon;
+}
 
-const isTabValue = (value: string): value is TabValue =>
-  value === "pre-production" ||
-  value === "production" ||
-  value === "post-production";
+/**
+ * واجهة معلومات المرحلة
+ * السبب: توحيد بيانات كل مرحلة إنتاجية
+ */
+interface PhaseInfo {
+  /** معرّف المرحلة */
+  phase: Phase;
+  /** العنوان بالعربية */
+  title: string;
+  /** العنوان بالإنجليزية */
+  titleEn: string;
+  /** الأيقونة */
+  icon: LucideIcon;
+  /** الوصف */
+  description: string;
+}
 
-// Tool definitions
-const TOOLS = [
+// === البيانات الثابتة ===
+
+/**
+ * قائمة الأدوات المتاحة
+ * السبب: تعريف مركزي للأدوات لسهولة الصيانة والإضافة
+ */
+const TOOLS: readonly Tool[] = [
   {
     id: "lens-simulator",
     name: "محاكي العدسات",
@@ -135,23 +200,75 @@ const TOOLS = [
     color: "from-green-500 to-emerald-600",
     status: "coming-soon",
   },
-];
+] as const;
 
-// Stats for header
-const STATS = [
+/**
+ * إحصائيات الترويسة
+ * السبب: عرض ملخص سريع للمستخدم
+ */
+const STATS: readonly Stat[] = [
   { label: "المشاريع", value: "5", icon: Film },
   { label: "اللقطات", value: "248", icon: Camera },
   { label: "الأدوات", value: "3", icon: Sparkles },
-];
+] as const;
 
+/**
+ * معلومات المراحل الإنتاجية
+ * السبب: تعريف مركزي لبيانات كل مرحلة
+ */
+const PHASES: readonly PhaseInfo[] = [
+  {
+    phase: "pre",
+    title: "ما قبل الإنتاج",
+    titleEn: "Pre-Production",
+    icon: Clapperboard,
+    description: "تخطيط الرؤية البصرية والكادرات",
+  },
+  {
+    phase: "production",
+    title: "أثناء التصوير",
+    titleEn: "Production",
+    icon: Camera,
+    description: "تحليل اللقطات والإعدادات التقنية",
+  },
+  {
+    phase: "post",
+    title: "ما بعد الإنتاج",
+    titleEn: "Post-Production",
+    icon: Film,
+    description: "تصحيح الألوان والمعالجة النهائية",
+  },
+] as const;
+
+/**
+ * مكون استوديو السينما الرئيسي
+ *
+ * @description
+ * السبب: المكون الرئيسي الذي يجمع جميع أدوات التصوير السينمائي
+ * يستخدم الخطاف المخصص useCineStudio لإدارة الحالة
+ *
+ * @returns JSX.Element - واجهة الاستوديو الكاملة
+ */
 export const CineAIStudio: React.FC = () => {
-  const [currentPhase, setCurrentPhase] = useState<Phase>("pre");
-  const [visualMood, setVisualMood] = useState("noir");
-  const [activeTool, setActiveTool] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"dashboard" | "phases">("dashboard");
+  // استخدام الخطاف المخصص لإدارة الحالة
+  const {
+    currentPhase,
+    visualMood,
+    setVisualMood,
+    activeTool,
+    setActiveTool,
+    activeView,
+    setActiveView,
+    currentTabValue,
+    handleTabChange,
+    navigateToPhase,
+  } = useCineStudio();
 
-  // Render active tool
-  const renderTool = () => {
+  /**
+   * عرض الأداة النشطة
+   * السبب: تبديل المكون حسب الأداة المختارة
+   */
+  const renderTool = useCallback(() => {
     switch (activeTool) {
       case "lens-simulator":
         return <LensSimulator />;
@@ -162,13 +279,22 @@ export const CineAIStudio: React.FC = () => {
       default:
         return null;
     }
-  };
+  }, [activeTool]);
 
-  // If a tool is active, show it full screen
+  /**
+   * الحصول على بيانات الأداة الحالية
+   * السبب: تجنب البحث المتكرر في مصفوفة الأدوات
+   */
+  const currentToolData = useMemo(
+    () => TOOLS.find((t) => t.id === activeTool),
+    [activeTool]
+  );
+
+  // عرض الأداة في وضع ملء الشاشة إذا كانت مفعّلة
   if (activeTool) {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100">
-        {/* Tool Header */}
+        {/* ترويسة الأداة */}
         <header className="border-b border-white/10 bg-zinc-900/50 backdrop-blur-md sticky top-0 z-50">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center gap-4">
@@ -183,28 +309,23 @@ export const CineAIStudio: React.FC = () => {
               </Button>
               <div className="h-6 w-px bg-zinc-700" />
               <div className="flex items-center gap-2">
-                {(() => {
-                  const tool = TOOLS.find((t) => t.id === activeTool);
-                  if (!tool) return null;
-                  const Icon = tool.icon;
-                  return (
-                    <>
-                      <div className={`p-2 rounded-lg bg-gradient-to-br ${tool.color}`}>
-                        <Icon className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h1 className="font-semibold text-white">{tool.name}</h1>
-                        <p className="text-xs text-zinc-400">{tool.nameEn}</p>
-                      </div>
-                    </>
-                  );
-                })()}
+                {currentToolData && (
+                  <>
+                    <div className={`p-2 rounded-lg bg-gradient-to-br ${currentToolData.color}`}>
+                      <currentToolData.icon className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="font-semibold text-white">{currentToolData.name}</h1>
+                      <p className="text-xs text-zinc-400">{currentToolData.nameEn}</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </header>
 
-        {/* Tool Content */}
+        {/* محتوى الأداة */}
         <main className="container mx-auto px-6 py-8">{renderTool()}</main>
       </div>
     );
@@ -212,7 +333,7 @@ export const CineAIStudio: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-amber-500/30">
-      {/* Header */}
+      {/* الترويسة الرئيسية */}
       <header className="border-b border-white/10 bg-zinc-900/50 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -230,7 +351,7 @@ export const CineAIStudio: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Quick Stats */}
+            {/* الإحصائيات السريعة */}
             <div className="hidden md:flex items-center gap-4 mr-4">
               {STATS.map((stat) => (
                 <div key={stat.label} className="text-center">
@@ -331,43 +452,18 @@ export const CineAIStudio: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Access to Phases */}
+            {/* الوصول السريع للمراحل */}
             <div>
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <Film className="h-5 w-5 text-amber-500" />
                 مراحل الإنتاج
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  {
-                    phase: "pre",
-                    title: "ما قبل الإنتاج",
-                    titleEn: "Pre-Production",
-                    icon: Clapperboard,
-                    description: "تخطيط الرؤية البصرية والكادرات",
-                  },
-                  {
-                    phase: "production",
-                    title: "أثناء التصوير",
-                    titleEn: "Production",
-                    icon: Camera,
-                    description: "تحليل اللقطات والإعدادات التقنية",
-                  },
-                  {
-                    phase: "post",
-                    title: "ما بعد الإنتاج",
-                    titleEn: "Post-Production",
-                    icon: Film,
-                    description: "تصحيح الألوان والمعالجة النهائية",
-                  },
-                ].map((item) => (
+                {PHASES.map((item) => (
                   <Card
                     key={item.phase}
                     className="bg-zinc-900 border-zinc-800 cursor-pointer hover:border-amber-500/50 transition-all"
-                    onClick={() => {
-                      setCurrentPhase(item.phase as Phase);
-                      setActiveView("phases");
-                    }}
+                    onClick={() => navigateToPhase(item.phase)}
                   >
                     <CardContent className="p-6 flex items-center gap-4">
                       <div className="p-3 rounded-xl bg-amber-600/20">
@@ -385,15 +481,11 @@ export const CineAIStudio: React.FC = () => {
             </div>
           </div>
         ) : (
-          // Phases View
+          // عرض المراحل
           <div className="max-w-7xl mx-auto space-y-8">
             <Tabs
-              value={tabValueByPhase[currentPhase]}
-              onValueChange={(value) => {
-                if (isTabValue(value)) {
-                  setCurrentPhase(phaseByTab[value]);
-                }
-              }}
+              value={currentTabValue}
+              onValueChange={handleTabChange}
               className="w-full"
             >
               <div className="flex justify-center mb-8">
