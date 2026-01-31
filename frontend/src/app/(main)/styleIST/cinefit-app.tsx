@@ -61,59 +61,93 @@ const IMAGE_TRANSITION = {
  * لماذا memo؟
  * - لتجنب إعادة الرسم عند تغيير حالة البطاقة الأخرى
  */
+type AccentColorVariant = 'gold' | 'purple';
+
 interface ModeCardProps {
   title: string;
   description: string;
   imageUrl: string;
   icon: React.ReactNode;
-  accentColor: string;
+  accentVariant: AccentColorVariant;
   buttonText: string;
   onClick: () => void;
   cardNumber?: string;
 }
+
+/**
+ * خريطة الألوان الثابتة
+ * لماذا نستخدم خريطة بدلاً من template literals؟
+ * - Tailwind يحتاج أسماء فئات كاملة في وقت البناء
+ */
+const ACCENT_STYLES: Record<AccentColorVariant, {
+  border: string;
+  shadow: string;
+  iconBorder: string;
+  iconBg: string;
+  text: string;
+}> = {
+  gold: {
+    border: 'hover:border-[#d4b483]/50',
+    shadow: 'hover:shadow-[#d4b483]/10',
+    iconBorder: 'group-hover:border-[#d4b483]',
+    iconBg: 'group-hover:bg-[#d4b483]',
+    text: 'text-[#d4b483]',
+  },
+  purple: {
+    border: 'hover:border-purple-400/50',
+    shadow: 'hover:shadow-purple-400/10',
+    iconBorder: 'group-hover:border-purple-400',
+    iconBg: 'group-hover:bg-purple-400',
+    text: 'text-purple-400',
+  },
+};
 
 const ModeCard = memo<ModeCardProps>(({
   title,
   description,
   imageUrl,
   icon,
-  accentColor,
+  accentVariant,
   buttonText,
   onClick,
   cardNumber,
-}) => (
-  <button
-    onClick={onClick}
-    className={`group relative h-[500px] overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900/40 hover:border-${accentColor}/50 transition-all duration-500 hover:shadow-2xl hover:shadow-${accentColor}/10 text-left`}
-  >
-    {/* خلفية الصورة مع التدرج */}
-    <div
-      className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700 grayscale group-hover:grayscale-0"
-      style={{ backgroundImage: `url('${imageUrl}')` }}
-    />
-    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
+}) => {
+  const styles = ACCENT_STYLES[accentVariant];
+  
+  return (
+    <button
+      onClick={onClick}
+      className={`group relative h-[500px] overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900/40 ${styles.border} transition-all duration-500 hover:shadow-2xl ${styles.shadow} text-left`}
+    >
+      {/* خلفية الصورة مع التدرج */}
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700 grayscale group-hover:grayscale-0"
+        style={{ backgroundImage: `url('${imageUrl}')` }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
 
-    <div className="absolute bottom-0 left-0 p-10 w-full z-20">
-      <div className={`w-10 h-10 border border-zinc-600 rounded-full flex items-center justify-center mb-6 group-hover:border-${accentColor} group-hover:bg-${accentColor} group-hover:text-black transition-all`}>
-        {cardNumber ? (
-          <span className="font-serif italic text-lg">{cardNumber}</span>
-        ) : (
-          icon
-        )}
+      <div className="absolute bottom-0 left-0 p-10 w-full z-20">
+        <div className={`w-10 h-10 border border-zinc-600 rounded-full flex items-center justify-center mb-6 ${styles.iconBorder} ${styles.iconBg} group-hover:text-black transition-all`}>
+          {cardNumber ? (
+            <span className="font-serif italic text-lg">{cardNumber}</span>
+          ) : (
+            icon
+          )}
+        </div>
+        <h2 className="text-5xl font-serif text-white mb-3 group-hover:translate-x-2 transition-transform duration-500">
+          {title}
+        </h2>
+        <p className="text-zinc-400 font-light max-w-sm text-sm leading-relaxed mb-6 group-hover:text-zinc-200">
+          {description}
+        </p>
+        <div className={`flex items-center text-[10px] font-bold uppercase tracking-[0.2em] ${styles.text} group-hover:text-white transition-colors`}>
+          {buttonText}
+          <ChevronRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+        </div>
       </div>
-      <h2 className="text-5xl font-serif text-white mb-3 group-hover:translate-x-2 transition-transform duration-500">
-        {title}
-      </h2>
-      <p className="text-zinc-400 font-light max-w-sm text-sm leading-relaxed mb-6 group-hover:text-zinc-200">
-        {description}
-      </p>
-      <div className={`flex items-center text-[10px] font-bold uppercase tracking-[0.2em] text-${accentColor} group-hover:text-white transition-colors`}>
-        {buttonText}
-        <ChevronRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-      </div>
-    </div>
-  </button>
-));
+    </button>
+  );
+});
 
 ModeCard.displayName = 'ModeCard';
 
@@ -374,7 +408,7 @@ const CineFitApp: React.FC = () => {
                 description="ترجمة متطلبات السيناريو للغة بصرية. تحليل قوس الشخصية، الحقبة، والجو العام."
                 imageUrl="https://images.unsplash.com/photo-1533158307587-828f0a76ef93?q=80&w=1974&auto=format&fit=crop"
                 icon={<span className="font-serif italic text-lg">1</span>}
-                accentColor="[#d4b483]"
+                accentVariant="gold"
                 buttonText="ابدأ التحليل"
                 onClick={() => actions.setMode('director')}
                 cardNumber="1"
@@ -385,7 +419,7 @@ const CineFitApp: React.FC = () => {
                 description="القياس الافتراضي واختبار الإجهاد. فحص الخامات مقابل الإضاءة، المشاهد الخطرة، ومتطلبات الكاميرا."
                 imageUrl="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=2574&auto=format&fit=crop"
                 icon={<ShirtIcon className="w-4 h-4" />}
-                accentColor="purple-400"
+                accentVariant="purple"
                 buttonText="ادخل الاستوديو"
                 onClick={() => actions.setMode('fitting')}
               />
