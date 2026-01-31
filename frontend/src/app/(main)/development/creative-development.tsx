@@ -639,4 +639,3 @@ const DramaAnalystApp: React.FC = () => {
 };
 
 export default DramaAnalystApp;
-export default DramaAnalystApp;

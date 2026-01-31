@@ -550,11 +550,24 @@ export function useCreativeDevelopment() {
 // ============================================
 
 /**
- * دالة وهمية لإرسال المهمة
- * ستُستبدل بالاستدعاء الفعلي لـ API
+ * دالة وهمية لإرسال المهمة - للاختبار فقط
+ * 
+ * **تحذير**: هذه دالة مؤقتة للاختبار ولا تقوم بأي عمل فعلي
+ * يجب استبدالها بالاستدعاء الفعلي لـ API قبل الإنتاج
+ * 
+ * @param _request - طلب الذكاء الاصطناعي (غير مستخدم حالياً)
+ * @returns null دائماً - سيتم عرض رسالة خطأ للمستخدم
+ * 
+ * @todo استبدال هذه الدالة بـ submitTask الفعلية من orchestration/executor
+ * @see الملف الأصلي: src/orchestration/executor.ts
  */
 async function mockSubmitTask(_request: AIRequestData): Promise<AIResponseData | null> {
-  // TODO: استبدال بالتنفيذ الفعلي
+  // هذه الدالة مؤقتة للاختبار فقط
+  // عند الاتصال بـ API الفعلي، استبدلها بـ:
+  // return await submitTask(request);
+  console.warn(
+    "[تحذير] تم استدعاء mockSubmitTask - هذه دالة اختبار ولن تنتج نتائج فعلية"
+  );
   return null;
 }
 
