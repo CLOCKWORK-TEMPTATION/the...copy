@@ -104,7 +104,7 @@ const Station1Card = memo(function Station1Card({ data }: Station1CardProps) {
             <h5 className="font-medium mb-1">الشخصيات الرئيسية:</h5>
             <div className="flex flex-wrap gap-1">
               {majorCharacters.map((char, i) => (
-                <Badge key={`char-${i}`} variant="outline">{char}</Badge>
+                <Badge key={`char-${char}-${i}`} variant="outline">{char}</Badge>
               ))}
             </div>
           </div>
@@ -146,7 +146,7 @@ const FlowsCard = memo(function FlowsCard({ data }: FlowsCardProps) {
                 <p className="text-xs text-muted-foreground mb-1">الشخصيات:</p>
                 <div className="flex flex-wrap gap-1">
                   {charactersRelationships.characters.map((char, i) => (
-                    <Badge key={`flow-char-${i}`} variant="secondary">{char}</Badge>
+                    <Badge key={`flow-char-${char}-${i}`} variant="secondary">{char}</Badge>
                   ))}
                 </div>
               </div>
@@ -156,7 +156,7 @@ const FlowsCard = memo(function FlowsCard({ data }: FlowsCardProps) {
                 <p className="text-xs text-muted-foreground mb-1">العلاقات:</p>
                 <ul className="text-xs space-y-1">
                   {charactersRelationships.relationships.map((rel, i) => (
-                    <li key={`rel-${i}`} className="text-muted-foreground">• {rel}</li>
+                    <li key={`rel-${rel.substring(0, 20)}-${i}`} className="text-muted-foreground">• {rel}</li>
                   ))}
                 </ul>
               </div>
@@ -176,7 +176,7 @@ const FlowsCard = memo(function FlowsCard({ data }: FlowsCardProps) {
                 <p className="text-xs text-muted-foreground mb-1">المواضيع:</p>
                 <div className="flex flex-wrap gap-1">
                   {themesGenres.themes.map((theme, i) => (
-                    <Badge key={`theme-${i}`} variant="secondary">{theme}</Badge>
+                    <Badge key={`theme-${theme}-${i}`} variant="secondary">{theme}</Badge>
                   ))}
                 </div>
               </div>
@@ -186,7 +186,7 @@ const FlowsCard = memo(function FlowsCard({ data }: FlowsCardProps) {
                 <p className="text-xs text-muted-foreground mb-1">الأنواع:</p>
                 <div className="flex flex-wrap gap-1">
                   {themesGenres.genres.map((genre, i) => (
-                    <Badge key={`genre-${i}`} variant="outline">{genre}</Badge>
+                    <Badge key={`genre-${genre}-${i}`} variant="outline">{genre}</Badge>
                   ))}
                 </div>
               </div>
