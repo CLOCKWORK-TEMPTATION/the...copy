@@ -1,10 +1,20 @@
 /**
- * Debate Moderator - منسق المناظرة
- * Orchestrates debates, builds consensus, and synthesizes results
- * المرحلة 3 - Multi-Agent Debate System
+ * منسق المناظرة - Debate Moderator
+ * 
+ * @module debateModerator
+ * @description
+ * ينسق المناظرات بين الوكلاء المتعددين، ويبني التوافق، ويجمع النتائج.
+ * جزء من المرحلة 3 - نظام المناظرة متعدد الوكلاء
+ * 
+ * @example
+ * ```typescript
+ * const moderator = new DebateModerator(topic, participants);
+ * const result = await moderator.runDebate(context);
+ * ```
  */
 
 import { geminiService } from '@/services/gemini.service';
+import { logger } from '@/utils/logger';
 import {
   DebateSession,
   DebateConfig,
@@ -17,13 +27,24 @@ import { DebateSessionClass } from './debateSession';
 import { StandardAgentOutput } from '../shared/standardAgentPattern';
 
 /**
- * DebateModerator class
- * Manages the entire debate process and builds consensus
+ * فئة منسق المناظرة
+ * 
+ * @description
+ * تدير عملية المناظرة بالكامل وتبني التوافق بين الوكلاء
  */
 export class DebateModerator {
+  /** جلسة المناظرة */
   private session: DebateSessionClass;
+  /** خريطة الأصوات - تربط معرّف الحجة بأصوات الوكلاء */
   private votes: Map<string, Vote[]> = new Map();
 
+  /**
+   * منشئ فئة منسق المناظرة
+   * 
+   * @param topic - موضوع المناظرة
+   * @param participants - قائمة المشاركين في المناظرة
+   * @param config - إعدادات المناظرة الاختيارية
+   */
   constructor(
     topic: string,
     participants: DebateParticipant[],
@@ -33,10 +54,16 @@ export class DebateModerator {
   }
 
   /**
-   * Run the complete debate process
+   * تشغيل عملية المناظرة الكاملة
+   * 
+   * @description
+   * يدير جميع جولات المناظرة، يبني التوافق، ويجمع النتيجة النهائية
+   * 
+   * @param context - سياق إضافي للمناظرة (اختياري)
+   * @returns وعد بنتيجة المناظرة النهائية
    */
   async runDebate(context?: string): Promise<StandardAgentOutput> {
-    console.log(`[DebateModerator] Starting debate on: ${this.session.topic}`);
+    logger.info("بدء المناظرة", { topic: this.session.topic });
 
     try {
       await this.session.start();
@@ -47,24 +74,30 @@ export class DebateModerator {
       let consensusReached = false;
       let currentRound = 1;
 
-      // Execute debate rounds
+      // تنفيذ جولات المناظرة
       while (currentRound <= maxRounds && !consensusReached) {
-        console.log(`[DebateModerator] Round ${currentRound}/${maxRounds}`);
+        logger.debug("تنفيذ جولة المناظرة", {
+          currentRound,
+          maxRounds,
+        });
 
-        // Execute round
+        // تنفيذ الجولة
         await this.session.executeRound(currentRound, context);
 
-        // Check for consensus after round 1
+        // التحقق من التوافق بعد الجولة الأولى
         if (currentRound > 1 || maxRounds === 1) {
           const consensus = await this.buildConsensus();
           const round = this.session.getCurrentRound();
           if (round) {
-            (round as any).consensus = consensus;
+            (round as unknown as { consensus: ConsensusResult }).consensus = consensus;
           }
 
           if (consensus.achieved && consensus.agreementScore >= consensusThreshold) {
             consensusReached = true;
-            console.log(`[DebateModerator] Consensus reached in round ${currentRound}`);
+            logger.info("تم التوصل إلى توافق", {
+              round: currentRound,
+              agreementScore: consensus.agreementScore,
+            });
             break;
           }
         }
@@ -72,17 +105,20 @@ export class DebateModerator {
         currentRound++;
       }
 
-      // Generate final synthesis
+      // توليد النتيجة النهائية
       const finalResult = await this.synthesizeFinalResult();
       this.session.setFinalResult(finalResult);
       this.session.complete();
 
       return finalResult;
     } catch (error) {
-      console.error(`[DebateModerator] Debate failed:`, error);
+      logger.error("فشلت المناظرة", {
+        topic: this.session.topic,
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
       this.session.fail(error instanceof Error ? error.message : 'Unknown error');
 
-      // Return fallback result
+      // إرجاع نتيجة احتياطية
       return {
         text: `عذراً، حدث خطأ أثناء المناظرة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`,
         confidence: 0.3,
@@ -95,10 +131,15 @@ export class DebateModerator {
   }
 
   /**
-   * Build consensus from arguments
+   * بناء التوافق من الحجج
+   * 
+   * @description
+   * يحلل جميع الحجج ويحاول الوصول إلى توافق بين الوكلاء
+   * 
+   * @returns وعد بنتيجة التوافق
    */
   async buildConsensus(): Promise<ConsensusResult> {
-    console.log(`[DebateModerator] Building consensus...`);
+    logger.debug("بناء التوافق");
 
     const allArguments = this.session.getAllArguments();
 
@@ -115,22 +156,22 @@ export class DebateModerator {
     }
 
     try {
-      // Analyze arguments for common themes and disagreements
+      // تحليل الحجج للعثور على الموضوعات المشتركة والخلافات
       const analysis = await this.analyzeArguments(allArguments);
 
-      // Calculate agreement score
+      // حساب درجة التوافق
       const agreementScore = await this.calculateAgreementScore(allArguments);
 
-      // Determine if consensus is achieved
+      // تحديد ما إذا تم تحقيق التوافق
       const consensusThreshold = this.session.config.consensusThreshold || 0.75;
       const achieved = agreementScore >= consensusThreshold;
 
-      // Get participating agents
+      // الحصول على الوكلاء المشاركين
       const participatingAgents = Array.from(
         new Set(allArguments.map(arg => arg.agentName))
       );
 
-      // Generate synthesis if consensus achieved
+      // توليد التوليف إذا تم تحقيق التوافق
       let finalSynthesis = '';
       if (achieved) {
         finalSynthesis = await this.generateSynthesis(
@@ -149,7 +190,9 @@ export class DebateModerator {
         confidence: agreementScore,
       };
     } catch (error) {
-      console.error(`[DebateModerator] Error building consensus:`, error);
+      logger.error("فشل في بناء التوافق", {
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
 
       return {
         achieved: false,
@@ -164,7 +207,13 @@ export class DebateModerator {
   }
 
   /**
-   * Analyze arguments to find consensus and disagreement points
+   * تحليل الحجج للعثور على نقاط التوافق والاختلاف
+   * 
+   * @description
+   * يستخدم نموذج اللغة لتحليل الحجج وتحديد المواضيع المشتركة والخلافات
+   * 
+   * @param debateArguments - مصفوفة الحجج المراد تحليلها
+   * @returns وعد بكائن يحتوي على نقاط التوافق والاختلاف
    */
   private async analyzeArguments(
     debateArguments: DebateArgument[]
@@ -194,7 +243,7 @@ ${arg.position}
         maxTokens: 4096,
       });
 
-      // Parse response to extract consensus and disagreement points
+      // تحليل الاستجابة لاستخراج نقاط التوافق والاختلاف
       const lines = response.split('\n');
       const consensusPoints: string[] = [];
       const disagreementPoints: string[] = [];
@@ -214,7 +263,7 @@ ${arg.position}
           continue;
         }
 
-        // Extract bullet points or numbered items
+        // استخراج النقاط المرقمة أو المنقطة
         if (trimmed.match(/^[\-\*\•]\s/) || trimmed.match(/^\d+[\.\)]\s/)) {
           const point = trimmed.replace(/^[\-\*\•]\s/, '').replace(/^\d+[\.\)]\s/, '');
 
@@ -228,7 +277,9 @@ ${arg.position}
 
       return { consensusPoints, disagreementPoints };
     } catch (error) {
-      console.error(`[DebateModerator] Error analyzing arguments:`, error);
+      logger.error("فشل في تحليل الحجج", {
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
       return {
         consensusPoints: [],
         disagreementPoints: ['خطأ في التحليل'],
@@ -237,19 +288,25 @@ ${arg.position}
   }
 
   /**
-   * Calculate agreement score (0-1)
+   * حساب درجة التوافق
+   * 
+   * @description
+   * يحسب درجة التوافق بين الوكلاء على مقياس من 0 إلى 1
+   * 
+   * @param debateArguments - مصفوفة الحجج
+   * @returns وعد بدرجة التوافق
    */
   private async calculateAgreementScore(debateArguments: DebateArgument[]): Promise<number> {
     if (debateArguments.length === 0) return 0;
 
-    // Method 1: Based on confidence similarity
+    // الطريقة 1: بناءً على تشابه درجات الثقة
     const confidences = debateArguments.map(arg => arg.confidence);
     const avgConfidence = confidences.reduce((a, b) => a + b, 0) / confidences.length;
     const variance = confidences.reduce((sum, c) => sum + Math.pow(c - avgConfidence, 2), 0) / confidences.length;
     const confidenceAgreement = 1 - Math.min(1, variance);
 
-    // Method 2: Based on position similarity (using AI)
-    let positionAgreement = 0.5; // Default
+    // الطريقة 2: بناءً على تشابه المواقف (باستخدام الذكاء الاصطناعي)
+    let positionAgreement = 0.5; // القيمة الافتراضية
 
     try {
       const prompt = `
@@ -268,21 +325,30 @@ ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 200)}
       });
 
       const match = response.match(/(\d+\.?\d*)/);
-      if (match && match[1]) {
+      if (match?.[1]) {
         positionAgreement = Math.min(1, Math.max(0, parseFloat(match[1])));
       }
     } catch (error) {
-      console.error(`[DebateModerator] Error calculating position agreement:`, error);
+      logger.error("فشل في حساب تشابه المواقف", {
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
     }
 
-    // Combined score (weighted average)
+    // الدرجة المجمعة (متوسط مرجح)
     const agreementScore = (confidenceAgreement * 0.3) + (positionAgreement * 0.7);
 
     return agreementScore;
   }
 
   /**
-   * Generate synthesis from consensus points
+   * توليد التوليف من نقاط التوافق
+   * 
+   * @description
+   * يولّد نصاً يجمع نقاط التوافق في رؤية موحدة
+   * 
+   * @param debateArguments - مصفوفة الحجج
+   * @param consensusPoints - نقاط التوافق المحددة
+   * @returns وعد بنص التوليف
    */
   private async generateSynthesis(
     debateArguments: DebateArgument[],
@@ -313,16 +379,23 @@ ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 300)}
 
       return synthesis;
     } catch (error) {
-      console.error(`[DebateModerator] Error generating synthesis:`, error);
+      logger.error("فشل في توليد التوليف", {
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
       return 'خطأ في توليد التوليف النهائي';
     }
   }
 
   /**
-   * Synthesize final result from all debate rounds
+   * توليف النتيجة النهائية من جميع جولات المناظرة
+   * 
+   * @description
+   * يجمع نتائج جميع الجولات في نتيجة نهائية شاملة
+   * 
+   * @returns وعد بالنتيجة النهائية
    */
   private async synthesizeFinalResult(): Promise<StandardAgentOutput> {
-    console.log(`[DebateModerator] Synthesizing final result...`);
+    logger.debug("توليف النتيجة النهائية");
 
     const metrics = this.session.getMetrics();
     const lastRound = this.session.getCurrentRound();
@@ -337,10 +410,10 @@ ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 300)}
       confidence = consensus.confidence;
       notes.push(`تم التوصل إلى توافق بنسبة ${(consensus.agreementScore * 100).toFixed(1)}%`);
     } else {
-      // No consensus - synthesize from all arguments
+      // لا يوجد توافق - توليف من جميع الحجج
       const allArguments = this.session.getAllArguments();
       finalText = await this.synthesizeWithoutConsensus(allArguments);
-      confidence = metrics.averageConfidence * 0.8; // Reduce confidence if no consensus
+      confidence = metrics.averageConfidence * 0.8; // تقليل الثقة إذا لم يكن هناك توافق
       notes.push('لم يتم التوصل إلى توافق كامل - هذا توليف للآراء المختلفة');
     }
 
@@ -364,7 +437,13 @@ ${idx + 1}. ${arg.agentName}: ${arg.position.substring(0, 300)}
   }
 
   /**
-   * Synthesize result when no consensus is reached
+   * توليف النتيجة عندما لا يتم التوصل إلى توافق
+   * 
+   * @description
+   * يولّد توليفاً يعرض جميع وجهات النظر بشكل متوازن
+   * 
+   * @param debateArguments - مصفوفة الحجج
+   * @returns وعد بنص التوليف
    */
   private async synthesizeWithoutConsensus(debateArguments: DebateArgument[]): Promise<string> {
     const prompt = `
@@ -396,20 +475,29 @@ ${arg.position}
 
       return synthesis;
     } catch (error) {
-      console.error(`[DebateModerator] Error synthesizing without consensus:`, error);
+      logger.error("فشل في توليف النتيجة بدون توافق", {
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+      });
       return 'خطأ في توليف النتيجة النهائية';
     }
   }
 
   /**
-   * Get debate session
+   * الحصول على جلسة المناظرة
+   * 
+   * @returns جلسة المناظرة الحالية
    */
   getSession(): DebateSession {
     return this.session;
   }
 
   /**
-   * Record a vote
+   * تسجيل صوت
+   * 
+   * @description
+   * يضيف صوتاً جديداً لحجة محددة
+   * 
+   * @param vote - كائن الصوت المراد تسجيله
    */
   recordVote(vote: Vote): void {
     const existingVotes = this.votes.get(vote.argumentId) || [];
@@ -418,14 +506,19 @@ ${arg.position}
   }
 
   /**
-   * Get votes for an argument
+   * الحصول على الأصوات لحجة محددة
+   * 
+   * @param argumentId - معرّف الحجة
+   * @returns مصفوفة الأصوات للحجة المحددة
    */
   getVotesForArgument(argumentId: string): Vote[] {
     return this.votes.get(argumentId) || [];
   }
 
   /**
-   * Get all votes
+   * الحصول على جميع الأصوات
+   * 
+   * @returns خريطة جميع الأصوات مرتبة حسب معرّف الحجة
    */
   getAllVotes(): Map<string, Vote[]> {
     return new Map(this.votes);

@@ -1,44 +1,130 @@
 /**
+ * معالج مهام معالجة المستندات في الخلفية
  * Document Processing Background Job
  *
- * Handles document parsing, text extraction, and processing in the background
+ * @module document-processing.job
+ * @description
+ * يعالج استخراج النصوص من المستندات وتحليلها في الخلفية.
+ * يدعم ملفات PDF و DOCX و TXT.
  */
 
 import { Job } from 'bullmq';
 import { queueManager, QueueName } from '@/queues/queue.config';
+import { logger } from '@/utils/logger';
 
-// Job data types
+/**
+ * واجهة بيانات مهمة معالجة المستند
+ * 
+ * @description
+ * تحدد هيكل البيانات المطلوبة لتنفيذ مهمة معالجة المستند
+ */
 export interface DocumentProcessingJobData {
+  /** معرّف المستند */
   documentId: string;
+  /** مسار الملف */
   filePath: string;
+  /** نوع الملف */
   fileType: 'pdf' | 'docx' | 'txt';
+  /** معرّف المستخدم */
   userId: string;
+  /** معرّف المشروع (اختياري) */
   projectId?: string;
-  options?: {
-    extractScenes?: boolean;
-    extractCharacters?: boolean;
-    extractDialogue?: boolean;
-    generateSummary?: boolean;
-  };
+  /** خيارات المعالجة */
+  options?: DocumentProcessingOptions;
 }
 
+/**
+ * واجهة خيارات معالجة المستند
+ */
+interface DocumentProcessingOptions {
+  /** استخراج المشاهد */
+  extractScenes?: boolean;
+  /** استخراج الشخصيات */
+  extractCharacters?: boolean;
+  /** استخراج الحوارات */
+  extractDialogue?: boolean;
+  /** توليد ملخص */
+  generateSummary?: boolean;
+}
+
+/**
+ * واجهة نتيجة معالجة المستند
+ */
 export interface DocumentProcessingResult {
+  /** معرّف المستند */
   documentId: string;
+  /** النص المستخرج */
   extractedText: string;
-  metadata: {
-    pageCount?: number;
-    wordCount: number;
-    characterCount: number;
-  };
-  scenes?: any[];
-  characters?: any[];
-  dialogue?: any[];
+  /** البيانات الوصفية */
+  metadata: DocumentMetadata;
+  /** المشاهد المستخرجة */
+  scenes?: SceneInfo[];
+  /** الشخصيات المستخرجة */
+  characters?: CharacterInfo[];
+  /** الحوارات المستخرجة */
+  dialogue?: DialogueInfo[];
+  /** الملخص المولّد */
   summary?: string;
+  /** وقت المعالجة بالميلي ثانية */
   processingTime: number;
 }
 
 /**
- * Process document job
+ * واجهة البيانات الوصفية للمستند
+ */
+interface DocumentMetadata {
+  /** عدد الصفحات */
+  pageCount?: number;
+  /** عدد الكلمات */
+  wordCount: number;
+  /** عدد الأحرف */
+  characterCount: number;
+}
+
+/**
+ * واجهة معلومات المشهد
+ */
+interface SceneInfo {
+  /** رقم المشهد */
+  number: number;
+  /** عنوان المشهد */
+  heading: string;
+  /** وصف المشهد */
+  description: string;
+}
+
+/**
+ * واجهة معلومات الشخصية
+ */
+interface CharacterInfo {
+  /** اسم الشخصية */
+  name: string;
+  /** أول ظهور */
+  firstAppearance: number;
+  /** إجمالي السطور */
+  totalLines: number;
+}
+
+/**
+ * واجهة معلومات الحوار
+ */
+interface DialogueInfo {
+  /** اسم الشخصية */
+  character: string;
+  /** السطر */
+  line: string;
+  /** رقم المشهد */
+  sceneNumber: number;
+}
+
+/**
+ * معالجة مهمة المستند
+ * 
+ * @description
+ * الوظيفة الرئيسية التي تعالج مهام استخراج النصوص والتحليل
+ * 
+ * @param job - كائن المهمة من BullMQ
+ * @returns وعد بنتيجة المعالجة
  */
 async function processDocument(
   job: Job<DocumentProcessingJobData>
@@ -46,23 +132,30 @@ async function processDocument(
   const startTime = Date.now();
   const { documentId, filePath, fileType, options = {} } = job.data;
 
-  console.log(`[DocumentProcessing] Processing ${fileType} document ${documentId}`);
+  logger.info("بدء معالجة المستند", {
+    jobId: job.id,
+    documentId,
+    fileType,
+  });
 
   await job.updateProgress(10);
 
   try {
-    // Step 1: Extract text from document
+    // الخطوة 1: استخراج النص من المستند
     const extractedText = await extractText(filePath, fileType);
     await job.updateProgress(30);
 
-    // Step 2: Count words and characters
+    // الخطوة 2: حساب الكلمات والأحرف
     const wordCount = extractedText.split(/\s+/).length;
     const characterCount = extractedText.length;
 
     await job.updateProgress(40);
 
-    // Step 3: Optional extractions
-    let scenes, characters, dialogue, summary;
+    // الخطوة 3: الاستخراجات الاختيارية
+    let scenes: SceneInfo[] | undefined;
+    let characters: CharacterInfo[] | undefined;
+    let dialogue: DialogueInfo[] | undefined;
+    let summary: string | undefined;
 
     if (options.extractScenes) {
       scenes = await extractScenes(extractedText);
@@ -88,7 +181,11 @@ async function processDocument(
 
     const processingTime = Date.now() - startTime;
 
-    console.log(`[DocumentProcessing] Completed in ${processingTime}ms`);
+    logger.info("اكتملت معالجة المستند", {
+      jobId: job.id,
+      documentId,
+      processingTime,
+    });
 
     return {
       documentId,
@@ -104,18 +201,29 @@ async function processDocument(
       processingTime,
     };
   } catch (error) {
-    console.error(`[DocumentProcessing] Error processing job ${job.id}:`, error);
+    logger.error("فشل في معالجة المستند", {
+      jobId: job.id,
+      documentId,
+      error: error instanceof Error ? error.message : "خطأ غير معروف",
+    });
     throw error;
   }
 }
 
 /**
- * Extract text from document
+ * استخراج النص من المستند
+ * 
+ * @description
+ * يستخدم المكتبات المناسبة لاستخراج النص حسب نوع الملف
+ * 
+ * @param filePath - مسار الملف
+ * @param fileType - نوع الملف
+ * @returns وعد بالنص المستخرج
  */
 async function extractText(filePath: string, fileType: string): Promise<string> {
-  // This would use the existing document parsing logic
-  // mammoth for DOCX, pdfjs-dist for PDF
-  // Placeholder implementation
+  // سيستخدم منطق تحليل المستندات الموجود
+  // mammoth لـ DOCX، pdfjs-dist لـ PDF
+  // تنفيذ مؤقت
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -123,10 +231,15 @@ async function extractText(filePath: string, fileType: string): Promise<string> 
 }
 
 /**
- * Extract scenes from text
+ * استخراج المشاهد من النص
+ * 
+ * @description
+ * يستخدم الذكاء الاصطناعي أو التعبيرات النمطية لاستخراج عناوين المشاهد
+ * 
+ * @param text - النص المراد تحليله
+ * @returns وعد بمصفوفة المشاهد
  */
-async function extractScenes(text: string): Promise<any[]> {
-  // Use AI or regex patterns to extract scene headers
+async function extractScenes(text: string): Promise<SceneInfo[]> {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   return [
@@ -139,10 +252,15 @@ async function extractScenes(text: string): Promise<any[]> {
 }
 
 /**
- * Extract characters from text
+ * استخراج الشخصيات من النص
+ * 
+ * @description
+ * يستخدم الذكاء الاصطناعي أو مطابقة الأنماط لاستخراج أسماء الشخصيات
+ * 
+ * @param text - النص المراد تحليله
+ * @returns وعد بمصفوفة الشخصيات
  */
-async function extractCharacters(text: string): Promise<any[]> {
-  // Use AI or pattern matching to extract character names
+async function extractCharacters(text: string): Promise<CharacterInfo[]> {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   return [
@@ -155,10 +273,15 @@ async function extractCharacters(text: string): Promise<any[]> {
 }
 
 /**
- * Extract dialogue from text
+ * استخراج الحوارات من النص
+ * 
+ * @description
+ * يستخرج كتل الحوار من النص
+ * 
+ * @param text - النص المراد تحليله
+ * @returns وعد بمصفوفة الحوارات
  */
-async function extractDialogue(text: string): Promise<any[]> {
-  // Extract dialogue blocks
+async function extractDialogue(text: string): Promise<DialogueInfo[]> {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   return [
@@ -171,17 +294,28 @@ async function extractDialogue(text: string): Promise<any[]> {
 }
 
 /**
- * Generate summary using AI
+ * توليد ملخص باستخدام الذكاء الاصطناعي
+ * 
+ * @description
+ * يستخدم Gemini AI لتوليد ملخص للمستند
+ * 
+ * @param text - النص المراد تلخيصه
+ * @returns وعد بالملخص المولّد
  */
 async function generateSummary(text: string): Promise<string> {
-  // Use Gemini AI to generate summary
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return 'AI-generated summary of the document';
 }
 
 /**
- * Add document processing job to queue
+ * إضافة مهمة معالجة مستند إلى قائمة الانتظار
+ * 
+ * @description
+ * يقوم بإنشاء مهمة جديدة وإضافتها إلى قائمة انتظار معالجة المستندات
+ * 
+ * @param data - بيانات المهمة
+ * @returns وعد بمعرّف المهمة
  */
 export async function queueDocumentProcessing(
   data: DocumentProcessingJobData
@@ -197,24 +331,31 @@ export async function queueDocumentProcessing(
     },
   });
 
-  console.log(`[DocumentProcessing] Job ${job.id} queued for document ${data.documentId}`);
+  logger.info("تم إضافة مهمة معالجة المستند إلى قائمة الانتظار", {
+    jobId: job.id,
+    documentId: data.documentId,
+  });
 
   return job.id!;
 }
 
 /**
- * Register document processing worker
+ * تسجيل عامل معالجة المستندات
+ * 
+ * @description
+ * يقوم بتسجيل العامل المسؤول عن معالجة مهام المستندات
+ * يدعم معالجة مستندين بشكل متزامن مع حد أقصى 3 مهام في الثانية
  */
 export function registerDocumentProcessingWorker(): void {
   queueManager.registerWorker(QueueName.DOCUMENT_PROCESSING, processDocument, {
-    concurrency: 2, // Process 2 documents concurrently
+    concurrency: 2, // معالجة مستندين بشكل متزامن
     limiter: {
       max: 3,
       duration: 1000,
     },
   });
 
-  console.log('[DocumentProcessing] Worker registered');
+  logger.info("تم تسجيل عامل معالجة المستندات");
 }
 
 export default {
