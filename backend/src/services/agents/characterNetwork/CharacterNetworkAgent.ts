@@ -16,24 +16,100 @@ import {
   getClosingInstructions,
 } from "./prompt-builder";
 
+/**
+ * ملخص بيانات الشخصية
+ * 
+ * @description
+ * معلومات أساسية عن شخصية في النص الدرامي
+ */
+export interface CharacterSummary {
+  /** اسم الشخصية */
+  name: string;
+  /** دور الشخصية (رئيسي، ثانوي، عابر) */
+  role?: string;
+  /** وصف مختصر للشخصية */
+  description?: string;
+}
+
+/**
+ * تقرير التحليل السابق
+ * 
+ * @description
+ * بنية تقرير تحليل سابق يمكن البناء عليه
+ */
+export interface AnalysisReport {
+  /** ملخص التحليل */
+  summary?: string;
+  /** النتائج الرئيسية */
+  findings?: string[];
+  /** الثيمات المُكتشفة */
+  themes?: string[];
+  /** بيانات إضافية */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * سياق شبكة الشخصيات
+ * 
+ * @description
+ * يحدد البيانات الإضافية المطلوبة لتحليل شبكة العلاقات بين الشخصيات
+ */
 export interface CharacterNetworkContext {
+  /** النص الأصلي للتحليل */
   originalText?: string;
-  analysisReport?: any;
-  characters?: any[];
+  /** تقرير تحليل سابق للبناء عليه */
+  analysisReport?: AnalysisReport;
+  /** قائمة الشخصيات المُستخرجة */
+  characters?: CharacterSummary[];
+  /** الشخصيات المراد التركيز عليها في التحليل */
   focusCharacters?: string[];
-  relationshipTypes?: string[]; // ['family', 'romantic', 'professional', 'adversarial', 'friendship']
+  /** أنواع العلاقات المراد تحليلها */
+  relationshipTypes?: string[];
+  /** تحليل تطور العلاقات عبر الزمن */
   analyzeEvolution?: boolean;
+  /** تتبع تأثير الشخصيات على بعضها */
   trackInfluence?: boolean;
+  /** تحديد المجموعات والتحالفات */
   identifyGroups?: boolean;
+  /** رسم خريطة ديناميكيات القوة */
   mapPowerDynamics?: boolean;
 }
 
 /**
- * Character Network Agent - وكيل شبكة الشخصيات
- * يطبق النمط القياسي: RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
- * إخراج نصي فقط - لا JSON
+ * وكيل شبكة الشخصيات - Character Network Agent
+ * 
+ * @description
+ * يحلل العلاقات بين الشخصيات في النص الدرامي ويرسم خريطة اجتماعية شاملة.
+ * يطبق النمط القياسي الكامل مع جميع مراحل المعالجة للحصول على تحليل عميق ودقيق.
+ * 
+ * المميزات الرئيسية:
+ * - تحليل أنواع العلاقات (عائلية، رومانسية، مهنية، عدائية، صداقة)
+ * - تتبع تطور العلاقات عبر الأحداث
+ * - تحديد مراكز القوة والتأثير
+ * - رسم المجموعات والتحالفات
+ * - دعم التحليل بأدلة نصية
+ * 
+ * @example
+ * ```typescript
+ * const agent = new CharacterNetworkAgent();
+ * const result = await agent.executeTask({
+ *   input: 'حلل شبكة العلاقات في النص',
+ *   context: {
+ *     originalText: 'نص السيناريو...',
+ *     characters: [{ name: 'أحمد' }, { name: 'سارة' }],
+ *     analyzeEvolution: true,
+ *     mapPowerDynamics: true,
+ *   }
+ * });
+ * ```
  */
 export class CharacterNetworkAgent extends BaseAgent {
+  /**
+   * إنشاء وكيل شبكة الشخصيات
+   * 
+   * @description
+   * يُهيئ الوكيل بإعدادات افتراضية محسّنة لتحليل العلاقات
+   */
   constructor() {
     super(
       "SocialGraph AI",
@@ -44,6 +120,12 @@ export class CharacterNetworkAgent extends BaseAgent {
     this.confidenceFloor = 0.82;
   }
 
+  /**
+   * بناء النص الموجّه للتحليل
+   * 
+   * @description
+   * يجمع أقسام النص المختلفة لإنشاء طلب تحليل شامل
+   */
   protected buildPrompt(input: StandardAgentInput): string {
     const { input: taskInput, context } = input;
     const ctx = context as CharacterNetworkContext;

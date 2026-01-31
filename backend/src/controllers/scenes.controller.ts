@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db } from '@/db';
 import { scenes, projects } from '@/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { z } from 'zod';
 import type { AuthRequest } from '@/middleware/auth.middleware';
+import { getParamAsString } from '@/middleware/auth.middleware';
 
 const createSceneSchema = z.object({
   projectId: z.string().min(1, 'معرف المشروع مطلوب'),
@@ -29,8 +30,19 @@ const updateSceneSchema = z.object({
   status: z.string().optional(),
 });
 
+/**
+ * متحكم المشاهد
+ * 
+ * @description
+ * يدير عمليات CRUD للمشاهد ويتحقق من ملكية المستخدم للمشروع المرتبط
+ */
 export class ScenesController {
-  // Get all scenes for a project
+  /**
+   * جلب جميع مشاهد مشروع معين
+   * 
+   * @description
+   * يتحقق من ملكية المستخدم للمشروع ويُرجع المشاهد مُرتبة حسب رقم المشهد
+   */
   async getScenes(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -41,7 +53,7 @@ export class ScenesController {
         return;
       }
 
-      const { projectId } = req.params;
+      const projectId = getParamAsString(req.params.projectId);
 
       if (!projectId) {
         res.status(400).json({
@@ -51,7 +63,6 @@ export class ScenesController {
         return;
       }
 
-      // Verify project belongs to user
       const [project] = await db
         .select()
         .from(projects)
@@ -84,7 +95,12 @@ export class ScenesController {
     }
   }
 
-  // Get a single scene by ID
+  /**
+   * جلب مشهد محدد بالمعرّف
+   * 
+   * @description
+   * يستخدم JOIN مُحسّن للتحقق من الملكية وجلب المشهد في استعلام واحد
+   */
   async getScene(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -95,7 +111,7 @@ export class ScenesController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
 
       if (!id) {
         res.status(400).json({
@@ -105,8 +121,6 @@ export class ScenesController {
         return;
       }
 
-      // OPTIMIZED: Single JOIN query to fetch scene and verify ownership
-      // Uses idx_scenes_id_project and idx_projects_id_user indexes
       const [result] = await db
         .select({
           scene: scenes,
@@ -137,7 +151,12 @@ export class ScenesController {
     }
   }
 
-  // Create a new scene
+  /**
+   * إنشاء مشهد جديد
+   * 
+   * @description
+   * يتحقق من صلاحية البيانات وملكية المستخدم للمشروع
+   */
   async createScene(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -150,7 +169,6 @@ export class ScenesController {
 
       const validatedData = createSceneSchema.parse(req.body);
 
-      // Verify project belongs to user
       const [project] = await db
         .select()
         .from(projects)
@@ -202,7 +220,12 @@ export class ScenesController {
     }
   }
 
-  // Update a scene
+  /**
+   * تحديث مشهد موجود
+   * 
+   * @description
+   * يستخدم JOIN مُحسّن للتحقق من الملكية والتحديث
+   */
   async updateScene(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -213,7 +236,7 @@ export class ScenesController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
       const validatedData = updateSceneSchema.parse(req.body);
 
       if (!id) {
@@ -224,8 +247,6 @@ export class ScenesController {
         return;
       }
 
-      // OPTIMIZED: Single JOIN query to verify scene exists and user owns it
-      // Uses idx_scenes_id_project and idx_projects_id_user indexes
       const [result] = await db
         .select({
           sceneId: scenes.id,
@@ -274,7 +295,12 @@ export class ScenesController {
     }
   }
 
-  // Delete a scene
+  /**
+   * حذف مشهد
+   * 
+   * @description
+   * يستخدم JOIN مُحسّن للتحقق من الملكية قبل الحذف
+   */
   async deleteScene(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -285,7 +311,7 @@ export class ScenesController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
 
       if (!id) {
         res.status(400).json({
@@ -295,8 +321,6 @@ export class ScenesController {
         return;
       }
 
-      // OPTIMIZED: Single JOIN query to verify scene exists and user owns it
-      // Uses idx_scenes_id_project and idx_projects_id_user indexes
       const [result] = await db
         .select({
           sceneId: scenes.id,

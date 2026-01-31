@@ -186,7 +186,7 @@ export async function getWorkflowHistory(req: Request, res: Response) {
  */
 export async function getWorkflowDetails(req: Request, res: Response) {
   try {
-    const { preset } = req.params;
+    const preset = typeof req.params.preset === 'string' ? req.params.preset : '';
 
     if (!(preset in PRESET_WORKFLOWS)) {
       return res.status(404).json({
@@ -195,7 +195,7 @@ export async function getWorkflowDetails(req: Request, res: Response) {
       });
     }
 
-    const workflow = getPresetWorkflow(preset as any);
+    const workflow = getPresetWorkflow(preset as keyof typeof PRESET_WORKFLOWS);
 
     return res.json({
       success: true,

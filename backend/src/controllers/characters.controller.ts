@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db } from '@/db';
 import { characters, projects } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { z } from 'zod';
 import type { AuthRequest } from '@/middleware/auth.middleware';
+import { getParamAsString } from '@/middleware/auth.middleware';
 
 const createCharacterSchema = z.object({
   projectId: z.string().min(1, 'معرف المشروع مطلوب'),
@@ -24,7 +25,12 @@ const updateCharacterSchema = z.object({
 });
 
 export class CharactersController {
-  // Get all characters for a project
+  /**
+   * جلب جميع شخصيات مشروع معين
+   * 
+   * @description
+   * يتحقق من ملكية المستخدم للمشروع قبل إرجاع قائمة الشخصيات
+   */
   async getCharacters(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -35,9 +41,8 @@ export class CharactersController {
         return;
       }
 
-      const { projectId } = req.params;
+      const projectId = getParamAsString(req.params.projectId);
 
-      // Verify project belongs to user
       if (!projectId) {
         res.status(400).json({
           success: false,
@@ -77,7 +82,12 @@ export class CharactersController {
     }
   }
 
-  // Get a single character by ID
+  /**
+   * جلب شخصية محددة بالمعرّف
+   * 
+   * @description
+   * يتحقق من ملكية المستخدم للمشروع المرتبط بالشخصية
+   */
   async getCharacter(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -88,7 +98,7 @@ export class CharactersController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
 
       if (!id) {
         res.status(400).json({
@@ -111,7 +121,6 @@ export class CharactersController {
         return;
       }
 
-      // Verify project belongs to user
       const [project] = await db
         .select()
         .from(projects)
@@ -138,7 +147,12 @@ export class CharactersController {
     }
   }
 
-  // Create a new character
+  /**
+   * إنشاء شخصية جديدة
+   * 
+   * @description
+   * يتحقق من صلاحية البيانات المُدخلة وملكية المستخدم للمشروع
+   */
   async createCharacter(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -151,7 +165,6 @@ export class CharactersController {
 
       const validatedData = createCharacterSchema.parse(req.body);
 
-      // Verify project belongs to user
       const [project] = await db
         .select()
         .from(projects)
@@ -203,7 +216,12 @@ export class CharactersController {
     }
   }
 
-  // Update a character
+  /**
+   * تحديث شخصية موجودة
+   * 
+   * @description
+   * يتحقق من وجود الشخصية وملكية المستخدم للمشروع قبل التحديث
+   */
   async updateCharacter(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -214,7 +232,7 @@ export class CharactersController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
       const validatedData = updateCharacterSchema.parse(req.body);
 
       if (!id) {
@@ -225,7 +243,6 @@ export class CharactersController {
         return;
       }
 
-      // Check if character exists
       const [existingCharacter] = await db
         .select()
         .from(characters)
@@ -239,7 +256,6 @@ export class CharactersController {
         return;
       }
 
-      // Verify project belongs to user
       const [project] = await db
         .select()
         .from(projects)
@@ -284,7 +300,12 @@ export class CharactersController {
     }
   }
 
-  // Delete a character
+  /**
+   * حذف شخصية
+   * 
+   * @description
+   * يتحقق من وجود الشخصية وملكية المستخدم للمشروع قبل الحذف
+   */
   async deleteCharacter(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -295,7 +316,7 @@ export class CharactersController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
 
       if (!id) {
         res.status(400).json({
@@ -305,7 +326,6 @@ export class CharactersController {
         return;
       }
 
-      // Check if character exists
       const [existingCharacter] = await db
         .select()
         .from(characters)
@@ -319,7 +339,6 @@ export class CharactersController {
         return;
       }
 
-      // Verify project belongs to user
       const [project] = await db
         .select()
         .from(projects)

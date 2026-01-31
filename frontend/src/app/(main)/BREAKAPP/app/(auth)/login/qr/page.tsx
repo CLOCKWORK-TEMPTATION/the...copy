@@ -1,69 +1,115 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import QRScanner from '@/components/scanner/QRScanner';
-import { scanQRAndLogin, storeToken, generateDeviceHash } from '@/lib/auth';
+/**
+ * صفحة تسجيل الدخول بـ QR - QR Login Page
+ * 
+ * @description
+ * تتيح للمستخدمين الانضمام للمشروع بمسح رمز QR
+ * بدلاً من إنشاء حساب تقليدي
+ * 
+ * السبب: تسريع عملية إضافة أعضاء الفريق للمشروع
+ * خاصة في بيئات التصوير الميدانية السريعة
+ */
 
+import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import QRScanner from '../../../../components/scanner/QRScanner';
+import { scanQRAndLogin, storeToken, generateDeviceHash } from '../../../../lib/auth';
+import { QRTokenSchema, type AuthResponse } from '../../../../lib/types';
+
+/**
+ * استجابة خطأ API
+ * 
+ * @description
+ * يمثل بنية الخطأ المُرجعة من Axios عند فشل طلبات API
+ * يُستخدم لاستخراج رسالة الخطأ من الخادم لعرضها للمستخدم
+ */
+interface ApiErrorResponse {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
+/**
+ * صفحة تسجيل الدخول بمسح QR
+ * 
+ * @description
+ * تعرض ماسح QR وتعالج عملية المصادقة
+ * مع عرض حالات النجاح والفشل للمستخدم
+ */
 export default function QRLoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleQRScan = async (qrToken: string) => {
+  /**
+   * معالجة مسح رمز QR
+   */
+  const handleQRScan = useCallback(async (qrToken: string): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
 
-      // Validate QR token format
-      const parts = qrToken.split(':');
-      if (parts.length !== 3) {
+      // التحقق من صيغة الرمز
+      const validation = QRTokenSchema.safeParse(qrToken);
+      if (!validation.success) {
         setError('صيغة رمز QR غير صالحة');
         setLoading(false);
         return;
       }
 
-      // Generate device hash
+      // توليد بصمة الجهاز
       const deviceHash = generateDeviceHash();
 
-      // Authenticate with backend
-      const result = await scanQRAndLogin(qrToken, deviceHash);
+      // المصادقة مع الخادم
+      const result: AuthResponse = await scanQRAndLogin(qrToken, deviceHash);
 
-      // Store token
+      // تخزين الرمز
       storeToken(result.access_token);
 
-      // Show success
+      // إظهار النجاح
       setSuccess(true);
 
-      // Redirect to dashboard after a short delay
+      // التوجيه للوحة التحكم
       setTimeout(() => {
         router.push('/dashboard');
       }, 1500);
-    } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || 'Failed to authenticate';
+    } catch (err: unknown) {
+      const apiError = err as ApiErrorResponse;
+      const errorMsg = apiError?.response?.data?.message || 
+                       apiError?.message || 
+                       'فشلت عملية المصادقة';
       setError(errorMsg);
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  const handleScanError = (error: string) => {
-    setError(error);
-  };
+  /**
+   * معالجة خطأ المسح
+   */
+  const handleScanError = useCallback((errorMessage: string): void => {
+    setError(errorMessage);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+        {/* العنوان */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Break Break
           </h1>
           <p className="text-gray-600">
-            Scan QR code to join your project
+            امسح رمز QR للانضمام لمشروعك
           </p>
         </div>
 
         {success ? (
+          /* حالة النجاح */
           <div className="text-center p-8">
             <div className="mb-4">
               <svg
@@ -81,26 +127,29 @@ export default function QRLoginPage() {
               </svg>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Success!
+              نجاح!
             </h2>
             <p className="text-gray-600">
-              Redirecting to dashboard...
+              جارٍ التوجيه للوحة التحكم...
             </p>
           </div>
         ) : (
           <>
+            {/* ماسح QR */}
             <QRScanner onScan={handleQRScan} onError={handleScanError} />
 
+            {/* مؤشر التحميل */}
             {loading && (
               <div className="mt-6 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-2 text-sm text-gray-600">Authenticating...</p>
+                <p className="mt-2 text-sm text-gray-600">جارٍ المصادقة...</p>
               </div>
             )}
 
+            {/* رسالة الخطأ */}
             {error && (
               <div className="mt-6 p-4 bg-red-50 text-red-700 rounded-lg">
-                <p className="text-sm font-medium">Authentication Failed</p>
+                <p className="text-sm font-medium">فشلت المصادقة</p>
                 <p className="text-sm mt-1">{error}</p>
               </div>
             )}
@@ -108,8 +157,9 @@ export default function QRLoginPage() {
         )}
       </div>
 
+      {/* تعليمات */}
       <div className="mt-8 text-center text-sm text-gray-500">
-        <p>Make sure you have permission to access the camera</p>
+        <p>تأكد من منح إذن الوصول للكاميرا</p>
       </div>
     </div>
   );

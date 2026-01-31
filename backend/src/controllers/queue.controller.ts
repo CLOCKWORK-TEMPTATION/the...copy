@@ -26,7 +26,7 @@ export class QueueController {
    */
   async getJobStatus(req: Request, res: Response): Promise<void> {
     try {
-      const { jobId } = req.params;
+      const jobId = typeof req.params.jobId === 'string' ? req.params.jobId : '';
 
       if (!jobId) {
         res.status(400).json({
@@ -158,7 +158,7 @@ export class QueueController {
    */
   async retryJob(req: Request, res: Response): Promise<void> {
     try {
-      const { jobId } = req.params;
+      const jobId = typeof req.params.jobId === 'string' ? req.params.jobId : '';
 
       if (!jobId) {
         res.status(400).json({
