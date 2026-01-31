@@ -1,6 +1,95 @@
-// CineArchitect AI - Core Types
-// أنواع البيانات الأساسية
+/**
+ * CineArchitect AI - Core Types
+ * أنواع البيانات الأساسية لنظام CineArchitect
+ * 
+ * @description هذا الملف يحتوي على جميع الأنواع والواجهات المستخدمة في التطبيق
+ * لضمان Type Safety وتوحيد البيانات عبر المكونات المختلفة
+ */
 
+import { z } from 'zod';
+
+// ==================== Zod Schemas ====================
+// مخططات Zod للتحقق من صحة البيانات في وقت التشغيل
+
+/**
+ * مخطط فئات الإضافات
+ * يحدد الفئات المسموح بها للإضافات في النظام
+ */
+export const PluginCategorySchema = z.enum([
+  'ai-analytics',           // أدوات الذكاء الاصطناعي التحليلية
+  'collaboration',          // أدوات التعاون
+  'resource-management',    // إدارة الموارد
+  'xr-immersive',          // الواقع الممتد
+  'learning',              // التعلم والمعرفة
+  'sustainability',        // الاستدامة
+  'documentation',         // التوثيق
+  'safety',                // الأمان
+  'marketing',             // التسويق
+]);
+
+/**
+ * مخطط بيانات الإضافة المدخلة
+ * يتحقق من صحة البيانات المرسلة إلى الإضافة
+ */
+export const PluginInputSchema = z.object({
+  type: z.string().min(1, 'نوع المدخل مطلوب'),
+  data: z.record(z.unknown()),
+  options: z.record(z.unknown()).optional(),
+});
+
+/**
+ * مخطط نتيجة تنفيذ الإضافة
+ * يتحقق من صحة البيانات المرجعة من الإضافة
+ */
+export const PluginOutputSchema = z.object({
+  success: z.boolean(),
+  data: z.record(z.unknown()).optional(),
+  error: z.string().optional(),
+  warnings: z.array(z.string()).optional(),
+});
+
+/**
+ * مخطط معلومات الإضافة الأساسية
+ * يستخدم للتحقق من بيانات الإضافة المسترجعة من API
+ */
+export const PluginInfoSchema = z.object({
+  id: z.string().min(1, 'معرف الإضافة مطلوب'),
+  name: z.string().min(1, 'اسم الإضافة مطلوب'),
+  nameAr: z.string().min(1, 'الاسم العربي مطلوب'),
+  version: z.string().optional(),
+  category: z.string(),
+});
+
+/**
+ * مخطط استجابة API للإضافات
+ */
+export const PluginsApiResponseSchema = z.object({
+  plugins: z.array(PluginInfoSchema).optional(),
+  success: z.boolean().optional(),
+  error: z.string().optional(),
+});
+
+// ==================== Type Definitions ====================
+// تعريفات الأنواع المشتقة من مخططات Zod
+
+export type PluginCategory = z.infer<typeof PluginCategorySchema>;
+export type PluginInput = z.infer<typeof PluginInputSchema>;
+export type PluginOutput = z.infer<typeof PluginOutputSchema>;
+export type PluginInfo = z.infer<typeof PluginInfoSchema>;
+export type PluginsApiResponse = z.infer<typeof PluginsApiResponseSchema>;
+
+/**
+ * واجهة الإضافة الكاملة
+ * تمثل إضافة قابلة للتنفيذ في النظام
+ * 
+ * @property id - المعرف الفريد للإضافة
+ * @property name - الاسم بالإنجليزية
+ * @property nameAr - الاسم بالعربية
+ * @property version - رقم الإصدار
+ * @property description - الوصف بالإنجليزية
+ * @property descriptionAr - الوصف بالعربية
+ * @property category - فئة الإضافة
+ */
 export interface Plugin {
   id: string;
   name: string;
@@ -14,30 +103,13 @@ export interface Plugin {
   shutdown(): Promise<void>;
 }
 
-export type PluginCategory =
-  | 'ai-analytics'           // أدوات الذكاء الاصطناعي التحليلية
-  | 'collaboration'          // أدوات التعاون
-  | 'resource-management'    // إدارة الموارد
-  | 'xr-immersive'          // الواقع الممتد
-  | 'learning'              // التعلم والمعرفة
-  | 'sustainability'        // الاستدامة
-  | 'documentation'         // التوثيق
-  | 'safety'                // الأمان
-  | 'marketing';            // التسويق
+// ==================== Project Types ====================
+// أنواع المشاريع والمشاهد
 
-export interface PluginInput {
-  type: string;
-  data: Record<string, unknown>;
-  options?: Record<string, unknown>;
-}
-
-export interface PluginOutput {
-  success: boolean;
-  data?: Record<string, unknown>;
-  error?: string;
-  warnings?: string[];
-}
-
+/**
+ * واجهة المشروع
+ * تمثل مشروع إنتاج سينمائي كامل
+ */
 export interface Project {
   id: string;
   name: string;
@@ -52,6 +124,10 @@ export interface Project {
   assets: Asset[];
 }
 
+/**
+ * واجهة المشهد
+ * تمثل مشهد واحد في المشروع
+ */
 export interface Scene {
   id: string;
   number: number;
@@ -66,6 +142,10 @@ export interface Scene {
   lightingSetup?: LightingSetup;
 }
 
+/**
+ * واجهة لوحة الألوان
+ * تحدد نظام الألوان المستخدم في المشهد
+ */
 export interface ColorPalette {
   primary: string[];
   secondary: string[];
@@ -73,6 +153,10 @@ export interface ColorPalette {
   mood: string;
 }
 
+/**
+ * واجهة إعداد الإضاءة
+ * تحدد تكوين الإضاءة للمشهد
+ */
 export interface LightingSetup {
   type: 'natural' | 'artificial' | 'mixed';
   keyLight?: Light;
@@ -82,6 +166,10 @@ export interface LightingSetup {
   notes: string;
 }
 
+/**
+ * واجهة مصدر الضوء
+ * تمثل خصائص مصدر ضوء واحد
+ */
 export interface Light {
   type: string;
   intensity: number;
@@ -89,6 +177,13 @@ export interface Light {
   position: string;
 }
 
+// ==================== Budget Types ====================
+// أنواع الميزانية
+
+/**
+ * واجهة الميزانية
+ * تمثل ميزانية المشروع الكاملة
+ */
 export interface Budget {
   total: number;
   currency: string;
@@ -97,6 +192,10 @@ export interface Budget {
   remaining: number;
 }
 
+/**
+ * واجهة فئة الميزانية
+ * تمثل تخصيص ميزانية لفئة معينة
+ */
 export interface BudgetCategory {
   name: string;
   nameAr: string;
@@ -104,6 +203,13 @@ export interface BudgetCategory {
   spent: number;
 }
 
+// ==================== Team Types ====================
+// أنواع الفريق
+
+/**
+ * واجهة عضو الفريق
+ * تمثل معلومات عضو واحد في فريق الإنتاج
+ */
 export interface TeamMember {
   id: string;
   name: string;
@@ -114,6 +220,38 @@ export interface TeamMember {
   phone?: string;
 }
 
+// ==================== Location Types ====================
+// أنواع المواقع
+
+/**
+ * مخطط الموقع للتحقق من صحة البيانات
+ */
+export const LocationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  nameAr: z.string(),
+  type: z.string(),
+  address: z.string(),
+  features: z.array(z.string()).optional(),
+});
+
+/**
+ * واجهة الموقع (بسيطة)
+ * تستخدم في عرض قائمة المواقع
+ */
+export interface LocationSimple {
+  id: string;
+  name: string;
+  nameAr: string;
+  type: string;
+  address: string;
+  features: string[];
+}
+
+/**
+ * واجهة الموقع (كاملة)
+ * تمثل معلومات موقع تصوير كاملة
+ */
 export interface Location {
   id: string;
   name: string;
@@ -125,17 +263,54 @@ export interface Location {
   notes: string;
 }
 
+/**
+ * واجهة نطاق التاريخ
+ */
 export interface DateRange {
   start: Date;
   end: Date;
 }
 
+/**
+ * واجهة التصريح
+ */
 export interface Permit {
   type: string;
   status: 'pending' | 'approved' | 'denied';
   expiresAt?: Date;
 }
 
+// ==================== Asset Types ====================
+// أنواع الأصول والديكور
+
+/**
+ * مخطط قطعة الديكور للتحقق من صحة البيانات
+ */
+export const SetPieceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  nameAr: z.string(),
+  category: z.string(),
+  condition: z.string(),
+  reusabilityScore: z.number().min(0).max(100),
+});
+
+/**
+ * واجهة قطعة الديكور
+ */
+export interface SetPiece {
+  id: string;
+  name: string;
+  nameAr: string;
+  category: string;
+  condition: string;
+  reusabilityScore: number;
+}
+
+/**
+ * واجهة الأصل
+ * تمثل قطعة من قطع الإنتاج
+ */
 export interface Asset {
   id: string;
   name: string;
@@ -146,6 +321,12 @@ export interface Asset {
   notes: string;
 }
 
+// ==================== Analysis Types ====================
+// أنواع التحليل والتقارير
+
+/**
+ * واجهة نتيجة التحليل البصري
+ */
 export interface VisualAnalysisResult {
   consistent: boolean;
   issues: VisualIssue[];
@@ -153,6 +334,9 @@ export interface VisualAnalysisResult {
   score: number;
 }
 
+/**
+ * واجهة مشكلة بصرية
+ */
 export interface VisualIssue {
   type: 'color' | 'lighting' | 'continuity' | 'costume' | 'prop';
   severity: 'low' | 'medium' | 'high';
@@ -162,6 +346,9 @@ export interface VisualIssue {
   suggestion: string;
 }
 
+/**
+ * واجهة نتيجة الترجمة
+ */
 export interface TranslationResult {
   original: string;
   translated: string;
@@ -171,6 +358,9 @@ export interface TranslationResult {
   alternatives?: string[];
 }
 
+/**
+ * واجهة تحليل المخاطر
+ */
 export interface RiskAnalysis {
   overallRisk: 'low' | 'medium' | 'high';
   risks: Risk[];
@@ -178,6 +368,9 @@ export interface RiskAnalysis {
   contingencyPlans: ContingencyPlan[];
 }
 
+/**
+ * واجهة الخطر
+ */
 export interface Risk {
   id: string;
   type: 'financial' | 'logistical' | 'weather' | 'safety' | 'legal' | 'technical';
@@ -188,6 +381,9 @@ export interface Risk {
   score: number;
 }
 
+/**
+ * واجهة التخفيف
+ */
 export interface Mitigation {
   riskId: string;
   action: string;
@@ -196,9 +392,133 @@ export interface Mitigation {
   deadline?: Date;
 }
 
+/**
+ * واجهة خطة الطوارئ
+ */
 export interface ContingencyPlan {
   riskId: string;
   trigger: string;
   actions: string[];
   resources: string[];
+}
+
+// ==================== Component-Specific Types ====================
+// أنواع خاصة بالمكونات
+
+/**
+ * مخطط لوحة الألوان للإلهام
+ */
+export const ColorPaletteInspirationSchema = z.object({
+  name: z.string(),
+  nameAr: z.string(),
+  colors: z.array(z.string()),
+});
+
+/**
+ * واجهة لوحة الألوان للإلهام
+ */
+export interface ColorPaletteInspiration {
+  name: string;
+  nameAr: string;
+  colors: string[];
+}
+
+/**
+ * مخطط لوحة المزاج
+ */
+export const MoodBoardSchema = z.object({
+  theme: z.string(),
+  themeAr: z.string(),
+  keywords: z.array(z.string()),
+  suggestedPalette: ColorPaletteInspirationSchema.optional(),
+});
+
+/**
+ * واجهة لوحة المزاج
+ */
+export interface MoodBoard {
+  theme: string;
+  themeAr: string;
+  keywords: string[];
+  suggestedPalette?: ColorPaletteInspiration;
+}
+
+/**
+ * مخطط تقرير الاستدامة
+ */
+export const SustainabilityReportSchema = z.object({
+  totalPieces: z.number(),
+  reusablePercentage: z.number(),
+  estimatedSavings: z.number(),
+  environmentalImpact: z.string(),
+});
+
+/**
+ * واجهة تقرير الاستدامة
+ */
+export interface SustainabilityReport {
+  totalPieces: number;
+  reusablePercentage: number;
+  estimatedSavings: number;
+  environmentalImpact: string;
+}
+
+/**
+ * مخطط كتاب الإنتاج
+ */
+export const ProductionBookSchema = z.object({
+  title: z.string(),
+  titleAr: z.string(),
+  sections: z.array(z.string()),
+  createdAt: z.string(),
+});
+
+/**
+ * واجهة كتاب الإنتاج
+ */
+export interface ProductionBook {
+  title: string;
+  titleAr: string;
+  sections: string[];
+  createdAt: string;
+}
+
+/**
+ * مخطط دليل الأسلوب
+ */
+export const StyleGuideSchema = z.object({
+  name: z.string(),
+  nameAr: z.string(),
+  elements: z.array(z.string()),
+});
+
+/**
+ * واجهة دليل الأسلوب
+ */
+export interface StyleGuide {
+  name: string;
+  nameAr: string;
+  elements: string[];
+}
+
+// ==================== API Response Types ====================
+// أنواع استجابات API
+
+/**
+ * مخطط استجابة API العامة
+ */
+export const ApiResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
+  z.object({
+    success: z.boolean(),
+    data: dataSchema.optional(),
+    error: z.string().optional(),
+  });
+
+/**
+ * واجهة استجابة API العامة
+ */
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }

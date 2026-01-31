@@ -1,43 +1,351 @@
+/**
+ * Tools - صفحة جميع الأدوات
+ * 
+ * @description يعرض هذا المكون واجهة موحدة لتشغيل واختبار جميع أدوات CineArchitect
+ * يتضمن قائمة جانبية بالأدوات المتاحة ومساحة عمل لتنفيذ الأداة المحددة
+ * 
+ * @architecture
+ * - يستخدم Hook مخصص لجلب الإضافات
+ * - يدعم أنواع مختلفة من المدخلات (text, number, select, textarea)
+ * - يعرض نتائج التنفيذ بتنسيق JSON
+ */
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useCallback, useMemo, type ReactNode, type ChangeEvent } from "react";
 import { Play, Loader2 } from "lucide-react";
-import { toolConfigs, ToolId, ToolInput } from "../core/toolConfigs";
+import { toolConfigs, type ToolId, type ToolInput } from "../core/toolConfigs";
+import { usePlugins } from "../hooks";
+import type { PluginInfo, ApiResponse } from "../types";
 
-interface Plugin {
-  id: string;
-  name: string;
-  nameAr: string;
-  category: string;
-  version?: string;
+/**
+ * واجهة بيانات النموذج
+ * تخزن قيم المدخلات بشكل ديناميكي
+ */
+type FormData = Record<string, string>;
+
+/**
+ * واجهة نتيجة التنفيذ
+ */
+interface ExecutionResult {
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
+  [key: string]: unknown;
 }
 
+/**
+ * مكون حقل الإدخال
+ * يعرض نوع الإدخال المناسب بناءً على تكوين الأداة
+ */
+interface InputFieldProps {
+  input: ToolInput;
+  value: string;
+  onChange: (name: string, value: string) => void;
+}
+
+function InputField({ input, value, onChange }: InputFieldProps) {
+  const handleChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+      onChange(input.name, e.target.value);
+    },
+    [input.name, onChange]
+  );
+
+  if (input.type === "select" && input.options) {
+    return (
+      <select
+        className="art-input"
+        value={value}
+        onChange={handleChange}
+        aria-label={input.label}
+      >
+        <option value="">اختر...</option>
+        {input.options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (input.type === "textarea") {
+    return (
+      <textarea
+        className="art-input"
+        placeholder={input.placeholder}
+        value={value}
+        onChange={handleChange}
+        rows={4}
+        style={{ resize: "none" }}
+        aria-label={input.label}
+      />
+    );
+  }
+
+  return (
+    <input
+      type={input.type}
+      className="art-input"
+      placeholder={input.placeholder}
+      value={value}
+      onChange={handleChange}
+      aria-label={input.label}
+    />
+  );
+}
+
+/**
+ * مكون مجموعة الحقول
+ * يعرض جميع مدخلات الأداة المحددة
+ */
+interface FormFieldsProps {
+  inputs: ToolInput[];
+  formData: FormData;
+  onFieldChange: (name: string, value: string) => void;
+}
+
+function FormFields({ inputs, formData, onFieldChange }: FormFieldsProps) {
+  return (
+    <>
+      {inputs.map((input) => (
+        <div
+          key={input.name}
+          className={`art-form-group ${input.type === "textarea" ? "full-width" : ""}`}
+        >
+          <label>{input.label}</label>
+          <InputField
+            input={input}
+            value={formData[input.name] ?? ""}
+            onChange={onFieldChange}
+          />
+        </div>
+      ))}
+    </>
+  );
+}
+
+/**
+ * مكون عنصر الأداة في القائمة الجانبية
+ */
+interface ToolItemProps {
+  plugin: PluginInfo;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+function ToolItem({ plugin, isActive, onClick }: ToolItemProps) {
+  const config = toolConfigs[plugin.id as ToolId];
+  const Icon = config?.icon ?? Play;
+  const color = config?.color ?? "#e94560";
+
+  return (
+    <button
+      className={`art-tool-item ${isActive ? "active" : ""}`}
+      onClick={onClick}
+      style={{ "--tool-color": color } as React.CSSProperties}
+      aria-current={isActive ? "true" : undefined}
+    >
+      <Icon size={20} style={{ color }} aria-hidden="true" />
+      <div className="art-tool-info">
+        <span className="art-tool-name-ar">{plugin.nameAr}</span>
+        <span className="art-tool-category">{plugin.category}</span>
+      </div>
+    </button>
+  );
+}
+
+/**
+ * مكون الشريط الجانبي للأدوات
+ */
+interface ToolsSidebarProps {
+  plugins: PluginInfo[];
+  selectedTool: ToolId | null;
+  onToolSelect: (toolId: ToolId) => void;
+}
+
+function ToolsSidebar({ plugins, selectedTool, onToolSelect }: ToolsSidebarProps) {
+  return (
+    <aside className="art-tools-sidebar">
+      <h3>الأدوات المتاحة ({plugins.length})</h3>
+      <div className="art-tools-list" role="listbox" aria-label="قائمة الأدوات">
+        {plugins.map((plugin) => (
+          <ToolItem
+            key={plugin.id}
+            plugin={plugin}
+            isActive={selectedTool === plugin.id}
+            onClick={() => onToolSelect(plugin.id as ToolId)}
+          />
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+/**
+ * مكون حالة عدم وجود أداة محددة
+ */
+function NoToolSelected() {
+  return (
+    <div className="art-no-tool-selected">
+      <Play size={64} aria-hidden="true" />
+      <h2>اختر أداة للبدء</h2>
+      <p>اختر أداة من القائمة الجانبية لتشغيلها</p>
+    </div>
+  );
+}
+
+/**
+ * مكون نتيجة التنفيذ
+ */
+interface ExecutionResultProps {
+  result: ExecutionResult;
+}
+
+function ExecutionResultDisplay({ result }: ExecutionResultProps) {
+  return (
+    <div className="art-card art-result-card" style={{ animation: "fadeIn 0.3s ease-in-out" }}>
+      <h3>النتيجة</h3>
+      <div className={`art-result-status ${result.success ? "success" : "error"}`}>
+        {result.success ? "تم بنجاح" : "حدث خطأ"}
+      </div>
+      <pre className="art-result-json">{JSON.stringify(result, null, 2)}</pre>
+    </div>
+  );
+}
+
+/**
+ * مكون رسالة الخطأ
+ */
+interface ErrorAlertProps {
+  message: string;
+}
+
+function ErrorAlert({ message }: ErrorAlertProps) {
+  return (
+    <div className="art-alert art-alert-error" style={{ marginTop: "12px" }} role="alert">
+      {message}
+    </div>
+  );
+}
+
+/**
+ * مكون مساحة عمل الأداة
+ */
+interface ToolWorkspaceProps {
+  selectedTool: ToolId;
+  plugin: PluginInfo;
+  formData: FormData;
+  result: ExecutionResult | null;
+  loading: boolean;
+  error: string | null;
+  onFieldChange: (name: string, value: string) => void;
+  onExecute: () => void;
+}
+
+function ToolWorkspace({
+  selectedTool,
+  plugin,
+  formData,
+  result,
+  loading,
+  error,
+  onFieldChange,
+  onExecute,
+}: ToolWorkspaceProps) {
+  const config = toolConfigs[selectedTool];
+  
+  if (!config) {
+    return <NoToolSelected />;
+  }
+
+  const Icon = config.icon;
+
+  return (
+    <div className="art-tool-workspace">
+      {/* رأس الأداة */}
+      <div
+        className="art-tool-header"
+        style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}
+      >
+        <Icon size={32} style={{ color: config.color }} aria-hidden="true" />
+        <div>
+          <h2 style={{ margin: 0 }}>{plugin.nameAr}</h2>
+          <p style={{ color: "var(--art-text-muted)", margin: 0 }}>{plugin.name}</p>
+        </div>
+      </div>
+
+      {/* نموذج المدخلات */}
+      <div className="art-card art-tool-form">
+        <h3 style={{ marginBottom: "16px" }}>المدخلات</h3>
+        <div className="art-form-grid">
+          <FormFields
+            inputs={config.inputs}
+            formData={formData}
+            onFieldChange={onFieldChange}
+          />
+        </div>
+        <button
+          className="art-btn art-execute-btn"
+          onClick={onExecute}
+          disabled={loading}
+          style={{ marginTop: "16px" }}
+        >
+          {loading ? (
+            <>
+              <Loader2 size={18} className="art-spinner" aria-hidden="true" />
+              جاري التنفيذ...
+            </>
+          ) : (
+            <>
+              <Play size={18} aria-hidden="true" />
+              تنفيذ
+            </>
+          )}
+        </button>
+
+        {error && <ErrorAlert message={error} />}
+      </div>
+
+      {/* نتيجة التنفيذ */}
+      {result && <ExecutionResultDisplay result={result} />}
+    </div>
+  );
+}
+
+/**
+ * المكون الرئيسي لصفحة الأدوات
+ */
 export default function Tools() {
-  const [plugins, setPlugins] = useState<Plugin[]>([]);
+  const { plugins } = usePlugins();
   const [selectedTool, setSelectedTool] = useState<ToolId | null>(null);
-  const [formData, setFormData] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<any>(null);
+  const [formData, setFormData] = useState<FormData>({});
+  const [result, setResult] = useState<ExecutionResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/plugins")
-      .then(res => res.json())
-      .then(data => {
-        setPlugins(data.plugins || []);
+  /**
+   * تحديث قيمة حقل في النموذج
+   */
+  const handleFieldChange = useCallback((name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }, []);
 
-        const firstAvailable = (data.plugins || [])
-          .map((p: Plugin) => p.id)
-          .find((id: string) => toolConfigs[id as ToolId]) as ToolId | undefined;
+  /**
+   * اختيار أداة جديدة
+   */
+  const handleToolSelect = useCallback((toolId: ToolId) => {
+    setSelectedTool(toolId);
+    setFormData({});
+    setResult(null);
+    setError(null);
+  }, []);
 
-        if (!selectedTool && firstAvailable) {
-          setSelectedTool(firstAvailable);
-        }
-      })
-      .catch(() => setPlugins([]));
-  }, [selectedTool]);
-
-  const handleExecute = async () => {
+  /**
+   * تنفيذ الأداة المحددة
+   */
+  const handleExecute = useCallback(async () => {
     if (!selectedTool) return;
 
     const config = toolConfigs[selectedTool];
@@ -54,177 +362,70 @@ export default function Tools() {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
-      setResult(data);
+      const data: ApiResponse<Record<string, unknown>> = await response.json();
+      
+      setResult({
+        success: data.success ?? response.ok,
+        data: data.data,
+        error: data.error,
+      });
 
       if (!response.ok || data.success === false) {
-        setError(data.error || "فشل تنفيذ الأداة");
+        setError(data.error ?? "فشل تنفيذ الأداة");
       }
     } catch (err) {
-      setError("تعذر الاتصال بالخادم الرئيسي");
+      const errorMessage = err instanceof Error ? err.message : "تعذر الاتصال بالخادم الرئيسي";
+      setError(errorMessage);
+      setResult({
+        success: false,
+        error: errorMessage,
+      });
+    } finally {
+      setLoading(false);
     }
+  }, [selectedTool, formData]);
 
-    setLoading(false);
-  };
-
-  const renderInput = (input: ToolInput) => {
-    if (input.type === "select") {
-      return (
-        <select
-          className="art-input"
-          value={formData[input.name] || ""}
-          onChange={(e) => setFormData({ ...formData, [input.name]: e.target.value })}
-        >
-          <option value="">اختر...</option>
-          {input.options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      );
-    }
-
-    if (input.type === "textarea") {
-      return (
-        <textarea
-          className="art-input"
-          placeholder={input.placeholder}
-          value={formData[input.name] || ""}
-          onChange={(e) => setFormData({ ...formData, [input.name]: e.target.value })}
-          rows={4}
-          style={{ resize: "none" }}
-        />
-      );
-    }
-
-    return (
-      <input
-        type={input.type}
-        className="art-input"
-        placeholder={input.placeholder}
-        value={formData[input.name] || ""}
-        onChange={(e) => setFormData({ ...formData, [input.name]: e.target.value })}
-      />
-    );
-  };
-
-  const renderInputs = () => {
-    if (!selectedTool) return null;
-
-    const inputs = toolConfigs[selectedTool]?.inputs || [];
-
-    return inputs.map((input) => (
-      <div key={input.name} className={`art-form-group ${input.type === "textarea" ? "full-width" : ""}`}>
-        <label>{input.label}</label>
-        {renderInput(input)}
-      </div>
-    ));
-  };
-
-  const selectedPlugin = selectedTool ? plugins.find(p => p.id === selectedTool) : null;
-  const selectedConfig = selectedTool ? toolConfigs[selectedTool] : null;
+  /**
+   * الإضافة المحددة حالياً
+   */
+  const selectedPlugin = useMemo(
+    () => (selectedTool ? plugins.find((p) => p.id === selectedTool) : null),
+    [selectedTool, plugins]
+  );
 
   return (
     <div className="art-director-page">
+      {/* رأس الصفحة */}
       <header className="art-page-header">
-        <Play size={32} className="header-icon" />
+        <Play size={32} className="header-icon" aria-hidden="true" />
         <div>
           <h1>جميع الأدوات</h1>
           <p>تشغيل واختبار أدوات CineArchitect</p>
         </div>
       </header>
 
+      {/* تخطيط الأدوات */}
       <div className="art-tools-layout">
-        <aside className="art-tools-sidebar">
-          <h3>الأدوات المتاحة ({plugins.length})</h3>
-          <div className="art-tools-list">
-            {plugins.map((plugin) => {
-              const config = toolConfigs[plugin.id as ToolId];
-              const Icon = config?.icon || Play;
-              const color = config?.color || "#e94560";
-
-              return (
-                <button
-                  key={plugin.id}
-                  className={`art-tool-item ${selectedTool === plugin.id ? "active" : ""}`}
-                  onClick={() => {
-                    setSelectedTool(plugin.id as ToolId);
-                    setFormData({});
-                    setResult(null);
-                    setError(null);
-                  }}
-                  style={{ '--tool-color': color } as any}
-                >
-                  <Icon size={20} style={{ color }} />
-                  <div className="art-tool-info">
-                    <span className="art-tool-name-ar">{plugin.nameAr}</span>
-                    <span className="art-tool-category">{plugin.category}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
+        <ToolsSidebar
+          plugins={plugins}
+          selectedTool={selectedTool}
+          onToolSelect={handleToolSelect}
+        />
 
         <main>
-          {!selectedTool ? (
-            <div className="art-no-tool-selected">
-              <Play size={64} />
-              <h2>اختر أداة للبدء</h2>
-              <p>اختر أداة من القائمة الجانبية لتشغيلها</p>
-            </div>
+          {!selectedTool || !selectedPlugin ? (
+            <NoToolSelected />
           ) : (
-            <div className="art-tool-workspace">
-              <div className="art-tool-header" style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
-                {selectedConfig && (
-                  <selectedConfig.icon size={32} style={{ color: selectedConfig.color }} />
-                )}
-                <div>
-                  <h2 style={{ margin: 0 }}>{selectedPlugin?.nameAr}</h2>
-                  <p style={{ color: "var(--art-text-muted)", margin: 0 }}>{selectedPlugin?.name}</p>
-                </div>
-              </div>
-
-              <div className="art-card art-tool-form">
-                <h3 style={{ marginBottom: "16px" }}>المدخلات</h3>
-                <div className="art-form-grid">{renderInputs()}</div>
-                <button
-                  className="art-btn art-execute-btn"
-                  onClick={handleExecute}
-                  disabled={loading}
-                  style={{ marginTop: "16px" }}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={18} className="art-spinner" />
-                      جاري التنفيذ...
-                    </>
-                  ) : (
-                    <>
-                      <Play size={18} />
-                      تنفيذ
-                    </>
-                  )}
-                </button>
-
-                {error && (
-                  <div className="art-alert art-alert-error" style={{ marginTop: "12px" }}>
-                    {error}
-                  </div>
-                )}
-              </div>
-
-              {result && (
-                <div className="art-card art-result-card" style={{ animation: "fadeIn 0.3s ease-in-out" }}>
-                  <h3>النتيجة</h3>
-                  <div className={`art-result-status ${result.success ? "success" : "error"}`}>
-                    {result.success ? "تم بنجاح" : "حدث خطأ"}
-                  </div>
-                  <pre className="art-result-json">
-                    {JSON.stringify(result, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
+            <ToolWorkspace
+              selectedTool={selectedTool}
+              plugin={selectedPlugin}
+              formData={formData}
+              result={result}
+              loading={loading}
+              error={error}
+              onFieldChange={handleFieldChange}
+              onExecute={handleExecute}
+            />
           )}
         </main>
       </div>
