@@ -28,6 +28,18 @@ const SCENARIO_MODEL = 'gemini-3-pro-preview';
 const ANALYSIS_MODEL = 'gemini-3-pro-preview';
 
 /**
+ * يحصل على قيمة من كائن window بشكل آمن
+ * 
+ * السبب: نتجنب الأخطاء في بيئة الخادم حيث window غير متاح
+ */
+const getWindowValue = (key: string): string | undefined => {
+  if (typeof window === 'undefined') return undefined;
+  const windowObj = window as unknown as Record<string, unknown>;
+  const value = windowObj[key];
+  return typeof value === 'string' ? value : undefined;
+};
+
+/**
  * يحصل على مفتاح API من مصادر متعددة
  * 
  * السبب: ندعم مصادر متعددة للمرونة في بيئات مختلفة
@@ -38,7 +50,7 @@ const getAPIKey = (): string => {
   const apiKey = 
     process.env.GEMINI_API_KEY || 
     process.env.API_KEY || 
-    (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).GEMINI_API_KEY as string) ||
+    getWindowValue('GEMINI_API_KEY') ||
     '';
   
   if (!apiKey) {

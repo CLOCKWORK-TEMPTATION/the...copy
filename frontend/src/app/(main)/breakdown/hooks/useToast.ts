@@ -95,7 +95,7 @@ export function useToast(): UseToastReturn {
     message: string, 
     options: ToastOptions = {}
   ): string => {
-    const id = options.id || `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id || `toast-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     const duration = options.duration ?? DEFAULT_DURATION;
 
     const toast: Toast = { id, type, message, duration };

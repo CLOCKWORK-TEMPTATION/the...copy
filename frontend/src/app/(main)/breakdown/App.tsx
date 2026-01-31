@@ -151,7 +151,7 @@ function App() {
             </div>
 
             {/* عرض رسالة الخطأ */}
-            {error && (
+            {error !== null && (
               <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-lg flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0" />
                 <p>{error.message}</p>
