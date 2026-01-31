@@ -1,48 +1,85 @@
-import React, { useState } from 'react';
-import { Scene, AgentKey, ScenarioAnalysis } from '../types';
+/**
+ * @fileoverview مكون عرض نتائج تحليل المشاهد
+ * 
+ * هذا المكون يعرض قائمة المشاهد المستخرجة مع خيارات التحليل
+ * والتنقل بين الإصدارات.
+ * 
+ * السبب: نفصل عرض النتائج لتسهيل الصيانة وإعادة الاستخدام،
+ * ونستخدم useCallback لتحسين الأداء مع القوائم الكبيرة.
+ */
+
+import React, { useState, useCallback, useMemo } from 'react';
+import { Scene, AgentKey, ScenarioAnalysis, SceneBreakdown } from '../types';
 import { AGENTS } from '../constants';
 import AgentCard from './AgentCard';
 import ScenarioNavigator from './ScenarioNavigator';
-import CastBreakdownView from './CastBreakdownView'; // Import new component
+import CastBreakdownView from './CastBreakdownView';
+import ToastContainer from './ToastContainer';
+import { useToast } from '../hooks/useToast';
+import { logError } from '../config';
 import { ChevronDown, ChevronUp, CheckCircle, BrainCircuit, BarChart3, Loader2, History, Clock, RotateCcw } from 'lucide-react';
 import * as geminiService from '../services/geminiService';
 
+/**
+ * خصائص المكون
+ */
 interface ResultsViewProps {
+  /** قائمة المشاهد */
   scenes: Scene[];
-  onUpdateScene: (id: number, breakdown: any, scenarios?: any) => void;
+  /** دالة تحديث المشهد */
+  onUpdateScene: (id: number, breakdown: SceneBreakdown | undefined, scenarios?: ScenarioAnalysis) => void;
+  /** دالة استعادة إصدار سابق */
   onRestoreVersion: (sceneId: number, versionId: string) => void;
 }
 
+/**
+ * مكون عرض النتائج
+ * 
+ * يعرض قائمة المشاهد مع إمكانية التوسيع والتحليل واستعادة الإصدارات.
+ */
 const ResultsView: React.FC<ResultsViewProps> = ({ scenes, onUpdateScene, onRestoreVersion }) => {
   const [expandedSceneId, setExpandedSceneId] = useState<number | null>(scenes.length > 0 ? scenes[0].id : null);
   const [analyzingIds, setAnalyzingIds] = useState<Set<number>>(new Set());
   const [strategizingIds, setStrategizingIds] = useState<Set<number>>(new Set());
   const [showNavigatorForScene, setShowNavigatorForScene] = useState<number | null>(null);
   
-  // Track selected version for previewing history: { sceneId: versionId | null }
+  // تتبع الإصدار المحدد للمعاينة: { sceneId: versionId | null }
   const [previewVersion, setPreviewVersion] = useState<Record<number, string | null>>({});
+  
+  // استخدام نظام الإشعارات بدلاً من alert
+  const { toasts, error: showError, success: showSuccess, dismiss } = useToast();
 
-  const toggleScene = (id: number) => {
-    setExpandedSceneId(expandedSceneId === id ? null : id);
-  };
+  /**
+   * يبدل حالة توسيع المشهد
+   */
+  const toggleScene = useCallback((id: number) => {
+    setExpandedSceneId(prev => prev === id ? null : id);
+  }, []);
 
-  const handleAnalyzeScene = async (e: React.MouseEvent, scene: Scene) => {
+  /**
+   * يحلل مشهد معين
+   * 
+   * السبب: نستخدم Toast للأخطاء بدلاً من alert للتجربة الأفضل
+   */
+  const handleAnalyzeScene = useCallback(async (e: React.MouseEvent, scene: Scene) => {
     e.stopPropagation();
     if (analyzingIds.has(scene.id)) return;
 
     setAnalyzingIds(prev => new Set(prev).add(scene.id));
     setExpandedSceneId(scene.id);
     
-    // Reset version preview when analyzing new
+    // إعادة تعيين معاينة الإصدار عند التحليل الجديد
     setPreviewVersion(prev => ({ ...prev, [scene.id]: null }));
 
     try {
       const breakdown = await geminiService.analyzeScene(scene.content);
-      // Pass existing scenarios if present, or undefined
+      // تمرير السيناريوهات الموجودة إن وجدت
       onUpdateScene(scene.id, breakdown, scene.scenarios);
+      showSuccess('تم تحليل المشهد بنجاح');
     } catch (err) {
-      console.error(err);
-      alert('فشل التحليل، يرجى المحاولة مرة أخرى.');
+      logError('ResultsView.handleAnalyzeScene', err);
+      const errorMessage = err instanceof Error ? err.message : 'خطأ غير معروف';
+      showError(`فشل التحليل: ${errorMessage}`);
     } finally {
       setAnalyzingIds(prev => {
         const next = new Set(prev);
@@ -50,52 +87,80 @@ const ResultsView: React.FC<ResultsViewProps> = ({ scenes, onUpdateScene, onRest
         return next;
       });
     }
-  };
+  }, [analyzingIds, onUpdateScene, showError, showSuccess]);
 
-  const handleRunStrategy = async (e: React.MouseEvent, scene: Scene) => {
+  /**
+   * يشغل تحليل السيناريوهات الاستراتيجية
+   */
+  const handleRunStrategy = useCallback(async (e: React.MouseEvent, scene: Scene) => {
     e.stopPropagation();
     if (strategizingIds.has(scene.id)) return;
     
     setStrategizingIds(prev => new Set(prev).add(scene.id));
     
     try {
-        const scenarios = await geminiService.analyzeProductionScenarios(scene.content);
-        onUpdateScene(scene.id, scene.analysis, scenarios);
-        setShowNavigatorForScene(scene.id);
+      const scenarios = await geminiService.analyzeProductionScenarios(scene.content);
+      onUpdateScene(scene.id, scene.analysis, scenarios);
+      setShowNavigatorForScene(scene.id);
+      showSuccess('تم توليد السيناريوهات بنجاح');
     } catch (err) {
-        console.error(err);
-        alert('فشل تحليل السيناريوهات الاستراتيجية.');
+      logError('ResultsView.handleRunStrategy', err);
+      const errorMessage = err instanceof Error ? err.message : 'خطأ غير معروف';
+      showError(`فشل تحليل السيناريوهات: ${errorMessage}`);
     } finally {
-        setStrategizingIds(prev => {
-            const next = new Set(prev);
-            next.delete(scene.id);
-            return next;
-        });
+      setStrategizingIds(prev => {
+        const next = new Set(prev);
+        next.delete(scene.id);
+        return next;
+      });
     }
-  };
+  }, [strategizingIds, onUpdateScene, showError, showSuccess]);
 
-  const handleVersionSelect = (sceneId: number, versionId: string | null) => {
+  /**
+   * يحدد إصدار للمعاينة
+   */
+  const handleVersionSelect = useCallback((sceneId: number, versionId: string | null) => {
     setPreviewVersion(prev => ({ ...prev, [sceneId]: versionId }));
-  };
+  }, []);
 
-  const handleRestoreClick = (sceneId: number, versionId: string) => {
+  /**
+   * يستعيد إصدار سابق بعد التأكيد
+   */
+  const handleRestoreClick = useCallback((sceneId: number, versionId: string) => {
+    // نستخدم confirm المدمج لأنه قرار مهم يحتاج تأكيد
     if (window.confirm('هل أنت متأكد من استعادة هذه النسخة؟ سيتم حفظ الوضع الحالي كنسخة جديدة.')) {
-        onRestoreVersion(sceneId, versionId);
-        setPreviewVersion(prev => ({ ...prev, [sceneId]: null }));
+      onRestoreVersion(sceneId, versionId);
+      setPreviewVersion(prev => ({ ...prev, [sceneId]: null }));
+      showSuccess('تم استعادة النسخة بنجاح');
     }
-  };
+  }, [onRestoreVersion, showSuccess]);
 
-  // Determine active data for the navigator overlay
-  const activeSceneForNavigator = scenes.find(s => s.id === showNavigatorForScene);
+  /**
+   * تحديد البيانات النشطة لنافذة مركز القيادة
+   * 
+   * السبب: نستخدم useMemo لتجنب الحسابات المتكررة
+   */
+  const activeSceneForNavigator = useMemo(() => 
+    scenes.find(s => s.id === showNavigatorForScene),
+  [scenes, showNavigatorForScene]);
+  
   const activeNavigatorVersionId = showNavigatorForScene ? previewVersion[showNavigatorForScene] : null;
-  const activeNavigatorData = activeSceneForNavigator 
-     ? (activeNavigatorVersionId 
-         ? activeSceneForNavigator.versions?.find(v => v.id === activeNavigatorVersionId) 
-         : activeSceneForNavigator)
-     : null;
+  
+  const activeNavigatorData = useMemo(() => {
+    if (!activeSceneForNavigator) return null;
+    return activeNavigatorVersionId 
+      ? activeSceneForNavigator.versions?.find(v => v.id === activeNavigatorVersionId) 
+      : activeSceneForNavigator;
+  }, [activeSceneForNavigator, activeNavigatorVersionId]);
 
-  // Filter breakdown agents. Note: 'cast' is already removed from AGENTS constant
-  const breakdownAgents = AGENTS.filter(a => a.type === 'breakdown');
+  /**
+   * تصفية وكلاء التفريغ
+   * 
+   * السبب: cast تم إزالته من AGENTS، نستخدم useMemo للتحسين
+   */
+  const breakdownAgents = useMemo(() => 
+    AGENTS.filter(a => a.type === 'breakdown'),
+  []);
 
   return (
     <div className="space-y-6">
@@ -324,6 +389,9 @@ const ResultsView: React.FC<ResultsViewProps> = ({ scenes, onUpdateScene, onRest
             onClose={() => setShowNavigatorForScene(null)} 
           />
       )}
+      
+      {/* حاوية الإشعارات */}
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 };

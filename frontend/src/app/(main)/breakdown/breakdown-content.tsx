@@ -1,6 +1,16 @@
+/**
+ * @fileoverview محتوى صفحة تقرير التحليل
+ * 
+ * هذا المكون يعرض تقرير التحليل النهائي للنص
+ * بما في ذلك التقييم العام ونقاط القوة والضعف.
+ * 
+ * السبب: نفصل محتوى الصفحة لتمكين التحميل الديناميكي
+ * وتحسين أداء التطبيق.
+ */
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -9,41 +19,56 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { logError } from "./config";
+import { validateAnalysisReport, AnalysisReportOutput } from "./schemas";
 
-interface AnalysisReport {
-  executiveSummary: string;
-  strengthsAnalysis: string[];
-  weaknessesIdentified: string[];
-  opportunitiesForImprovement: string[];
-  threatsToCohesion: string[];
-  overallAssessment: {
-    narrativeQualityScore: number;
-    structuralIntegrityScore: number;
-    characterDevelopmentScore: number;
-    conflictEffectivenessScore: number;
-    overallScore: number;
-    rating: string;
-  };
-  detailedFindings: Record<string, unknown>;
-}
-
+/**
+ * مكون محتوى تقرير التحليل
+ * 
+ * يجلب تقرير التحليل من الخادم ويعرضه بشكل منظم.
+ */
 export default function BreakdownContent() {
-  const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [report, setReport] = useState<AnalysisReportOutput | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  /**
+   * يجلب تقرير التحليل من الخادم
+   * 
+   * السبب: نستخدم Zod للتحقق من صحة البيانات
+   * ونوفر معالجة أخطاء واضحة للمستخدم
+   */
+  const fetchReport = useCallback(async () => {
+    try {
+      const res = await fetch("/analysis_output/final-report.json");
+      
+      if (!res.ok) {
+        throw new Error(`فشل في تحميل التقرير: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      
+      // التحقق من صحة البيانات باستخدام Zod
+      const validationResult = validateAnalysisReport(data);
+      
+      if (!validationResult.success) {
+        logError('BreakdownContent.fetchReport', new Error(validationResult.error));
+        setError('تنسيق التقرير غير صحيح');
+        return;
+      }
+      
+      setReport(validationResult.data);
+    } catch (err) {
+      logError('BreakdownContent.fetchReport', err);
+      setError('فشل في تحميل تقرير التحليل');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Load the analysis report
-    fetch("/analysis_output/final-report.json")
-      .then((res) => res.json())
-      .then((data) => {
-        setReport(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load analysis report:", err);
-        setLoading(false);
-      });
-  }, []);
+    fetchReport();
+  }, [fetchReport]);
 
   if (loading) {
     return (
@@ -58,13 +83,13 @@ export default function BreakdownContent() {
     );
   }
 
-  if (!report) {
+  if (error || !report) {
     return (
       <div className="container mx-auto max-w-6xl p-6">
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold mb-4">تحليل النص</h1>
           <p className="text-muted-foreground">
-            لم يتم العثور على تقرير تحليل.
+            {error || 'لم يتم العثور على تقرير تحليل.'}
           </p>
         </div>
       </div>
