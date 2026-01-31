@@ -127,6 +127,14 @@ function FormFields({ inputs, formData, onFieldChange }: FormFieldsProps) {
 }
 
 /**
+ * واجهة CSS مع المتغيرات المخصصة
+ * تسمح باستخدام CSS variables في React
+ */
+interface CSSPropertiesWithVars extends React.CSSProperties {
+  '--tool-color'?: string;
+}
+
+/**
  * مكون عنصر الأداة في القائمة الجانبية
  */
 interface ToolItemProps {
@@ -140,11 +148,15 @@ function ToolItem({ plugin, isActive, onClick }: ToolItemProps) {
   const Icon = config?.icon ?? Play;
   const color = config?.color ?? "#e94560";
 
+  const buttonStyle: CSSPropertiesWithVars = {
+    '--tool-color': color,
+  };
+
   return (
     <button
       className={`art-tool-item ${isActive ? "active" : ""}`}
       onClick={onClick}
-      style={{ "--tool-color": color } as React.CSSProperties}
+      style={buttonStyle}
       aria-current={isActive ? "true" : undefined}
     >
       <Icon size={20} style={{ color }} aria-hidden="true" />

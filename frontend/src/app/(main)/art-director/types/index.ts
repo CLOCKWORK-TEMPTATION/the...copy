@@ -506,19 +506,76 @@ export interface StyleGuide {
 
 /**
  * مخطط استجابة API العامة
+ * 
+ * @description يضمن هذا المخطط أن استجابات API تتبع نمطاً موحداً:
+ * - عند النجاح: success = true مع data (اختياري)
+ * - عند الفشل: success = false مع error (مطلوب)
+ * 
+ * @param dataSchema - مخطط Zod للبيانات المتوقعة
+ * @returns مخطط Zod للاستجابة الكاملة
  */
 export const ApiResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
-  z.object({
-    success: z.boolean(),
-    data: dataSchema.optional(),
-    error: z.string().optional(),
-  });
+  z.discriminatedUnion('success', [
+    // حالة النجاح: success = true مع data اختياري
+    z.object({
+      success: z.literal(true),
+      data: dataSchema.optional(),
+      error: z.undefined(),
+    }),
+    // حالة الفشل: success = false مع error مطلوب
+    z.object({
+      success: z.literal(false),
+      data: z.undefined(),
+      error: z.string().min(1, 'رسالة الخطأ مطلوبة عند الفشل'),
+    }),
+  ]);
+
+/**
+ * مخطط استجابة API البسيط (للاستخدام العام)
+ * يستخدم عندما لا نحتاج للتحقق من بنية data بالتفصيل
+ */
+export const SimpleApiResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.record(z.unknown()).optional(),
+  error: z.string().optional(),
+}).refine(
+  (data) => {
+    // إذا فشلت العملية، يجب أن يكون هناك رسالة خطأ
+    if (!data.success && !data.error) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'رسالة الخطأ مطلوبة عند فشل العملية',
+  }
+);
 
 /**
  * واجهة استجابة API العامة
+ * 
+ * @template T - نوع البيانات المتوقعة في حالة النجاح
  */
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+/**
+ * واجهة استجابة API الناجحة
+ */
+export interface ApiSuccessResponse<T> {
+  success: true;
+  data: T;
+  error?: never;
+}
+
+/**
+ * واجهة استجابة API الفاشلة
+ */
+export interface ApiErrorResponse {
+  success: false;
+  data?: never;
+  error: string;
 }

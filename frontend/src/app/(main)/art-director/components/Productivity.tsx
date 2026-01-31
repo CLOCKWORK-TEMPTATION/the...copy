@@ -345,6 +345,15 @@ function RecommendationsList({ recommendations }: RecommendationsListProps) {
 }
 
 /**
+ * دالة مساعدة للتحقق من صحة الرقم
+ */
+function parseValidNumber(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = parseFloat(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+/**
  * المكون الرئيسي لصفحة الإنتاجية
  */
 export default function Productivity() {
@@ -369,13 +378,25 @@ export default function Productivity() {
   const handleLogTime = useCallback(async () => {
     setError(null);
     
+    // التحقق من صحة المدخلات قبل الإرسال
+    const hours = parseValidNumber(timeForm.hours);
+    if (hours === null || hours <= 0) {
+      setError("يرجى إدخال عدد ساعات صحيح");
+      return;
+    }
+    
+    if (!timeForm.task.trim()) {
+      setError("يرجى إدخال وصف المهمة");
+      return;
+    }
+    
     try {
       const response = await fetch("/api/productivity/log-time", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           task: timeForm.task,
-          hours: parseFloat(timeForm.hours) || 0,
+          hours,
           category: timeForm.category,
         }),
       });
@@ -400,6 +421,18 @@ export default function Productivity() {
   const handleReportDelay = useCallback(async () => {
     setError(null);
     
+    // التحقق من صحة المدخلات قبل الإرسال
+    const hoursLost = parseValidNumber(delayForm.hoursLost);
+    if (hoursLost === null || hoursLost <= 0) {
+      setError("يرجى إدخال عدد الساعات المفقودة");
+      return;
+    }
+    
+    if (!delayForm.reason.trim()) {
+      setError("يرجى إدخال سبب التأخير");
+      return;
+    }
+    
     try {
       const response = await fetch("/api/productivity/report-delay", {
         method: "POST",
@@ -407,7 +440,7 @@ export default function Productivity() {
         body: JSON.stringify({
           reason: delayForm.reason,
           impact: delayForm.impact,
-          hoursLost: parseFloat(delayForm.hoursLost) || 0,
+          hoursLost,
         }),
       });
       
