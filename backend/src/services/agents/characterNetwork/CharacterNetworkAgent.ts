@@ -17,6 +17,38 @@ import {
 } from "./prompt-builder";
 
 /**
+ * ملخص بيانات الشخصية
+ * 
+ * @description
+ * معلومات أساسية عن شخصية في النص الدرامي
+ */
+export interface CharacterSummary {
+  /** اسم الشخصية */
+  name: string;
+  /** دور الشخصية (رئيسي، ثانوي، عابر) */
+  role?: string;
+  /** وصف مختصر للشخصية */
+  description?: string;
+}
+
+/**
+ * تقرير التحليل السابق
+ * 
+ * @description
+ * بنية تقرير تحليل سابق يمكن البناء عليه
+ */
+export interface AnalysisReport {
+  /** ملخص التحليل */
+  summary?: string;
+  /** النتائج الرئيسية */
+  findings?: string[];
+  /** الثيمات المُكتشفة */
+  themes?: string[];
+  /** بيانات إضافية */
+  metadata?: Record<string, unknown>;
+}
+
+/**
  * سياق شبكة الشخصيات
  * 
  * @description
@@ -26,9 +58,9 @@ export interface CharacterNetworkContext {
   /** النص الأصلي للتحليل */
   originalText?: string;
   /** تقرير تحليل سابق للبناء عليه */
-  analysisReport?: Record<string, unknown>;
+  analysisReport?: AnalysisReport;
   /** قائمة الشخصيات المُستخرجة */
-  characters?: Array<{ name: string; role?: string; description?: string }>;
+  characters?: CharacterSummary[];
   /** الشخصيات المراد التركيز عليها في التحليل */
   focusCharacters?: string[];
   /** أنواع العلاقات المراد تحليلها */
