@@ -1,8 +1,19 @@
 /**
- * Multi-Agent Orchestrator - Backend
- * Orchestrates multiple agents to work together on complex analysis tasks
- * Includes multi-agent debate system (المرحلة 3)
- * Enhanced with workflow system support
+ * منسق الوكلاء المتعدد (Multi-Agent Orchestrator)
+ *
+ * @description
+ * السبب وراء هذا التصميم:
+ * - إدارة تنفيذ الوكلاء المتعددين على نفس النص/المشروع
+ * - دعم التنفيذ المتوازي والتسلسلي حسب الحاجة
+ * - تجميع النتائج وحساب الإحصائيات الموحدة
+ * - دعم نظام المناظرة لتحسين النتائج منخفضة الثقة
+ *
+ * يدعم:
+ * - تنفيذ الوكلاء بشكل متوازي (parallel) أو تسلسلي (sequential)
+ * - نظام المناظرة متعدد الوكلاء (المرحلة 3)
+ * - نظام سير العمل (Workflow System)
+ *
+ * @module orchestrator
  */
 
 import { TaskType } from './core/enums';
@@ -13,41 +24,99 @@ import { startDebate } from './debate';
 import { DebateConfig } from './debate/types';
 import { BaseAgent } from './shared/BaseAgent';
 import { workflowExecutor } from './core/workflow-executor';
-import { WorkflowConfig, WorkflowStatus } from './core/workflow-types';
+import { 
+  WorkflowConfig, 
+  WorkflowStatus, 
+  AgentExecutionResult, 
+  WorkflowMetrics 
+} from './core/workflow-types';
 import { getPresetWorkflow, PresetWorkflowName } from './core/workflow-presets';
 
+/**
+ * واجهة مدخلات التنسيق
+ *
+ * @description
+ * السبب: توحيد شكل المدخلات لجميع عمليات التنسيق
+ */
 export interface OrchestrationInput {
+  /** النص الكامل للتحليل */
   fullText: string;
+  /** اسم المشروع للتتبع */
   projectName: string;
+  /** أنواع المهام المطلوب تنفيذها */
   taskTypes: TaskType[];
-  context?: Record<string, any>;
+  /** سياق إضافي للوكلاء */
+  context?: Record<string, unknown>;
+  /** خيارات التنفيذ */
   options?: {
+    /** هل يُنفذ الوكلاء بشكل متوازي؟ */
     parallel?: boolean;
+    /** حد الوقت الأقصى بالميلي ثانية */
     timeout?: number;
+    /** هل يُضمّن البيانات الوصفية؟ */
     includeMetadata?: boolean;
   };
 }
 
+/**
+ * واجهة مخرجات التنسيق
+ *
+ * @description
+ * السبب: توفير هيكل موحد للنتائج مع إحصائيات مفيدة
+ */
 export interface OrchestrationOutput {
+  /** خريطة النتائج: نوع المهمة → النتيجة */
   results: Map<TaskType, StandardAgentOutput>;
+  /** ملخص إحصائي للتنفيذ */
   summary: {
+    /** إجمالي وقت التنفيذ بالميلي ثانية */
     totalExecutionTime: number;
+    /** عدد المهام الناجحة */
     successfulTasks: number;
+    /** عدد المهام الفاشلة */
     failedTasks: number;
+    /** متوسط درجة الثقة */
     averageConfidence: number;
   };
+  /** بيانات وصفية اختيارية */
   metadata?: {
+    /** وقت بدء التنفيذ (ISO) */
     startedAt: string;
+    /** وقت انتهاء التنفيذ (ISO) */
     finishedAt: string;
+    /** قائمة المهام المُنفذة */
     tasksExecuted: TaskType[];
   };
 }
 
+/**
+ * فئة منسق الوكلاء المتعدد
+ *
+ * @description
+ * السبب: تطبيق نمط Singleton لضمان وجود منسق واحد فقط
+ * في النظام بأكمله، مما يمنع التضارب في الموارد.
+ *
+ * @example
+ * ```typescript
+ * const orchestrator = MultiAgentOrchestrator.getInstance();
+ * const result = await orchestrator.executeAgents({
+ *   fullText: "نص السيناريو",
+ *   projectName: "مشروعي",
+ *   taskTypes: [TaskType.CHARACTER_DEEP_ANALYZER]
+ * });
+ * ```
+ */
 export class MultiAgentOrchestrator {
   private static instance: MultiAgentOrchestrator;
 
   private constructor() {}
 
+  /**
+   * الحصول على نسخة المنسق الوحيدة
+   *
+   * @description السبب: تطبيق نمط Singleton
+   * @returns نسخة المنسق
+   */
   public static getInstance(): MultiAgentOrchestrator {
     if (!MultiAgentOrchestrator.instance) {
       MultiAgentOrchestrator.instance = new MultiAgentOrchestrator();
@@ -56,7 +125,13 @@ export class MultiAgentOrchestrator {
   }
 
   /**
-   * Execute multiple agents in sequence or parallel
+   * تنفيذ وكلاء متعددين بشكل متوازي أو تسلسلي
+   *
+   * @description
+   * السبب: نقطة الدخول الرئيسية لتنفيذ مجموعة من الوكلاء على نص واحد
+   *
+   * @param input - مدخلات التنسيق
+   * @returns مخرجات التنسيق مع جميع النتائج والإحصائيات
    */
   async executeAgents(input: OrchestrationInput): Promise<OrchestrationOutput> {
     const startTime = Date.now();
@@ -108,24 +183,36 @@ export class MultiAgentOrchestrator {
 
       return orchestrationOutput;
     } catch (error) {
-      logger.error('Multi-agent orchestration failed:', error);
+      logger.error('فشل في تنسيق الوكلاء المتعدد', {
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+        taskTypes,
+        projectName: input.projectName,
+      });
       throw error;
     }
   }
 
   /**
-   * Execute agents in parallel
+   * تنفيذ الوكلاء بشكل متوازي
+   *
+   * @description
+   * السبب: تسريع التنفيذ عندما لا تعتمد المهام على بعضها البعض
+   *
+   * @param fullText - النص الكامل للتحليل
+   * @param taskTypes - أنواع المهام
+   * @param context - السياق الإضافي
+   * @param results - خريطة النتائج للتعبئة
    */
   private async executeInParallel(
     fullText: string,
     taskTypes: TaskType[],
-    context: Record<string, any> | undefined,
+    context: Record<string, unknown> | undefined,
     results: Map<TaskType, StandardAgentOutput>
   ): Promise<void> {
     const promises = taskTypes.map(async (taskType) => {
       const agent = agentRegistry.getAgent(taskType);
       if (!agent) {
-        logger.warn(`Agent not found for task type: ${taskType}`);
+        logger.warn(`لم يُعثر على وكيل لنوع المهمة: ${taskType}`);
         return;
       }
 
@@ -145,8 +232,10 @@ export class MultiAgentOrchestrator {
         const output = await agent.executeTask(agentInput);
         results.set(taskType, output);
       } catch (error) {
-        logger.error(`Agent execution failed for ${taskType}:`, error);
-        // Store error result
+        logger.error(`فشل تنفيذ الوكيل ${taskType}`, {
+          error: error instanceof Error ? error.message : 'خطأ غير معروف',
+        });
+        // تخزين نتيجة الخطأ
         results.set(taskType, {
           text: 'فشل في تنفيذ التحليل',
           confidence: 0,
@@ -159,18 +248,27 @@ export class MultiAgentOrchestrator {
   }
 
   /**
-   * Execute agents sequentially
+   * تنفيذ الوكلاء بشكل تسلسلي
+   *
+   * @description
+   * السبب: يُتيح لكل وكيل الاستفادة من نتائج الوكلاء السابقين
+   * مفيد عندما تعتمد التحليلات على بعضها البعض
+   *
+   * @param fullText - النص الكامل للتحليل
+   * @param taskTypes - أنواع المهام
+   * @param context - السياق الإضافي
+   * @param results - خريطة النتائج للتعبئة
    */
   private async executeSequentially(
     fullText: string,
     taskTypes: TaskType[],
-    context: Record<string, any> | undefined,
+    context: Record<string, unknown> | undefined,
     results: Map<TaskType, StandardAgentOutput>
   ): Promise<void> {
     for (const taskType of taskTypes) {
       const agent = agentRegistry.getAgent(taskType);
       if (!agent) {
-        logger.warn(`Agent not found for task type: ${taskType}`);
+        logger.warn(`لم يُعثر على وكيل لنوع المهمة: ${taskType}`);
         continue;
       }
 
@@ -193,12 +291,12 @@ export class MultiAgentOrchestrator {
         const output = await agent.executeTask(agentInput);
         results.set(taskType, output);
 
-        logger.info(
-          `Agent ${taskType} completed with confidence: ${output.confidence}`
-        );
+        logger.info(`اكتمل الوكيل ${taskType} بدرجة ثقة: ${output.confidence}`);
       } catch (error) {
-        logger.error(`Agent execution failed for ${taskType}:`, error);
-        // Store error result
+        logger.error(`فشل تنفيذ الوكيل ${taskType}`, {
+          error: error instanceof Error ? error.message : 'خطأ غير معروف',
+        });
+        // تخزين نتيجة الخطأ
         results.set(taskType, {
           text: 'فشل في تنفيذ التحليل',
           confidence: 0,
@@ -209,16 +307,25 @@ export class MultiAgentOrchestrator {
   }
 
   /**
-   * Execute a single agent
+   * تنفيذ وكيل واحد
+   *
+   * @description
+   * السبب: واجهة مبسطة لتنفيذ وكيل واحد فقط
+   *
+   * @param taskType - نوع المهمة
+   * @param input - النص المدخل
+   * @param context - السياق الإضافي
+   * @returns نتيجة التنفيذ
+   * @throws Error إذا لم يُعثر على الوكيل
    */
   async executeSingleAgent(
     taskType: TaskType,
     input: string,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): Promise<StandardAgentOutput> {
     const agent = agentRegistry.getAgent(taskType);
     if (!agent) {
-      throw new Error(`Agent not found for task type: ${taskType}`);
+      throw new Error(`لم يُعثر على وكيل لنوع المهمة: ${taskType}`);
     }
 
     const agentInput: StandardAgentInput = {
@@ -237,9 +344,17 @@ export class MultiAgentOrchestrator {
   }
 
   /**
-   * Get recommended agents for a given project type
+   * الحصول على الوكلاء الموصى بها لنوع مشروع معين
+   *
+   * @description
+   * السبب: تقديم توصيات ذكية بناءً على نوع العمل الفني
+   * كل نوع مشروع له احتياجات تحليل مختلفة
+   *
+   * @param projectType - نوع المشروع: فيلم، مسلسل، أو مسرح
+   * @returns قائمة أنواع المهام الموصى بها
    */
   getRecommendedAgents(projectType: 'film' | 'series' | 'stage'): TaskType[] {
+    // الوكلاء الأساسيين لجميع أنواع المشاريع
     const commonAgents = [
       TaskType.CHARACTER_DEEP_ANALYZER,
       TaskType.DIALOGUE_ADVANCED_ANALYZER,
@@ -271,14 +386,23 @@ export class MultiAgentOrchestrator {
   }
 
   /**
-   * Run a multi-agent debate on a topic
-   * المرحلة 3 - Multi-Agent Debate System
+   * تشغيل مناظرة متعددة الوكلاء على موضوع معين
    *
-   * @param topic - The topic to debate
-   * @param taskTypes - Task types of agents to include in debate (optional)
-   * @param context - Additional context for the debate
-   * @param config - Debate configuration
-   * @param confidenceThreshold - Minimum confidence to trigger debate (default: 0.6)
+   * @description
+   * السبب: المرحلة 3 من نظام الوكلاء - المناظرة
+   * تُحسّن جودة النتائج عبر تضارب الآراء والوصول لتوافق
+   *
+   * متى تُستخدم:
+   * - عندما تكون الثقة في النتائج منخفضة
+   * - للمواضيع المعقدة التي تحتاج آراء متعددة
+   * - عندما يُطلب تحليل شامل ومتوازن
+   *
+   * @param topic - موضوع المناظرة
+   * @param taskTypes - أنواع الوكلاء المشاركين (اختياري)
+   * @param context - سياق إضافي للمناظرة
+   * @param config - إعدادات المناظرة
+   * @param confidenceThreshold - حد الثقة الأدنى لتفعيل المناظرة
+   * @returns نتيجة المناظرة الموحدة
    */
   async debateAgents(
     topic: string,
@@ -287,19 +411,19 @@ export class MultiAgentOrchestrator {
     config?: Partial<DebateConfig>,
     confidenceThreshold: number = 0.6
   ): Promise<StandardAgentOutput> {
-    logger.info(`Starting multi-agent debate on: ${topic}`);
+    logger.info(`بدء مناظرة متعددة الوكلاء حول: ${topic}`);
 
     try {
-      // Get available agents
+      // الحصول على الوكلاء المتاحين
       let availableAgents: BaseAgent[];
 
       if (taskTypes && taskTypes.length > 0) {
-        // Use specified task types
+        // استخدام أنواع المهام المحددة
         availableAgents = taskTypes
           .map(taskType => agentRegistry.getAgent(taskType))
           .filter((agent): agent is BaseAgent => agent !== undefined);
       } else {
-        // Use all available agents
+        // استخدام جميع الوكلاء المتاحين
         const allAgents = agentRegistry.getAllAgents();
         availableAgents = Array.from(allAgents.values());
       }
@@ -308,15 +432,15 @@ export class MultiAgentOrchestrator {
         throw new Error('لا توجد وكلاء متاحة للمناظرة');
       }
 
-      logger.info(`Selected ${availableAgents.length} agents for debate`);
+      logger.info(`تم اختيار ${availableAgents.length} وكيل للمناظرة`);
 
-      // Merge config with defaults
+      // دمج الإعدادات مع القيم الافتراضية
       const debateConfig: Partial<DebateConfig> = {
         confidenceThreshold,
         ...config,
       };
 
-      // Start debate
+      // بدء المناظرة
       const result = await startDebate(
         topic,
         availableAgents,
@@ -324,15 +448,16 @@ export class MultiAgentOrchestrator {
         debateConfig
       );
 
-      logger.info(
-        `Multi-agent debate completed with confidence: ${result.confidence}`
-      );
+      logger.info(`اكتملت المناظرة بدرجة ثقة: ${result.confidence}`);
 
       return result;
     } catch (error) {
-      logger.error('Multi-agent debate failed:', error);
+      logger.error('فشلت المناظرة متعددة الوكلاء', {
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
+        topic,
+      });
 
-      // Return fallback result
+      // إرجاع نتيجة احتياطية
       return {
         text: `فشلت المناظرة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`,
         confidence: 0.3,
@@ -345,35 +470,39 @@ export class MultiAgentOrchestrator {
   }
 
   /**
-   * Execute agents with optional debate
-   * If confidence is below threshold, trigger a debate
+   * تنفيذ الوكلاء مع مناظرة اختيارية
    *
-   * @param input - Orchestration input
-   * @param enableDebate - Whether to enable debate for low-confidence results
-   * @param debateConfig - Configuration for debate
+   * @description
+   * السبب: تفعيل المناظرة تلقائياً عندما تكون الثقة منخفضة
+   * هذا يضمن جودة أعلى للنتائج دون تدخل يدوي
+   *
+   * @param input - مدخلات التنسيق
+   * @param enableDebate - هل يُفعّل المناظرة للنتائج منخفضة الثقة؟
+   * @param debateConfig - إعدادات المناظرة
+   * @returns مخرجات التنسيق مع نتائج المناظرة إن وُجدت
    */
   async executeWithDebate(
     input: OrchestrationInput,
     enableDebate: boolean = true,
     debateConfig?: Partial<DebateConfig>
   ): Promise<OrchestrationOutput> {
-    // First, execute normally
+    // أولاً: تنفيذ عادي
     const result = await this.executeAgents(input);
 
-    // Check if debate is needed
+    // التحقق من الحاجة للمناظرة
     if (enableDebate && result.summary.averageConfidence < 0.7) {
       logger.info(
-        `Low average confidence (${result.summary.averageConfidence.toFixed(2)}), triggering debate`
+        `الثقة المتوسطة منخفضة (${result.summary.averageConfidence.toFixed(2)})، تفعيل المناظرة`
       );
 
       try {
-        // Get agents that participated
+        // الحصول على الوكلاء المشاركين
         const participatingTaskTypes = Array.from(result.results.keys());
         const agents = participatingTaskTypes
           .map(taskType => agentRegistry.getAgent(taskType))
           .filter((agent): agent is BaseAgent => agent !== undefined);
 
-        // Run debate to improve results
+        // تشغيل المناظرة لتحسين النتائج
         const debateTopic = `تحسين تحليل المشروع: ${input.projectName}`;
         const debateResult = await startDebate(
           debateTopic,
@@ -382,10 +511,10 @@ export class MultiAgentOrchestrator {
           debateConfig
         );
 
-        // Add debate result to results
+        // إضافة نتيجة المناظرة
         result.results.set(TaskType.INTEGRATED, debateResult);
 
-        // Update summary
+        // تحديث الملخص
         result.summary.successfulTasks += 1;
         const allConfidences = Array.from(result.results.values()).map(
           r => r.confidence
@@ -394,11 +523,13 @@ export class MultiAgentOrchestrator {
           allConfidences.reduce((sum, c) => sum + c, 0) / allConfidences.length;
 
         logger.info(
-          `Debate completed, new average confidence: ${result.summary.averageConfidence.toFixed(2)}`
+          `اكتملت المناظرة، متوسط الثقة الجديد: ${result.summary.averageConfidence.toFixed(2)}`
         );
       } catch (error) {
-        logger.error('Debate execution failed:', error);
-        // Continue with original results
+        logger.error('فشل تنفيذ المناظرة', {
+          error: error instanceof Error ? error.message : 'خطأ غير معروف',
+        });
+        // الاستمرار بالنتائج الأصلية
       }
     }
 
@@ -406,44 +537,70 @@ export class MultiAgentOrchestrator {
   }
 
   /**
-   * Execute a preset workflow
-   * @param workflowName - Name of preset workflow
-   * @param input - Standard agent input
+   * تنفيذ سير عمل مُعرّف مسبقاً
+   *
+   * @description
+   * السبب: توفير سير عمل جاهزة للاستخدام المتكرر
+   * تُبسط العملية للمستخدمين الذين يحتاجون تحليلاً قياسياً
+   *
+   * @param workflowName - اسم سير العمل المُعرّف مسبقاً
+   * @param input - مدخلات الوكيل القياسية
+   * @returns حالة سير العمل والنتائج والمقاييس
    */
   async executeWorkflow(
     workflowName: PresetWorkflowName,
     input: StandardAgentInput
   ): Promise<{
     status: WorkflowStatus;
-    results: Map<string, any>;
-    metrics: any;
+    results: Map<string, AgentExecutionResult>;
+    metrics: WorkflowMetrics;
   }> {
-    logger.info(`[Orchestrator] Executing preset workflow: ${workflowName}`);
+    logger.info(`تنفيذ سير العمل المُعرّف: ${workflowName}`);
     
     const workflow = getPresetWorkflow(workflowName);
     return await workflowExecutor.execute(workflow, input);
   }
 
   /**
-   * Execute a custom workflow configuration
-   * @param config - Custom workflow configuration
-   * @param input - Standard agent input
+   * تنفيذ سير عمل مُخصص
+   *
+   * @description
+   * السبب: إتاحة المرونة للمستخدمين لتصميم سير عمل خاص بهم
+   * مفيد للحالات المعقدة التي لا تُغطيها سير العمل المُعرّفة
+   *
+   * @param config - إعدادات سير العمل المُخصص
+   * @param input - مدخلات الوكيل القياسية
+   * @returns حالة سير العمل والنتائج والمقاييس
    */
   async executeCustomWorkflow(
     config: WorkflowConfig,
     input: StandardAgentInput
   ): Promise<{
     status: WorkflowStatus;
-    results: Map<string, any>;
-    metrics: any;
+    results: Map<string, AgentExecutionResult>;
+    metrics: WorkflowMetrics;
   }> {
-    logger.info(`[Orchestrator] Executing custom workflow: ${config.name}`);
+    logger.info(`تنفيذ سير العمل المُخصص: ${config.name}`);
     
     return await workflowExecutor.execute(config, input);
   }
 }
 
 /**
- * Singleton instance export
+ * نسخة Singleton للتصدير
+ *
+ * @description
+ * السبب: ضمان استخدام نفس نسخة المنسق في جميع أنحاء التطبيق
+ *
+ * @example
+ * ```typescript
+ * import { multiAgentOrchestrator } from './orchestrator';
+ *
+ * const result = await multiAgentOrchestrator.executeAgents({
+ *   fullText: "نص السيناريو",
+ *   projectName: "مشروعي",
+ *   taskTypes: [TaskType.CHARACTER_DEEP_ANALYZER]
+ * });
+ * ```
  */
 export const multiAgentOrchestrator = MultiAgentOrchestrator.getInstance();

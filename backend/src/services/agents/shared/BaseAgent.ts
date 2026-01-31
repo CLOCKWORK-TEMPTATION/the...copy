@@ -10,67 +10,164 @@ import { logger } from "@/utils/logger";
 
 /**
  * واجهة إعدادات الوكيل
- * 
+ *
  * @description
- * تحدد هيكل كائن إعدادات الوكيل
+ * تحدد الهيكل الأساسي لإعدادات كل وكيل في النظام.
+ * السبب: توحيد معايير الإعدادات عبر جميع الوكلاء لضمان
+ * التوافق والقابلية للتوسع في المستقبل.
+ *
+ * @example
+ * ```typescript
+ * const config: AgentConfig = {
+ *   name: "محلل الشخصيات",
+ *   taskType: TaskType.CHARACTER_ANALYSIS,
+ *   confidenceFloor: 0.75,
+ *   supportsRAG: true,
+ *   supportsSelfCritique: true,
+ *   supportsConstitutional: true,
+ *   supportsUncertainty: true,
+ *   supportsHallucination: true,
+ *   supportsDebate: true
+ * };
+ * ```
  */
 export interface AgentConfig {
-  /** اسم الوكيل */
+  /**
+   * اسم الوكيل المعرّف
+   * السبب: يُستخدم للتتبع والتسجيل في سجلات النظام
+   */
   name: string;
-  /** نوع المهمة */
+
+  /**
+   * نوع المهمة التي يتخصص فيها الوكيل
+   * السبب: يحدد دور الوكيل في سلسلة المعالجة ويُمكّن التوجيه الصحيح
+   */
   taskType: TaskType;
-  /** الحد الأدنى للثقة */
+
+  /**
+   * الحد الأدنى المقبول لدرجة الثقة (0-1)
+   * السبب: يحدد متى تُعتبر النتيجة موثوقة بما يكفي للقبول
+   */
   confidenceFloor: number;
-  /** دعم RAG */
+
+  /**
+   * هل يدعم الوكيل تقنية RAG (الاسترجاع المعزز للتوليد)
+   * السبب: RAG يحسّن جودة الإخراج باستخدام سياق إضافي من النص
+   */
   supportsRAG: boolean;
-  /** دعم النقد الذاتي */
+
+  /**
+   * هل يدعم الوكيل النقد الذاتي
+   * السبب: النقد الذاتي يُمكّن تحسين الإخراج عبر دورات متعددة
+   */
   supportsSelfCritique: boolean;
-  /** دعم القواعد الدستورية */
+
+  /**
+   * هل يدعم الوكيل التحقق من القواعد الدستورية
+   * السبب: يضمن الالتزام بالمبادئ الأخلاقية والجودة
+   */
   supportsConstitutional: boolean;
-  /** دعم قياس عدم اليقين */
+
+  /**
+   * هل يدعم الوكيل قياس عدم اليقين
+   * السبب: يوفر شفافية حول مدى ثقة النموذج في إجاباته
+   */
   supportsUncertainty: boolean;
-  /** دعم كشف الهلوسة */
+
+  /**
+   * هل يدعم الوكيل كشف الهلوسة
+   * السبب: يمنع الادعاءات غير المدعومة ويحافظ على الدقة
+   */
   supportsHallucination: boolean;
-  /** دعم المناظرة */
+
+  /**
+   * هل يدعم الوكيل المناظرة متعددة الوكلاء
+   * السبب: المناظرة تُحسّن النتائج عبر آراء متعددة متضاربة
+   */
   supportsDebate: boolean;
 }
 
 /**
- * الفئة الأساسية للوكيل - Base Agent Class
- * 
+ * الفئة الأساسية للوكيل (BaseAgent)
+ *
  * @description
- * النمط القياسي لجميع الوكلاء في النظام.
- * يطبق سلسلة المعالجة: RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
- * إخراج نصي فقط - لا JSON في الواجهة
- * 
+ * السبب وراء هذا التصميم:
+ * - توحيد نمط التنفيذ عبر جميع الـ 27 وكيل في النظام
+ * - تطبيق سلسلة المعالجة القياسية تلقائياً
+ * - ضمان جودة ثابتة ومتسقة في الإخراج
+ *
+ * سلسلة المعالجة:
+ * RAG → Self-Critique → Constitutional → Uncertainty → Hallucination → Debate
+ *
+ * كل وكيل فرعي يجب أن:
+ * 1. يرث من BaseAgent
+ * 2. يُنفذ دالة buildPrompt() المجردة
+ * 3. اختيارياً: يتجاوز postProcess() للمعالجة الخاصة
+ * 4. اختيارياً: يتجاوز getFallbackResponse() للاستجابة الاحتياطية
+ *
  * @example
  * ```typescript
- * class MyAgent extends BaseAgent {
+ * // إنشاء وكيل جديد
+ * class MyAnalyzerAgent extends BaseAgent {
  *   constructor() {
- *     super('MyAgent', TaskType.ANALYSIS, 'system prompt');
+ *     super(
+ *       "MyAnalyzer AI",
+ *       TaskType.ANALYSIS,
+ *       "أنت محلل متخصص..."
+ *     );
+ *     this.confidenceFloor = 0.8;
  *   }
+ *
  *   protected buildPrompt(input: StandardAgentInput): string {
- *     return `Analyze: ${input.input}`;
+ *     return `حلل النص التالي: ${input.input}`;
  *   }
  * }
+ *
+ * // استخدام الوكيل
+ * const agent = new MyAnalyzerAgent();
+ * const result = await agent.executeTask({
+ *   input: "نص للتحليل",
+ *   context: { projectName: "مشروعي" }
+ * });
  * ```
+ *
+ * @abstract
  */
 export abstract class BaseAgent {
-  /** اسم الوكيل - Agent name */
+  /**
+   * اسم الوكيل المعرّف
+   * السبب: يُستخدم في التسجيل والتتبع وعرض الواجهة
+   */
   protected name: string;
-  /** نوع المهمة - Task type */
+
+  /**
+   * نوع المهمة التي يتخصص فيها الوكيل
+   * السبب: يحدد كيفية تسجيل الوكيل في الـ Registry
+   */
   protected taskType: TaskType;
-  /** تعليمات النظام - System prompt */
+
+  /**
+   * تعليمات النظام الأساسية للوكيل
+   * السبب: تحدد شخصية الوكيل وسلوكه وتخصصه
+   */
   protected systemPrompt: string;
-  /** الحد الأدنى للثقة - Minimum confidence threshold */
+
+  /**
+   * الحد الأدنى المقبول لدرجة الثقة (0-1)
+   * السبب: النتائج أقل من هذا الحد قد تُرفض أو تُحال للمناظرة
+   */
   protected confidenceFloor: number = 0.7;
 
   /**
    * منشئ الفئة الأساسية للوكيل
-   * 
-   * @param name - اسم الوكيل المعرّف
-   * @param taskType - نوع المهمة التي يقوم بها الوكيل
-   * @param systemPrompt - تعليمات النظام الأساسية للوكيل
+   *
+   * @description
+   * السبب: يُهيئ الوكيل بالإعدادات الأساسية المطلوبة للتشغيل.
+   * كل وكيل فرعي يجب أن يستدعي super() مع هذه المعاملات.
+   *
+   * @param name - اسم الوكيل المعرّف (مثل: "CharacterDeepAnalyzer AI")
+   * @param taskType - نوع المهمة من TaskType enum
+   * @param systemPrompt - تعليمات النظام التي تحدد شخصية وسلوك الوكيل
    */
   constructor(name: string, taskType: TaskType, systemPrompt: string) {
     this.name = name;
@@ -80,15 +177,32 @@ export abstract class BaseAgent {
 
   /**
    * تنفيذ المهمة باستخدام النمط القياسي للوكيل
-   * 
+   *
    * @description
-   * يقوم بتنفيذ المهمة المطلوبة مع تطبيق جميع مراحل المعالجة
-   * المدخلات: { input, options, context }
-   * المخرجات: { text, confidence, notes } - نصي فقط
-   * 
-   * @param input - مدخلات الوكيل تشمل النص والخيارات والسياق
-   * @returns وعد بنتيجة التنفيذ مع نص الإخراج ودرجة الثقة والملاحظات
-   * @throws يعيد نتيجة احتياطية في حالة الخطأ بدلاً من رمي استثناء
+   * السبب وراء هذا التصميم:
+   * - ضمان مرور كل طلب عبر سلسلة المعالجة الكاملة
+   * - توفير معالجة أخطاء موحدة واستجابات احتياطية
+   * - تسجيل جميع العمليات للتتبع والتحليل
+   *
+   * مراحل التنفيذ:
+   * 1. بناء النص من buildPrompt()
+   * 2. تطبيق سلسلة المعالجة القياسية
+   * 3. تطبيق المعالجة اللاحقة من postProcess()
+   * 4. إرجاع النتيجة أو الاستجابة الاحتياطية عند الفشل
+   *
+   * @param input - مدخلات تشمل النص والخيارات والسياق
+   * @returns وعد بنتيجة التنفيذ: { text, confidence, notes, metadata }
+   *
+   * @example
+   * ```typescript
+   * const result = await agent.executeTask({
+   *   input: "نص السيناريو للتحليل",
+   *   context: { projectName: "فيلمي", genre: "drama" },
+   *   options: { temperature: 0.7 }
+   * });
+   * console.log(result.text); // التحليل النصي
+   * console.log(result.confidence); // 0.85
+   * ```
    */
   async executeTask(input: StandardAgentInput): Promise<StandardAgentOutput> {
     logger.info(`بدء تنفيذ المهمة`, { agentName: this.name, taskType: this.taskType });
@@ -152,24 +266,64 @@ export abstract class BaseAgent {
   }
 
   /**
-   * بناء النص من المدخلات - يجب تنفيذه في كل وكيل فرعي
-   * 
+   * بناء النص من المدخلات
+   *
    * @description
-   * طريقة مجردة يجب تنفيذها في الفئات الفرعية لبناء النص المطلوب
-   * 
-   * @param input - مدخلات الوكيل
-   * @returns النص المبني للمعالجة
+   * السبب: هذه الدالة المجردة تُجبر كل وكيل فرعي على تحديد
+   * كيفية تحويل المدخلات إلى نص (prompt) يُرسل للنموذج.
+   *
+   * يجب أن تُراعي:
+   * - تنسيق المدخلات بشكل مناسب لتخصص الوكيل
+   * - إضافة التعليمات الخاصة بنوع التحليل
+   * - استخراج المعلومات ذات الصلة من السياق
+   *
+   * @param input - مدخلات الوكيل تشمل النص والسياق
+   * @returns النص المُبنى للإرسال إلى النموذج
+   *
+   * @example
+   * ```typescript
+   * protected buildPrompt(input: StandardAgentInput): string {
+   *   const { input: userInput, context } = input;
+   *   const projectName = context?.projectName || "المشروع";
+   *   return `
+   *     ## مهمة التحليل: ${projectName}
+   *     ${userInput}
+   *     ## المطلوب:
+   *     - تحليل شامل للنص
+   *   `;
+   * }
+   * ```
    */
   protected abstract buildPrompt(input: StandardAgentInput): string;
 
   /**
-   * المعالجة اللاحقة - يمكن للوكلاء الفرعية تجاوز هذه الطريقة
-   * 
+   * المعالجة اللاحقة للنتيجة
+   *
    * @description
-   * معالجة اختيارية بعد الحصول على النتيجة الأولية
-   * 
-   * @param output - نتيجة المعالجة الأولية
-   * @returns النتيجة بعد المعالجة اللاحقة
+   * السبب: تُتيح للوكلاء الفرعية تخصيص النتيجة بعد سلسلة المعالجة.
+   *
+   * استخدامات شائعة:
+   * - إضافة معلومات meta خاصة بنوع التحليل
+   * - تنسيق النص بطريقة محددة
+   * - تصفية أو إثراء النتيجة
+   *
+   * @param output - نتيجة المعالجة الأولية من سلسلة التنفيذ
+   * @returns النتيجة بعد التخصيص (أو نفس النتيجة إذا لم يُتجاوز)
+   *
+   * @example
+   * ```typescript
+   * protected async postProcess(
+   *   output: StandardAgentOutput
+   * ): Promise<StandardAgentOutput> {
+   *   return {
+   *     ...output,
+   *     metadata: {
+   *       ...output.metadata,
+   *       specialAnalysis: "تحليل خاص"
+   *     }
+   *   };
+   * }
+   * ```
    */
   protected async postProcess(
     output: StandardAgentOutput
@@ -180,12 +334,31 @@ export abstract class BaseAgent {
 
   /**
    * توليد استجابة احتياطية عند فشل التنفيذ
-   * 
+   *
    * @description
-   * يُستخدم لتوفير استجابة بديلة في حالة فشل المعالجة الرئيسية
-   * 
-   * @param input - مدخلات الوكيل الأصلية
+   * السبب: ضمان تجربة مستخدم أفضل حتى في حالة الفشل.
+   * بدلاً من إرجاع خطأ فارغ، يُقدم استجابة مفيدة قدر الإمكان.
+   *
+   * السلوك الافتراضي:
+   * - يحاول توليد إجابة بسيطة باستخدام تعليمات النظام فقط
+   * - يستخدم درجة حرارة منخفضة للاستقرار
+   * - يُرجع رسالة عذر واضحة إذا فشل ذلك أيضاً
+   *
+   * @param input - مدخلات الوكيل الأصلية للسياق
    * @returns نص الاستجابة الاحتياطية
+   *
+   * @example
+   * ```typescript
+   * protected async getFallbackResponse(
+   *   input: StandardAgentInput
+   * ): Promise<string> {
+   *   return `
+   *     # تنبيه: استجابة احتياطية
+   *     لم نتمكن من إجراء التحليل الكامل.
+   *     يرجى التحقق من المدخلات والمحاولة مرة أخرى.
+   *   `;
+   * }
+   * ```
    */
   protected async getFallbackResponse(
     input: StandardAgentInput
@@ -207,11 +380,17 @@ export abstract class BaseAgent {
 
   /**
    * الحصول على إعدادات الوكيل
-   * 
+   *
    * @description
-   * يُرجع كائن يحتوي على جميع إعدادات وقدرات الوكيل
-   * 
-   * @returns كائن إعدادات الوكيل
+   * السبب: يُمكّن الـ Orchestrator والـ Registry من التعرف على
+   * قدرات الوكيل واتخاذ قرارات التوجيه المناسبة.
+   *
+   * يُرجع جميع الإعدادات والقدرات المدعومة لاستخدامها في:
+   * - تسجيل الوكيل في النظام
+   * - عرض معلومات الوكيل في الواجهة
+   * - تحديد ما إذا كان الوكيل مناسباً لمهمة معينة
+   *
+   * @returns كائن إعدادات الوكيل الكامل
    */
   getConfig(): AgentConfig {
     return {
@@ -228,12 +407,14 @@ export abstract class BaseAgent {
   }
 
   /**
-   * تعيين الحد الأدنى للثقة لهذا الوكيل
-   * 
+   * تعيين الحد الأدنى للثقة
+   *
    * @description
-   * يحدد الحد الأدنى المقبول لدرجة الثقة (بين 0 و 1)
-   * 
-   * @param threshold - قيمة الحد الأدنى للثقة (0-1)
+   * السبب: يُتيح ضبط حساسية الوكيل ديناميكياً.
+   * حد أعلى = نتائج أكثر موثوقية لكن قد تُرفض المزيد من الاستجابات.
+   * حد أدنى = قبول المزيد من النتائج لكن قد تقل الجودة.
+   *
+   * @param threshold - قيمة الحد الأدنى للثقة (يُقيّد تلقائياً بين 0 و 1)
    */
   setConfidenceFloor(threshold: number): void {
     this.confidenceFloor = Math.max(0, Math.min(1, threshold));
