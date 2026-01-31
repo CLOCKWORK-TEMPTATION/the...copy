@@ -1,6 +1,17 @@
+/**
+ * @fileoverview مكوّن حوار نموذج المشهد
+ *
+ * السبب في وجود هذا المكوّن: توفير واجهة موحدة
+ * لإنشاء وتعديل المشاهد مع التحقق من صحة البيانات.
+ *
+ * يدعم:
+ * - إنشاء مشهد جديد
+ * - تعديل مشهد موجود
+ * - التحقق من صحة الحقول المطلوبة
+ */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,14 +34,93 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateScene, useUpdateScene } from "@/hooks/useProject";
 import type { Scene } from "@/types/api";
 
+/**
+ * واجهة خصائص مكوّن حوار نموذج المشهد
+ */
 interface SceneFormDialogProps {
+  /** حالة فتح/إغلاق الحوار */
   open: boolean;
+  /** دالة تغيير حالة الحوار */
   onOpenChange: (open: boolean) => void;
+  /** معرف المشروع */
   projectId: string;
+  /** بيانات المشهد للتعديل (اختياري) */
   scene?: Scene;
+  /** أقصى رقم مشهد حالي */
   maxSceneNumber?: number;
 }
 
+/**
+ * واجهة بيانات النموذج
+ */
+interface SceneFormData {
+  sceneNumber: number;
+  title: string;
+  location: string;
+  timeOfDay: string;
+  description: string;
+  characters: string[];
+  status: string;
+}
+
+/**
+ * رسائل الإشعارات
+ */
+const MESSAGES = {
+  validation: {
+    title: "خطأ",
+    description: "الرجاء ملء جميع الحقول المطلوبة",
+  },
+  createSuccess: {
+    title: "تم الإنشاء",
+    description: "تم إنشاء المشهد بنجاح",
+  },
+  updateSuccess: {
+    title: "تم التحديث",
+    description: "تم تحديث المشهد بنجاح",
+  },
+  error: {
+    title: "حدث خطأ",
+    createDescription: "فشل إنشاء المشهد",
+    updateDescription: "فشل تحديث المشهد",
+  },
+} as const;
+
+/**
+ * القيم الافتراضية للنموذج
+ */
+const getDefaultFormData = (maxSceneNumber: number): SceneFormData => ({
+  sceneNumber: maxSceneNumber + 1,
+  title: "",
+  location: "",
+  timeOfDay: "نهار",
+  description: "",
+  characters: [],
+  status: "planned",
+});
+
+/**
+ * تحويل بيانات المشهد لبيانات النموذج
+ */
+const sceneToFormData = (scene: Scene): SceneFormData => ({
+  sceneNumber: scene.sceneNumber,
+  title: scene.title,
+  location: scene.location,
+  timeOfDay: scene.timeOfDay,
+  description: scene.description || "",
+  characters: scene.characters || [],
+  status: scene.status,
+});
+
+/**
+ * مكوّن حوار نموذج المشهد
+ *
+ * السبب في التصميم: توفير واجهة موحدة لإدارة المشاهد
+ * مع دعم التحقق من الصحة وعرض رسائل الخطأ.
+ *
+ * @param props - خصائص المكوّن
+ * @returns عنصر React يعرض حوار النموذج
+ */
 export default function SceneFormDialog({
   open,
   onOpenChange,
@@ -42,98 +132,118 @@ export default function SceneFormDialog({
   const createScene = useCreateScene();
   const updateScene = useUpdateScene();
 
-  const [formData, setFormData] = useState({
-    sceneNumber: scene?.sceneNumber || maxSceneNumber + 1,
-    title: scene?.title || "",
-    location: scene?.location || "",
-    timeOfDay: scene?.timeOfDay || "نهار",
-    description: scene?.description || "",
-    characters: scene?.characters || [],
-    status: scene?.status || "planned",
-  });
+  const [formData, setFormData] = useState<SceneFormData>(() =>
+    scene ? sceneToFormData(scene) : getDefaultFormData(maxSceneNumber)
+  );
 
+  /**
+   * إعادة تعيين النموذج عند فتح/إغلاق الحوار أو تغيير المشهد
+   */
   useEffect(() => {
     if (scene) {
-      setFormData({
-        sceneNumber: scene.sceneNumber,
-        title: scene.title,
-        location: scene.location,
-        timeOfDay: scene.timeOfDay,
-        description: scene.description || "",
-        characters: scene.characters || [],
-        status: scene.status,
-      });
+      setFormData(sceneToFormData(scene));
     } else {
-      setFormData({
-        sceneNumber: maxSceneNumber + 1,
-        title: "",
-        location: "",
-        timeOfDay: "نهار",
-        description: "",
-        characters: [],
-        status: "planned",
-      });
+      setFormData(getDefaultFormData(maxSceneNumber));
     }
   }, [scene, maxSceneNumber, open]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * التحقق من صحة النموذج
+   */
+  const isValid = useMemo(
+    () => formData.title.trim() !== "" && formData.location.trim() !== "",
+    [formData.title, formData.location]
+  );
 
-    if (!formData.title || !formData.location) {
-      toast({
-        title: "خطأ",
-        description: "الرجاء ملء جميع الحقول المطلوبة",
-        variant: "destructive",
-      });
-      return;
-    }
+  /**
+   * حالة التحميل
+   */
+  const isPending = createScene.isPending || updateScene.isPending;
 
-    try {
-      if (scene) {
-        await updateScene.mutateAsync({
-          id: scene.id,
-          data: {
-            ...formData,
-          },
-        });
+  /**
+   * معالج تقديم النموذج
+   */
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
+      if (!isValid) {
         toast({
-          title: "تم التحديث",
-          description: "تم تحديث المشهد بنجاح",
+          ...MESSAGES.validation,
+          variant: "destructive",
         });
-      } else {
-        await createScene.mutateAsync({
-          projectId,
-          ...formData,
-          shotCount: 0,
-        });
-
-        toast({
-          title: "تم الإنشاء",
-          description: "تم إنشاء المشهد بنجاح",
-        });
+        return;
       }
 
-      onOpenChange(false);
-    } catch (error) {
-      toast({
-        title: "حدث خطأ",
-        description: scene ? "فشل تحديث المشهد" : "فشل إنشاء المشهد",
-        variant: "destructive",
-      });
-    }
-  };
+      try {
+        if (scene) {
+          await updateScene.mutateAsync({
+            id: scene.id,
+            data: {
+              ...formData,
+            },
+          });
+          toast(MESSAGES.updateSuccess);
+        } else {
+          await createScene.mutateAsync({
+            projectId,
+            ...formData,
+            shotCount: 0,
+          });
+          toast(MESSAGES.createSuccess);
+        }
 
-  const handleCharacterInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = e.target.value;
-    const charactersArray = value
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => c);
-    setFormData({ ...formData, characters: charactersArray });
-  };
+        onOpenChange(false);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : scene
+              ? MESSAGES.error.updateDescription
+              : MESSAGES.error.createDescription;
+        toast({
+          title: MESSAGES.error.title,
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    },
+    [
+      isValid,
+      scene,
+      formData,
+      projectId,
+      updateScene,
+      createScene,
+      onOpenChange,
+      toast,
+    ]
+  );
+
+  /**
+   * معالج تغيير حقل الشخصيات
+   */
+  const handleCharacterInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      const charactersArray = value
+        .split(",")
+        .map((c) => c.trim())
+        .filter((c) => c);
+      setFormData((prev) => ({ ...prev, characters: charactersArray }));
+    },
+    []
+  );
+
+  /**
+   * معالج تغيير الحقول البسيطة
+   */
+  const handleFieldChange = useCallback(
+    (field: keyof SceneFormData, value: string | number) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -158,10 +268,10 @@ export default function SceneFormDialog({
               min="1"
               value={formData.sceneNumber}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  sceneNumber: parseInt(e.target.value) || 1,
-                })
+                handleFieldChange(
+                  "sceneNumber",
+                  parseInt(e.target.value) || 1
+                )
               }
               dir="ltr"
               data-testid="input-scene-number"
@@ -175,9 +285,7 @@ export default function SceneFormDialog({
             <Input
               id="title"
               value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
+              onChange={(e) => handleFieldChange("title", e.target.value)}
               dir="rtl"
               placeholder="مثال: البطل يدخل المنزل"
               data-testid="input-scene-title"
@@ -191,9 +299,7 @@ export default function SceneFormDialog({
             <Input
               id="location"
               value={formData.location}
-              onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
-              }
+              onChange={(e) => handleFieldChange("location", e.target.value)}
               dir="rtl"
               placeholder="مثال: منزل - غرفة المعيشة"
               data-testid="input-scene-location"
@@ -206,9 +312,7 @@ export default function SceneFormDialog({
             </Label>
             <Select
               value={formData.timeOfDay}
-              onValueChange={(value) =>
-                setFormData({ ...formData, timeOfDay: value })
-              }
+              onValueChange={(value) => handleFieldChange("timeOfDay", value)}
             >
               <SelectTrigger id="timeOfDay" data-testid="select-scene-time">
                 <SelectValue />
@@ -248,7 +352,7 @@ export default function SceneFormDialog({
               id="description"
               value={formData.description ?? ""}
               onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
+                handleFieldChange("description", e.target.value)
               }
               dir="rtl"
               placeholder="وصف تفصيلي للمشهد..."
@@ -263,9 +367,7 @@ export default function SceneFormDialog({
             </Label>
             <Select
               value={formData.status}
-              onValueChange={(value) =>
-                setFormData({ ...formData, status: value })
-              }
+              onValueChange={(value) => handleFieldChange("status", value)}
             >
               <SelectTrigger id="status" data-testid="select-scene-status">
                 <SelectValue />
@@ -289,14 +391,10 @@ export default function SceneFormDialog({
             </Button>
             <Button
               type="submit"
-              disabled={createScene.isPending || updateScene.isPending}
+              disabled={isPending}
               data-testid="button-submit-scene"
             >
-              {createScene.isPending || updateScene.isPending
-                ? "جاري الحفظ..."
-                : scene
-                  ? "تحديث"
-                  : "إضافة"}
+              {isPending ? "جاري الحفظ..." : scene ? "تحديث" : "إضافة"}
             </Button>
           </DialogFooter>
         </form>

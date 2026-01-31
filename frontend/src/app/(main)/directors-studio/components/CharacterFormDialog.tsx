@@ -1,6 +1,17 @@
+/**
+ * @fileoverview مكوّن حوار نموذج الشخصية
+ *
+ * السبب في وجود هذا المكوّن: توفير واجهة موحدة
+ * لإنشاء وتعديل الشخصيات مع التحقق من صحة البيانات.
+ *
+ * يدعم:
+ * - إنشاء شخصية جديدة
+ * - تعديل شخصية موجودة
+ * - التحقق من صحة الحقول المطلوبة
+ */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,13 +38,23 @@ import type {
   UpdateCharacterRequest,
 } from "@/types/api";
 
+/**
+ * واجهة خصائص مكوّن حوار نموذج الشخصية
+ */
 interface CharacterFormDialogProps {
+  /** حالة فتح/إغلاق الحوار */
   open: boolean;
+  /** دالة تغيير حالة الحوار */
   onOpenChange: (open: boolean) => void;
+  /** معرف المشروع */
   projectId: string;
+  /** بيانات الشخصية للتعديل (اختياري) */
   character?: Character;
 }
 
+/**
+ * واجهة بيانات نموذج الشخصية
+ */
 interface CharacterFormState {
   name: string;
   appearances: number;
@@ -42,6 +63,37 @@ interface CharacterFormState {
   notes: string | null;
 }
 
+/**
+ * رسائل الإشعارات
+ */
+const MESSAGES = {
+  validation: {
+    title: "خطأ",
+    description: "الرجاء إدخال اسم الشخصية",
+  },
+  createSuccess: {
+    title: "تم الإنشاء",
+    description: "تم إنشاء الشخصية بنجاح",
+  },
+  updateSuccess: {
+    title: "تم التحديث",
+    description: "تم تحديث الشخصية بنجاح",
+  },
+  error: {
+    title: "حدث خطأ",
+    createDescription: "فشل إنشاء الشخصية",
+    updateDescription: "فشل تحديث الشخصية",
+  },
+} as const;
+
+/**
+ * تحويل بيانات الشخصية لبيانات النموذج
+ *
+ * السبب في فصل هذه الدالة: إعادة الاستخدام وتوحيد المنطق
+ *
+ * @param value - بيانات الشخصية (اختياري)
+ * @returns بيانات النموذج
+ */
 const mapCharacterToFormData = (value?: Character): CharacterFormState => ({
   name: value?.name ?? "",
   appearances: value?.appearances ?? 0,
@@ -50,6 +102,15 @@ const mapCharacterToFormData = (value?: Character): CharacterFormState => ({
   notes: value?.notes ?? null,
 });
 
+/**
+ * مكوّن حوار نموذج الشخصية
+ *
+ * السبب في التصميم: توفير واجهة موحدة لإدارة الشخصيات
+ * مع دعم التحقق من الصحة وعرض رسائل الخطأ.
+ *
+ * @param props - خصائص المكوّن
+ * @returns عنصر React يعرض حوار النموذج
+ */
 export default function CharacterFormDialog({
   open,
   onOpenChange,
@@ -60,66 +121,105 @@ export default function CharacterFormDialog({
   const createCharacter = useCreateCharacter();
   const updateCharacter = useUpdateCharacter();
 
-  const [formData, setFormData] = useState(() =>
+  const [formData, setFormData] = useState<CharacterFormState>(() =>
     mapCharacterToFormData(character)
   );
 
+  /**
+   * إعادة تعيين النموذج عند تغيير الشخصية أو فتح الحوار
+   */
   useEffect(() => {
     setFormData(mapCharacterToFormData(character));
   }, [character, open]);
 
-  const handleSubmit = async (_e: React.FormEvent) => {
-    _e.preventDefault();
+  /**
+   * التحقق من صحة النموذج
+   */
+  const isValid = useMemo(
+    () => formData.name.trim() !== "",
+    [formData.name]
+  );
 
-    if (!formData.name) {
-      toast({
-        title: "خطأ",
-        description: "الرجاء إدخال اسم الشخصية",
-        variant: "destructive",
-      });
-      return;
-    }
+  /**
+   * حالة التحميل
+   */
+  const isPending = createCharacter.isPending || updateCharacter.isPending;
 
-    const isEditing = Boolean(character);
-    const payload: Omit<Character, "id" | "projectId"> = {
-      name: formData.name,
-      appearances: formData.appearances,
-      consistencyStatus: formData.consistencyStatus,
-      ...(formData.lastSeen && { lastSeen: formData.lastSeen }),
-      ...(formData.notes && { notes: formData.notes }),
-    };
+  /**
+   * معالج تقديم النموذج
+   */
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    const mutation = isEditing
-      ? () =>
-          updateCharacter.mutateAsync({
-            id: character!.id,
+      if (!isValid) {
+        toast({
+          ...MESSAGES.validation,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const isEditing = Boolean(character);
+      const payload: Omit<Character, "id" | "projectId"> = {
+        name: formData.name,
+        appearances: formData.appearances,
+        consistencyStatus: formData.consistencyStatus,
+        ...(formData.lastSeen && { lastSeen: formData.lastSeen }),
+        ...(formData.notes && { notes: formData.notes }),
+      };
+
+      try {
+        if (isEditing && character) {
+          await updateCharacter.mutateAsync({
+            id: character.id,
             data: payload as UpdateCharacterRequest,
-          })
-      : () =>
-          createCharacter.mutateAsync({
+          });
+          toast(MESSAGES.updateSuccess);
+        } else {
+          await createCharacter.mutateAsync({
             ...(payload as CreateCharacterRequest),
             projectId,
           });
+          toast(MESSAGES.createSuccess);
+        }
 
-    try {
-      await mutation();
+        onOpenChange(false);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : isEditing
+              ? MESSAGES.error.updateDescription
+              : MESSAGES.error.createDescription;
+        toast({
+          title: MESSAGES.error.title,
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    },
+    [
+      isValid,
+      character,
+      formData,
+      projectId,
+      updateCharacter,
+      createCharacter,
+      onOpenChange,
+      toast,
+    ]
+  );
 
-      toast({
-        title: isEditing ? "تم التحديث" : "تم الإنشاء",
-        description: isEditing
-          ? "تم تحديث الشخصية بنجاح"
-          : "تم إنشاء الشخصية بنجاح",
-      });
-
-      onOpenChange(false);
-    } catch (error) {
-      toast({
-        title: "حدث خطأ",
-        description: isEditing ? "فشل تحديث الشخصية" : "فشل إنشاء الشخصية",
-        variant: "destructive",
-      });
-    }
-  };
+  /**
+   * معالج تغيير الحقول
+   */
+  const handleFieldChange = useCallback(
+    (field: keyof CharacterFormState, value: string | number | null) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,9 +238,7 @@ export default function CharacterFormDialog({
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              onChange={(e) => handleFieldChange("name", e.target.value)}
               dir="rtl"
               placeholder="مثال: أحمد محمود"
               data-testid="input-character-name"
@@ -157,10 +255,10 @@ export default function CharacterFormDialog({
               min="0"
               value={formData.appearances}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  appearances: parseInt(e.target.value) || 0,
-                })
+                handleFieldChange(
+                  "appearances",
+                  parseInt(e.target.value) || 0
+                )
               }
               dir="ltr"
               data-testid="input-character-appearances"
@@ -174,7 +272,7 @@ export default function CharacterFormDialog({
             <Select
               value={formData.consistencyStatus}
               onValueChange={(value) =>
-                setFormData({ ...formData, consistencyStatus: value })
+                handleFieldChange("consistencyStatus", value)
               }
             >
               <SelectTrigger
@@ -199,7 +297,7 @@ export default function CharacterFormDialog({
               id="lastSeen"
               value={formData.lastSeen ?? ""}
               onChange={(e) =>
-                setFormData({ ...formData, lastSeen: e.target.value })
+                handleFieldChange("lastSeen", e.target.value || null)
               }
               dir="rtl"
               placeholder="مثال: المشهد 5"
@@ -215,7 +313,7 @@ export default function CharacterFormDialog({
               id="notes"
               value={formData.notes ?? ""}
               onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
+                handleFieldChange("notes", e.target.value || null)
               }
               dir="rtl"
               placeholder="ملاحظات حول الشخصية..."
@@ -235,14 +333,10 @@ export default function CharacterFormDialog({
             </Button>
             <Button
               type="submit"
-              disabled={createCharacter.isPending || updateCharacter.isPending}
+              disabled={isPending}
               data-testid="button-submit-character"
             >
-              {createCharacter.isPending || updateCharacter.isPending
-                ? "جاري الحفظ..."
-                : character
-                  ? "تحديث"
-                  : "إضافة"}
+              {isPending ? "جاري الحفظ..." : character ? "تحديث" : "إضافة"}
             </Button>
           </DialogFooter>
         </form>
