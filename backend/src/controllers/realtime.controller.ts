@@ -136,9 +136,9 @@ export class RealtimeController {
    * GET /api/realtime/analysis/:analysisId/stream
    */
   async streamAnalysisLogs(req: Request, res: Response): Promise<void> {
-    const { analysisId } = req.params;
+    const analysisId = typeof req.params.analysisId === 'string' ? req.params.analysisId : '';
     const clientId = uuidv4();
-    const userId = (req.user as any)?.userId;
+    const userId = (req.user as { userId?: string })?.userId;
 
     // Initialize SSE connection
     sseService.initializeConnection(clientId, res, userId);
@@ -149,7 +149,7 @@ export class RealtimeController {
 
     // Sanitize log inputs
     const safeClientId = clientId.replace(/[\r\n]/g, '');
-    const safeAnalysisId = (analysisId || '').replace(/[\r\n]/g, '');
+    const safeAnalysisId = analysisId.replace(/[\r\n]/g, '');
 
     logger.info("[SSE] Client streaming analysis logs");
 
@@ -171,9 +171,9 @@ export class RealtimeController {
    * GET /api/realtime/jobs/:jobId/stream
    */
   async streamJobProgress(req: Request, res: Response): Promise<void> {
-    const { jobId } = req.params;
+    const jobId = typeof req.params.jobId === 'string' ? req.params.jobId : '';
     const clientId = uuidv4();
-    const userId = (req.user as any)?.userId;
+    const userId = (req.user as { userId?: string })?.userId;
 
     // Initialize SSE connection
     sseService.initializeConnection(clientId, res, userId);
@@ -184,7 +184,7 @@ export class RealtimeController {
 
     // Sanitize log inputs
     const safeClientId = clientId.replace(/[\r\n]/g, '');
-    const safeJobId = (jobId || '').replace(/[\r\n]/g, '');
+    const safeJobId = jobId.replace(/[\r\n]/g, '');
 
     logger.info("[SSE] Client streaming job progress");
 

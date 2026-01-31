@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db } from '@/db';
-import { projects, NewProject } from '@/db/schema';
+import { projects } from '@/db/schema';
 import { AnalysisService } from '@/services/analysis.service';
 import { eq, desc, and } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { z } from 'zod';
 import type { AuthRequest } from '@/middleware/auth.middleware';
+import { getParamAsString } from '@/middleware/auth.middleware';
 
 const createProjectSchema = z.object({
   title: z.string().min(1, 'العنوان مطلوب'),
@@ -17,8 +18,19 @@ const updateProjectSchema = z.object({
   scriptContent: z.string().optional(),
 });
 
+/**
+ * متحكم المشاريع
+ * 
+ * @description
+ * يدير عمليات CRUD للمشاريع ويتحقق من ملكية المستخدم لكل عملية
+ */
 export class ProjectsController {
-  // Get all projects for the authenticated user
+  /**
+   * جلب جميع مشاريع المستخدم
+   * 
+   * @description
+   * يُرجع قائمة المشاريع مُرتبة حسب تاريخ آخر تحديث
+   */
   async getProjects(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -48,7 +60,12 @@ export class ProjectsController {
     }
   }
 
-  // Get a single project by ID
+  /**
+   * جلب مشروع محدد بالمعرّف
+   * 
+   * @description
+   * يتحقق من ملكية المستخدم للمشروع قبل إرجاعه
+   */
   async getProject(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -59,7 +76,7 @@ export class ProjectsController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
 
       if (!id) {
         res.status(400).json({
@@ -95,7 +112,12 @@ export class ProjectsController {
     }
   }
 
-  // Create a new project
+  /**
+   * إنشاء مشروع جديد
+   * 
+   * @description
+   * يتحقق من صلاحية البيانات ويربط المشروع بالمستخدم الحالي
+   */
   async createProject(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -150,7 +172,12 @@ export class ProjectsController {
     }
   }
 
-  // Update a project
+  /**
+   * تحديث مشروع موجود
+   * 
+   * @description
+   * يتحقق من وجود المشروع وملكية المستخدم قبل التحديث
+   */
   async updateProject(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -161,7 +188,7 @@ export class ProjectsController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
       const validatedData = updateProjectSchema.parse(req.body);
 
       if (!id) {
@@ -172,7 +199,6 @@ export class ProjectsController {
         return;
       }
 
-      // Check if project exists and belongs to user
       const [existingProject] = await db
         .select()
         .from(projects)
@@ -220,7 +246,12 @@ export class ProjectsController {
     }
   }
 
-  // Delete a project
+  /**
+   * حذف مشروع
+   * 
+   * @description
+   * يتحقق من وجود المشروع وملكية المستخدم قبل الحذف
+   */
   async deleteProject(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -231,7 +262,7 @@ export class ProjectsController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
 
       if (!id) {
         res.status(400).json({
@@ -241,7 +272,6 @@ export class ProjectsController {
         return;
       }
 
-      // Check if project exists and belongs to user
       const [existingProject] = await db
         .select()
         .from(projects)
@@ -272,7 +302,12 @@ export class ProjectsController {
     }
   }
 
-  // Analyze script and extract scenes/characters (AI-powered)
+  /**
+   * تحليل نص السيناريو
+   * 
+   * @description
+   * يستخدم خدمة التحليل AI لاستخراج المشاهد والشخصيات
+   */
   async analyzeScript(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -283,7 +318,7 @@ export class ProjectsController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
 
       if (!id) {
         res.status(400).json({
@@ -293,7 +328,6 @@ export class ProjectsController {
         return;
       }
 
-      // Check if project exists and belongs to user
       const [project] = await db
         .select()
         .from(projects)
@@ -314,10 +348,6 @@ export class ProjectsController {
         });
         return;
       }
-
-      // Implement AI-based script analysis using Gemini
-      // This extracts scenes, characters, and suggestions
-      // For now, return a placeholder response
 
       const analysisService = new AnalysisService();
       const analysisResult = await analysisService.runFullPipeline({

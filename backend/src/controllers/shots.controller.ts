@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db } from '@/db';
 import { shots, scenes, projects } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { z } from 'zod';
 import type { AuthRequest } from '@/middleware/auth.middleware';
+import { getParamAsString } from '@/middleware/auth.middleware';
 import { GeminiService } from '@/services/gemini.service';
 
 const createShotSchema = z.object({
@@ -26,8 +27,19 @@ const updateShotSchema = z.object({
   aiSuggestion: z.string().optional(),
 });
 
+/**
+ * متحكم اللقطات
+ * 
+ * @description
+ * يدير عمليات CRUD للقطات ويتحقق من ملكية المستخدم للمشهد والمشروع المرتبطين
+ */
 export class ShotsController {
-  // Get all shots for a scene
+  /**
+   * جلب جميع لقطات مشهد معين
+   * 
+   * @description
+   * يستخدم JOIN مُحسّن للتحقق من الملكية وجلب اللقطات مُرتبة حسب رقم اللقطة
+   */
   async getShots(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -38,7 +50,7 @@ export class ShotsController {
         return;
       }
 
-      const { sceneId } = req.params;
+      const sceneId = getParamAsString(req.params.sceneId);
 
       if (!sceneId) {
         res.status(400).json({
@@ -48,8 +60,6 @@ export class ShotsController {
         return;
       }
 
-      // OPTIMIZED: Single JOIN query to verify scene ownership and fetch shots
-      // Uses idx_scenes_id_project and idx_projects_id_user indexes
       const [verifyResult] = await db
         .select({
           sceneId: scenes.id,
@@ -86,7 +96,12 @@ export class ShotsController {
     }
   }
 
-  // Get a single shot by ID
+  /**
+   * جلب لقطة محددة بالمعرّف
+   * 
+   * @description
+   * يستخدم JOIN على ثلاث جداول للتحقق من الملكية في استعلام واحد
+   */
   async getShot(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -97,7 +112,7 @@ export class ShotsController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
 
       if (!id) {
         res.status(400).json({
@@ -107,8 +122,6 @@ export class ShotsController {
         return;
       }
 
-      // OPTIMIZED: Single JOIN query across 3 tables to fetch shot and verify ownership
-      // Uses idx_shots_id_scene, idx_scenes_id_project, and idx_projects_id_user indexes
       const [result] = await db
         .select({
           shot: shots,
@@ -140,7 +153,12 @@ export class ShotsController {
     }
   }
 
-  // Create a new shot
+  /**
+   * إنشاء لقطة جديدة
+   * 
+   * @description
+   * يتحقق من ملكية المشهد ويُحدّث عداد اللقطات بعد الإنشاء
+   */
   async createShot(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -153,8 +171,6 @@ export class ShotsController {
 
       const validatedData = createShotSchema.parse(req.body);
 
-      // OPTIMIZED: Single JOIN query to verify scene exists, belongs to user, and get shot count
-      // Uses idx_scenes_id_project and idx_projects_id_user indexes
       const [result] = await db
         .select({
           sceneId: scenes.id,
@@ -186,7 +202,6 @@ export class ShotsController {
         return;
       }
 
-      // Update shot count in scene
       await db
         .update(scenes)
         .set({ shotCount: result.shotCount + 1 })
@@ -217,7 +232,12 @@ export class ShotsController {
     }
   }
 
-  // Update a shot
+  /**
+   * تحديث لقطة موجودة
+   * 
+   * @description
+   * يستخدم JOIN على ثلاث جداول للتحقق من الملكية قبل التحديث
+   */
   async updateShot(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -228,7 +248,7 @@ export class ShotsController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
       const validatedData = updateShotSchema.parse(req.body);
 
       if (!id) {
@@ -239,8 +259,6 @@ export class ShotsController {
         return;
       }
 
-      // OPTIMIZED: Single JOIN query across 3 tables to verify shot exists and user owns it
-      // Uses idx_shots_id_scene, idx_scenes_id_project, and idx_projects_id_user indexes
       const [result] = await db
         .select({
           shotId: shots.id,
@@ -290,7 +308,12 @@ export class ShotsController {
     }
   }
 
-  // Delete a shot
+  /**
+   * حذف لقطة
+   * 
+   * @description
+   * يتحقق من الملكية ويُحدّث عداد اللقطات بعد الحذف
+   */
   async deleteShot(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -301,7 +324,7 @@ export class ShotsController {
         return;
       }
 
-      const { id } = req.params;
+      const id = getParamAsString(req.params.id);
 
       if (!id) {
         res.status(400).json({
@@ -311,9 +334,6 @@ export class ShotsController {
         return;
       }
 
-      // OPTIMIZED: Single JOIN query across 3 tables to verify shot exists and user owns it
-      // Also fetches scene data for updating shot count
-      // Uses idx_shots_id_scene, idx_scenes_id_project, and idx_projects_id_user indexes
       const [result] = await db
         .select({
           shotId: shots.id,
@@ -336,7 +356,6 @@ export class ShotsController {
 
       await db.delete(shots).where(eq(shots.id, id));
 
-      // Update shot count in scene
       await db
         .update(scenes)
         .set({ shotCount: Math.max(0, result.shotCount - 1) })
@@ -357,7 +376,12 @@ export class ShotsController {
     }
   }
 
-  // Generate AI-powered shot suggestions
+  /**
+   * توليد اقتراحات اللقطة بالذكاء الاصطناعي
+   * 
+   * @description
+   * يستخدم خدمة Gemini لتوليد اقتراحات بناءً على وصف المشهد ونوع اللقطة
+   */
   async generateShotSuggestion(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {

@@ -8,27 +8,39 @@ import {
   getGeminiCacheTTL,
   cachedGeminiCall,
   getAdaptiveTTL,
+  GEMINI_CACHE_PREFIX,
 } from './gemini-cache.strategy';
 import { geminiCostTracker } from './gemini-cost-tracker.service';
 import { llmGuardrails } from './llm-guardrails.service';
 
 /**
- * Configuration for a Gemini API request
+ * نوع فئات ذاكرة التخزين المؤقت المدعومة
+ * 
+ * @description
+ * يحدد الفئات الصالحة لمفاتيح ذاكرة التخزين المؤقت في Gemini API
+ */
+type GeminiCacheCategory = keyof typeof GEMINI_CACHE_PREFIX;
+
+/**
+ * إعدادات طلب Gemini API
+ * 
+ * @description
+ * يحدد كافة المعاملات المطلوبة لتنفيذ طلب Gemini مع التخزين المؤقت والقياسات
  */
 interface GeminiRequestConfig {
-  /** Type identifier for this request (used for caching, metrics, and logging) */
+  /** معرّف نوع الطلب (للتخزين المؤقت والقياسات والتسجيل) */
   requestType: string;
-  /** The prompt to send to the Gemini API */
+  /** النص الموجه لإرساله إلى Gemini API */
   prompt: string;
-  /** Original input text for guardrails validation */
+  /** النص المدخل الأصلي للتحقق من الحماية */
   originalInput: string;
-  /** Cache key parameters */
+  /** معاملات مفتاح ذاكرة التخزين المؤقت */
   cacheKeyParams: Record<string, unknown>;
-  /** Cache key category (e.g., 'analysis', 'chat', 'screenplay') */
-  cacheCategory: string;
-  /** Whether to use adaptive TTL based on cache hit rate */
+  /** فئة مفتاح ذاكرة التخزين المؤقت */
+  cacheCategory: GeminiCacheCategory;
+  /** استخدام TTL تكيفي بناءً على نسبة الإصابة */
   useAdaptiveTTL?: boolean;
-  /** Error message to throw on failure (in Arabic) */
+  /** رسالة الخطأ عند الفشل (بالعربية) */
   errorMessage: string;
 }
 
@@ -207,12 +219,24 @@ export class GeminiService {
   }
 
   async analyzeText(text: string, analysisType: string): Promise<string> {
+    // Map analysis type to valid cache category
+    const validCategories: Record<string, GeminiCacheCategory> = {
+      'characters': 'character',
+      'themes': 'analysis',
+      'structure': 'analysis',
+      'quick': 'analysis',
+      'detailed': 'analysis',
+      'full': 'analysis',
+      'default': 'analysis',
+    };
+    const cacheCategory: GeminiCacheCategory = validCategories[analysisType] || 'analysis';
+
     return this.executeGeminiRequest({
       requestType: `analyze-${analysisType}`,
       prompt: this.buildPrompt(text, analysisType),
       originalInput: text,
       cacheKeyParams: { text, analysisType },
-      cacheCategory: analysisType,
+      cacheCategory,
       useAdaptiveTTL: true,
       errorMessage: 'فشل في تحليل النص باستخدام الذكاء الاصطناعي',
     });
