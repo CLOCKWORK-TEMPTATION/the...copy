@@ -1,6 +1,17 @@
+/**
+ * @fileoverview مكوّن لوحة المحادثة مع المساعد الذكي
+ *
+ * السبب في وجود هذا المكوّن: توفير واجهة تفاعلية
+ * للتواصل مع الذكاء الاصطناعي للحصول على مساعدة في الإخراج.
+ *
+ * يدعم:
+ * - إرسال واستقبال الرسائل النصية
+ * - اقتراحات سريعة للأسئلة الشائعة
+ * - عرض حالة التحميل أثناء انتظار الرد
+ */
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,48 +19,169 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, Send, User, Bot } from "lucide-react";
 import { useChatWithAI } from "@/hooks/useAI";
+import { useToast } from "@/hooks/use-toast";
 
+/**
+ * واجهة بيانات الرسالة
+ */
 interface Message {
+  /** معرف الرسالة الفريد */
   id: string;
+  /** دور المرسل (مستخدم أو مساعد) */
   role: "user" | "assistant";
+  /** محتوى الرسالة */
   content: string;
+  /** وقت الإرسال */
   timestamp: string;
 }
 
+/**
+ * رسائل الخطأ
+ */
+const ERROR_MESSAGES = {
+  chatError: "عذراً، حدث خطأ. الرجاء المحاولة مرة أخرى.",
+} as const;
+
+/**
+ * اقتراحات الأسئلة الشائعة
+ * السبب: مساعدة المستخدم على البدء بأسئلة مفيدة
+ */
+const DEFAULT_SUGGESTIONS = [
+  "اقترح زوايا تصوير للمشهد الأول",
+  "كيف أحسن الإضاءة في مشهد ليلي؟",
+  "ما هي أفضل طريقة لتصوير مشهد مطاردة؟",
+] as const;
+
+/**
+ * الرسالة الترحيبية الافتراضية
+ */
+const WELCOME_MESSAGE: Message = {
+  id: "1",
+  role: "assistant",
+  content:
+    "مرحباً! أنا مساعدك الذكي للإخراج السينمائي. كيف يمكنني مساعدتك اليوم؟",
+  timestamp: "الآن",
+};
+
+/**
+ * مكوّن عنصر رسالة فردية
+ *
+ * السبب في فصله: تحسين قابلية القراءة والأداء
+ * من خلال تذكير الرسائل الفردية.
+ */
+const MessageItem = memo(function MessageItem({
+  message,
+}: {
+  message: Message;
+}) {
+  const isUser = message.role === "user";
+
+  return (
+    <div
+      className={`flex gap-3 ${isUser ? "justify-start flex-row-reverse" : "justify-end"}`}
+      data-testid={`message-${message.id}`}
+    >
+      <div
+        className={`flex items-start gap-3 max-w-[80%] ${isUser ? "flex-row-reverse" : ""}`}
+      >
+        <div
+          className={`p-2 rounded-full ${isUser ? "bg-primary" : "bg-muted"}`}
+        >
+          {isUser ? (
+            <User className="w-4 h-4 text-primary-foreground" />
+          ) : (
+            <Bot className="w-4 h-4 text-muted-foreground" />
+          )}
+        </div>
+
+        <div
+          className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}
+        >
+          <div
+            className={`p-4 rounded-md ${
+              isUser
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            <p className="text-sm leading-relaxed">{message.content}</p>
+          </div>
+          <span className="text-xs text-muted-foreground px-2">
+            {message.timestamp}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+/**
+ * مكوّن مؤشر الكتابة (typing indicator)
+ */
+const TypingIndicator = memo(function TypingIndicator() {
+  return (
+    <div className="flex gap-3 justify-end">
+      <div className="flex items-start gap-3 max-w-[80%]">
+        <div className="p-2 rounded-full bg-muted">
+          <Bot className="w-4 h-4 text-muted-foreground" />
+        </div>
+        <div className="p-4 rounded-md bg-muted">
+          <div className="flex gap-1">
+            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-100" />
+            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-200" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+/**
+ * مكوّن لوحة المحادثة مع المساعد الذكي
+ *
+ * السبب في التصميم: توفير تجربة محادثة طبيعية
+ * مع الذكاء الاصطناعي لمساعدة المخرج في قرارات الإخراج.
+ *
+ * @returns عنصر React يعرض لوحة المحادثة
+ */
 export default function AIChatPanel() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "مرحباً! أنا مساعدك الذكي للإخراج السينمائي. كيف يمكنني مساعدتك اليوم؟",
-      timestamp: "الآن",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const chatMutation = useChatWithAI();
+  const { toast } = useToast();
 
-  const suggestions = [
-    "اقترح زوايا تصوير للمشهد الأول",
-    "كيف أحسن الإضاءة في مشهد ليلي؟",
-    "ما هي أفضل طريقة لتصوير مشهد مطاردة؟",
-  ];
+  /**
+   * التحقق من إمكانية الإرسال
+   */
+  const canSend = useMemo(
+    () => input.trim().length > 0 && !chatMutation.isPending,
+    [input, chatMutation.isPending]
+  );
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  /**
+   * معالج إرسال الرسالة
+   *
+   * السبب في useCallback: تجنب إنشاء دالة جديدة في كل render
+   * لأنها تُمرر لعناصر متعددة.
+   */
+  const handleSend = useCallback(async () => {
+    const trimmedInput = input.trim();
+    if (!trimmedInput) return;
 
+    // إنشاء رسالة المستخدم
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: trimmedInput,
       timestamp: "الآن",
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    const currentInput = input;
+    const currentInput = trimmedInput;
     setInput("");
 
-    // Create a placeholder message for streaming
+    // إنشاء رسالة مؤقتة للرد
     const streamingMessageId = (Date.now() + 1).toString();
     const streamingMessage: Message = {
       id: streamingMessageId,
@@ -65,27 +197,55 @@ export default function AIChatPanel() {
         content: m.content,
       }));
 
-      // Use the mutation
       await chatMutation.mutateAsync({
         message: currentInput,
         history,
       });
     } catch (error) {
-      console.error("Chat error:", error);
-      // Update the streaming message with error
+      // تسجيل الخطأ وعرض رسالة للمستخدم
+      const errorMessage =
+        error instanceof Error ? error.message : ERROR_MESSAGES.chatError;
+
+      // تحديث الرسالة المؤقتة برسالة الخطأ
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === streamingMessageId
-            ? { ...msg, content: "عذراً، حدث خطأ. الرجاء المحاولة مرة أخرى." }
+            ? { ...msg, content: ERROR_MESSAGES.chatError }
             : msg
         )
       );
-    }
-  };
 
-  const handleSuggestionClick = (suggestion: string) => {
+      toast({
+        title: "حدث خطأ",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  }, [input, messages, chatMutation, toast]);
+
+  /**
+   * معالج الضغط على اقتراح
+   */
+  const handleSuggestionClick = useCallback((suggestion: string) => {
     setInput(suggestion);
-  };
+  }, []);
+
+  /**
+   * معالج الضغط على Enter للإرسال
+   */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && canSend) {
+        handleSend();
+      }
+    },
+    [canSend, handleSend]
+  );
+
+  /**
+   * هل يجب عرض الاقتراحات؟
+   */
+  const showSuggestions = messages.length === 1;
 
   return (
     <Card className="h-[600px] flex flex-col" data-testid="card-ai-chat">
@@ -100,72 +260,20 @@ export default function AIChatPanel() {
         <ScrollArea className="flex-1 p-6">
           <div className="space-y-4">
             {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-3 ${message.role === "user" ? "justify-start flex-row-reverse" : "justify-end"}`}
-                data-testid={`message-${message.id}`}
-              >
-                <div
-                  className={`flex items-start gap-3 max-w-[80%] ${message.role === "user" ? "flex-row-reverse" : ""}`}
-                >
-                  <div
-                    className={`p-2 rounded-full ${message.role === "user" ? "bg-primary" : "bg-muted"}`}
-                  >
-                    {message.role === "user" ? (
-                      <User className="w-4 h-4 text-primary-foreground" />
-                    ) : (
-                      <Bot className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-
-                  <div
-                    className={`flex flex-col gap-1 ${message.role === "user" ? "items-end" : "items-start"}`}
-                  >
-                    <div
-                      className={`p-4 rounded-md ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      <p className="text-sm leading-relaxed">
-                        {message.content}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground px-2">
-                      {message.timestamp}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <MessageItem key={message.id} message={message} />
             ))}
 
-            {chatMutation.isPending && (
-              <div className="flex gap-3 justify-end">
-                <div className="flex items-start gap-3 max-w-[80%]">
-                  <div className="p-2 rounded-full bg-muted">
-                    <Bot className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div className="p-4 rounded-md bg-muted">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-100" />
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-200" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {chatMutation.isPending && <TypingIndicator />}
           </div>
         </ScrollArea>
 
-        {messages.length === 1 && (
+        {showSuggestions && (
           <div className="px-6 pb-4">
             <p className="text-sm text-muted-foreground mb-3 text-right">
               اقتراحات:
             </p>
             <div className="flex flex-wrap gap-2 justify-end">
-              {suggestions.map((suggestion, idx) => (
+              {DEFAULT_SUGGESTIONS.map((suggestion, idx) => (
                 <Badge
                   key={idx}
                   variant="secondary"
@@ -185,7 +293,7 @@ export default function AIChatPanel() {
             <Button
               size="icon"
               onClick={handleSend}
-              disabled={!input.trim()}
+              disabled={!canSend}
               data-testid="button-send-message"
             >
               <Send className="w-4 h-4" />
@@ -193,7 +301,7 @@ export default function AIChatPanel() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              onKeyDown={handleKeyDown}
               placeholder="اكتب سؤالك هنا..."
               className="text-right"
               data-testid="input-chat-message"

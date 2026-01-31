@@ -1,6 +1,12 @@
+/**
+ * @fileoverview مكوّن تبويبات المشروع
+ *
+ * السبب في فصل هذا المكوّن: توفير واجهة تنقل سهلة
+ * بين المشاهد والشخصيات مع الحفاظ على حالة التبويب النشط.
+ */
 "use client";
 
-import React from "react";
+import { memo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CharacterTracker from "@/app/(main)/directors-studio/components/CharacterTracker";
 import SceneCard from "@/app/(main)/directors-studio/components/SceneCard";
@@ -9,11 +15,25 @@ import type {
   SceneCardProps,
 } from "@/app/(main)/directors-studio/helpers/projectSummary";
 
+/**
+ * واجهة خصائص مكوّن التبويبات
+ */
 interface ProjectTabsProps {
+  /** قائمة مشاهد المشروع */
   scenes: SceneCardProps[];
+  /** قائمة شخصيات المشروع */
   characters: CharacterTrackerProps["characters"];
 }
 
+/**
+ * مكوّن التبويبات الرئيسي للتنقل بين المشاهد والشخصيات
+ *
+ * السبب في استخدام Tabs من Radix: توفير تجربة تنقل سلسة
+ * مع دعم لوحة المفاتيح وإمكانية الوصول.
+ *
+ * @param props - خصائص المكوّن
+ * @returns تبويبات للتنقل بين المشاهد والشخصيات
+ */
 export function ProjectTabs({ scenes, characters }: ProjectTabsProps) {
   return (
     <Tabs defaultValue="scenes" className="w-full">
@@ -37,11 +57,26 @@ export function ProjectTabs({ scenes, characters }: ProjectTabsProps) {
   );
 }
 
+/**
+ * واجهة خصائص محتوى تبويب المشاهد
+ */
 interface ScenesTabContentProps {
+  /** قائمة المشاهد المراد عرضها */
   scenes: SceneCardProps[];
 }
 
-function ScenesTabContent({ scenes }: ScenesTabContentProps) {
+/**
+ * محتوى تبويب المشاهد
+ *
+ * السبب في فصله كمكوّن فرعي: تحسين قابلية القراءة
+ * وتمكين التحميل الشرطي للمحتوى.
+ *
+ * السبب في استخدام memo: تجنب إعادة العرض غير الضرورية
+ * عند تغيير التبويب النشط دون تغيير البيانات.
+ */
+const ScenesTabContent = memo(function ScenesTabContent({
+  scenes,
+}: ScenesTabContentProps) {
   if (!scenes.length) {
     return (
       <p className="text-center text-muted-foreground py-12">
@@ -64,13 +99,25 @@ function ScenesTabContent({ scenes }: ScenesTabContentProps) {
       })}
     </>
   );
-}
+});
 
+/**
+ * واجهة خصائص محتوى تبويب الشخصيات
+ */
 interface CharactersTabContentProps {
+  /** قائمة الشخصيات المراد عرضها */
   characters: CharacterTrackerProps["characters"];
 }
 
-function CharactersTabContent({ characters }: CharactersTabContentProps) {
+/**
+ * محتوى تبويب الشخصيات
+ *
+ * السبب في فصله: توفير معالجة منفصلة للحالة الفارغة
+ * وتحسين تجربة المستخدم عند عدم وجود شخصيات.
+ */
+const CharactersTabContent = memo(function CharactersTabContent({
+  characters,
+}: CharactersTabContentProps) {
   if (!characters.length) {
     return (
       <p className="text-center text-muted-foreground py-12">
@@ -80,6 +127,6 @@ function CharactersTabContent({ characters }: CharactersTabContentProps) {
   }
 
   return <CharacterTracker characters={characters} />;
-}
+});
 
 export default ProjectTabs;
