@@ -9,6 +9,33 @@ import { geminiService } from "@/services/gemini.service";
 import { logger } from "@/utils/logger";
 
 /**
+ * واجهة إعدادات الوكيل
+ * 
+ * @description
+ * تحدد هيكل كائن إعدادات الوكيل
+ */
+export interface AgentConfig {
+  /** اسم الوكيل */
+  name: string;
+  /** نوع المهمة */
+  taskType: TaskType;
+  /** الحد الأدنى للثقة */
+  confidenceFloor: number;
+  /** دعم RAG */
+  supportsRAG: boolean;
+  /** دعم النقد الذاتي */
+  supportsSelfCritique: boolean;
+  /** دعم القواعد الدستورية */
+  supportsConstitutional: boolean;
+  /** دعم قياس عدم اليقين */
+  supportsUncertainty: boolean;
+  /** دعم كشف الهلوسة */
+  supportsHallucination: boolean;
+  /** دعم المناظرة */
+  supportsDebate: boolean;
+}
+
+/**
  * الفئة الأساسية للوكيل - Base Agent Class
  * 
  * @description
@@ -211,31 +238,4 @@ export abstract class BaseAgent {
   setConfidenceFloor(threshold: number): void {
     this.confidenceFloor = Math.max(0, Math.min(1, threshold));
   }
-}
-
-/**
- * واجهة إعدادات الوكيل
- * 
- * @description
- * تحدد هيكل كائن إعدادات الوكيل
- */
-interface AgentConfig {
-  /** اسم الوكيل */
-  name: string;
-  /** نوع المهمة */
-  taskType: TaskType;
-  /** الحد الأدنى للثقة */
-  confidenceFloor: number;
-  /** دعم RAG */
-  supportsRAG: boolean;
-  /** دعم النقد الذاتي */
-  supportsSelfCritique: boolean;
-  /** دعم القواعد الدستورية */
-  supportsConstitutional: boolean;
-  /** دعم قياس عدم اليقين */
-  supportsUncertainty: boolean;
-  /** دعم كشف الهلوسة */
-  supportsHallucination: boolean;
-  /** دعم المناظرة */
-  supportsDebate: boolean;
 }

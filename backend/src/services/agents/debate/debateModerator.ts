@@ -89,7 +89,7 @@ export class DebateModerator {
           const consensus = await this.buildConsensus();
           const round = this.session.getCurrentRound();
           if (round) {
-            (round as unknown as { consensus: ConsensusResult }).consensus = consensus;
+            round.consensus = consensus;
           }
 
           if (consensus.achieved && consensus.agreementScore >= consensusThreshold) {

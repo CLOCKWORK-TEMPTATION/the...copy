@@ -119,21 +119,21 @@ async function processAIAnalysis(job: Job<AIAnalysisJobData>): Promise<AIAnalysi
   await job.updateProgress(10);
 
   try {
-    let analysis: SceneAnalysisResult | CharacterAnalysisResult | ShotAnalysisResult | ProjectAnalysisResult;
+    let analysisResult: SceneAnalysisResult | CharacterAnalysisResult | ShotAnalysisResult | ProjectAnalysisResult;
 
     // توجيه للمعالج المناسب حسب نوع الكيان
     switch (type) {
       case 'scene':
-        analysis = await analyzeScene(entityId, analysisType, options);
+        analysisResult = await analyzeScene(entityId, analysisType, options);
         break;
       case 'character':
-        analysis = await analyzeCharacter(entityId, analysisType, options);
+        analysisResult = await analyzeCharacter(entityId, analysisType, options);
         break;
       case 'shot':
-        analysis = await analyzeShot(entityId, analysisType, options);
+        analysisResult = await analyzeShot(entityId, analysisType, options);
         break;
       case 'project':
-        analysis = await analyzeProject(entityId, analysisType, options);
+        analysisResult = await analyzeProject(entityId, analysisType, options);
         break;
       default:
         throw new Error(`نوع تحليل غير معروف: ${type}`);
@@ -151,7 +151,7 @@ async function processAIAnalysis(job: Job<AIAnalysisJobData>): Promise<AIAnalysi
     return {
       entityId,
       entityType: type,
-      analysis: analysis.analysis,
+      analysis: analysisResult.analysis,
       generatedAt: new Date(),
       processingTime,
     };
