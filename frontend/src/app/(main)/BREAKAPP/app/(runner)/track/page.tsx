@@ -18,7 +18,11 @@ import axios, { AxiosError } from 'axios';
 import type { DeliveryTask } from '../../../lib/types';
 
 /**
- * استجابة API للمهام
+ * استجابة API للمهام المجمّعة
+ * 
+ * @description
+ * يمثل صيغة الاستجابة من نقطة النهاية /orders/session/:id/batch
+ * التي تُرجع مهام التوصيل مُجمّعة حسب البائع
  */
 interface BatchTaskResponse {
   vendorId: string;

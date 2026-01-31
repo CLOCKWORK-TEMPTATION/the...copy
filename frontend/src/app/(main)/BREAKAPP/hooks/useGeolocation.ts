@@ -16,6 +16,10 @@ import type { LocationPosition, GeolocationOptions } from '../lib/types';
 
 /**
  * قيمة الإرجاع من خطاف useGeolocation
+ * 
+ * @description
+ * يحتوي على حالة تتبع الموقع الجغرافي بما في ذلك
+ * بيانات الموقع الفعلية وحالة التحميل والأخطاء
  */
 interface UseGeolocationReturn {
   /** بيانات الموقع الحالي */

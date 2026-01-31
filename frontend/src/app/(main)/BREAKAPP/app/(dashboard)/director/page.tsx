@@ -28,6 +28,10 @@ const MapComponent = dynamic(() => import('../../../components/maps/MapComponent
 
 /**
  * استجابة إنشاء الجلسة
+ * 
+ * @description
+ * يمثل الاستجابة من نقطة النهاية /geo/session
+ * عند إنشاء جلسة تصوير يومية جديدة تحتوي على معرّف الجلسة
  */
 interface SessionResponse {
   id: string;

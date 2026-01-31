@@ -18,6 +18,11 @@ import type { SocketConnectionOptions } from '../lib/types';
 
 /**
  * خيارات اتصال Socket الداخلية
+ * 
+ * @description
+ * تمثل إعدادات socket.io-client الفعلية المُمررة لمكتبة io()
+ * منفصلة عن SocketConnectionOptions لأنها تحتوي على خصائص
+ * إضافية خاصة بالمكتبة مثل transports و reconnection
  */
 interface InternalSocketOptions {
   transports: string[];

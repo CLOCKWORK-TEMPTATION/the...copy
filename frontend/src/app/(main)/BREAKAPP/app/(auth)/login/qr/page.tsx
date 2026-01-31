@@ -18,7 +18,11 @@ import { scanQRAndLogin, storeToken, generateDeviceHash } from '../../../../lib/
 import { QRTokenSchema, type AuthResponse } from '../../../../lib/types';
 
 /**
- * خطأ API
+ * استجابة خطأ API
+ * 
+ * @description
+ * يمثل بنية الخطأ المُرجعة من Axios عند فشل طلبات API
+ * يُستخدم لاستخراج رسالة الخطأ من الخادم لعرضها للمستخدم
  */
 interface ApiErrorResponse {
   response?: {

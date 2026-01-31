@@ -26,6 +26,10 @@ interface QRScannerProps {
 
 /**
  * خطأ الماسح
+ * 
+ * @description
+ * يوسّع نوع Error لتوفير تصنيف أوضح لأخطاء مسح QR
+ * مما يسهل معالجة الأخطاء المحددة للكاميرا والمسح
  */
 interface ScannerError extends Error {
   name: string;
