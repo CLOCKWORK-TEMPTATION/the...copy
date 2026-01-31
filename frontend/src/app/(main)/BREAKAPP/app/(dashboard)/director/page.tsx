@@ -1,22 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-import axios from 'axios';
+/**
+ * لوحة تحكم المخرج - Director Dashboard
+ * 
+ * @description
+ * تتيح للمخرج تحديد موقع التصوير اليومي
+ * وعرض الموردين القريبين وإنشاء جلسات الطلب
+ * 
+ * السبب: المخرج يحتاج لإدارة مركزية لموقع التصوير
+ * والموردين المتاحين لتسهيل عملية التموين للفريق
+ */
 
-// Dynamically import MapComponent to avoid SSR issues with Leaflet
+import { useState, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import axios, { AxiosError } from 'axios';
+import type { Vendor, VendorMapData } from '../../../lib/types';
+
+// تحميل ديناميكي لمكون الخريطة لتجنب مشاكل SSR
 const MapComponent = dynamic(() => import('../../../components/maps/MapComponent'), {
   ssr: false,
-  loading: () => <div className="w-full h-[600px] bg-gray-100 rounded-lg flex items-center justify-center">Loading map...</div>
+  loading: () => (
+    <div className="w-full h-[600px] bg-gray-100 rounded-lg flex items-center justify-center">
+      جارٍ تحميل الخريطة...
+    </div>
+  ),
 });
 
-interface Vendor {
+/**
+ * استجابة إنشاء الجلسة
+ */
+interface SessionResponse {
   id: string;
-  name: string;
-  fixed_location: { lat: number; lng: number };
-  distance?: number;
 }
 
+/**
+ * لوحة تحكم المخرج
+ * 
+ * @description
+ * تعرض خريطة لتحديد موقع التصوير
+ * وقائمة الموردين القريبين مع إمكانية إنشاء جلسة طلب
+ */
 export default function DirectorDashboard() {
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -24,15 +47,20 @@ export default function DirectorDashboard() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string>('');
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const apiUrl = useMemo(() => 
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+    []
+  );
 
-  const handleLocationSelect = async (lat: number, lng: number) => {
+  /**
+   * معالج اختيار الموقع على الخريطة
+   */
+  const handleLocationSelect = useCallback(async (lat: number, lng: number): Promise<void> => {
     setSelectedLocation({ lat, lng });
     setLoading(true);
 
     try {
-      // Fetch nearby vendors
-      const response = await axios.get(`${apiUrl}/geo/vendors/nearby`, {
+      const response = await axios.get<Vendor[]>(`${apiUrl}/geo/vendors/nearby`, {
         params: { lat, lng, radius: 3000 },
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -40,22 +68,26 @@ export default function DirectorDashboard() {
       });
 
       setVendors(response.data);
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      console.error('خطأ في جلب الموردين:', axiosError.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl]);
 
-  const handleCreateSession = async () => {
+  /**
+   * إنشاء جلسة يومية
+   */
+  const handleCreateSession = useCallback(async (): Promise<void> => {
     if (!selectedLocation || !projectId) {
-      alert('Please select a location and enter project ID');
+      alert('يرجى اختيار موقع وإدخال معرّف المشروع');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await axios.post(
+      const response = await axios.post<SessionResponse>(
         `${apiUrl}/geo/session`,
         {
           projectId,
@@ -70,48 +102,63 @@ export default function DirectorDashboard() {
       );
 
       setSessionId(response.data.id);
-      alert('Daily session created successfully!');
-    } catch (error) {
-      console.error('Error creating session:', error);
-      alert('Failed to create session');
+      alert('تم إنشاء الجلسة اليومية بنجاح!');
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      console.error('خطأ في إنشاء الجلسة:', axiosError.message);
+      alert('فشل في إنشاء الجلسة');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedLocation, projectId, apiUrl]);
 
-  const vendorsForMap = vendors.map((v) => ({
-    id: v.id,
-    name: v.name,
-    lat: v.fixed_location.lat,
-    lng: v.fixed_location.lng,
-    distance: v.distance,
-  }));
+  /**
+   * تحويل بيانات الموردين لصيغة الخريطة
+   */
+  const vendorsForMap: VendorMapData[] = useMemo(() => 
+    vendors.map((v) => ({
+      id: v.id,
+      name: v.name,
+      lat: v.fixed_location.lat,
+      lng: v.fixed_location.lng,
+      distance: v.distance,
+    })),
+    [vendors]
+  );
+
+  /**
+   * معالج تغيير معرّف المشروع
+   */
+  const handleProjectIdChange = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
+    setProjectId(e.target.value);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
+        {/* العنوان */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Director Dashboard</h1>
-          <p className="text-gray-600">Set today's filming location and view nearby vendors</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">لوحة تحكم المخرج</h1>
+          <p className="text-gray-600">حدد موقع التصوير اليوم واعرض الموردين القريبين</p>
         </div>
 
-        {/* Project ID Input */}
+        {/* إدخال معرّف المشروع */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Project ID
+            معرّف المشروع
           </label>
           <input
             type="text"
             value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            placeholder="Enter project ID"
+            onChange={handleProjectIdChange}
+            placeholder="أدخل معرّف المشروع"
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
 
-        {/* Map Section */}
+        {/* قسم الخريطة */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Select Filming Location</h2>
+          <h2 className="text-xl font-semibold mb-4">اختر موقع التصوير</h2>
           <MapComponent
             center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : undefined}
             onLocationSelect={handleLocationSelect}
@@ -122,14 +169,14 @@ export default function DirectorDashboard() {
           {selectedLocation && (
             <div className="mt-4 p-4 bg-blue-50 rounded-md">
               <p className="text-sm text-gray-700">
-                <strong>Selected Location:</strong> {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                <strong>الموقع المحدد:</strong> {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
               </p>
               <button
                 onClick={handleCreateSession}
                 disabled={loading || !projectId}
                 className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {loading ? 'Creating...' : 'Create Daily Session'}
+                {loading ? 'جارٍ الإنشاء...' : 'إنشاء جلسة يومية'}
               </button>
             </div>
           )}
@@ -137,17 +184,17 @@ export default function DirectorDashboard() {
           {sessionId && (
             <div className="mt-4 p-4 bg-green-50 rounded-md">
               <p className="text-sm text-green-800">
-                <strong>Session Created!</strong> Session ID: {sessionId}
+                <strong>تم إنشاء الجلسة!</strong> معرّف الجلسة: {sessionId}
               </p>
             </div>
           )}
         </div>
 
-        {/* Vendors List */}
+        {/* قائمة الموردين */}
         {vendors.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">
-              Nearby Vendors ({vendors.length})
+              الموردون القريبون ({vendors.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {vendors.map((vendor) => (
@@ -155,7 +202,7 @@ export default function DirectorDashboard() {
                   <h3 className="font-semibold text-gray-900">{vendor.name}</h3>
                   {vendor.distance && (
                     <p className="text-sm text-gray-600 mt-1">
-                      Distance: {Math.round(vendor.distance)}m
+                      المسافة: {Math.round(vendor.distance)} متر
                     </p>
                   )}
                   <p className="text-xs text-gray-500 mt-2">
