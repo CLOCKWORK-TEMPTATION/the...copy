@@ -1,33 +1,77 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+/**
+ * خطاف تتبع الموقع الجغرافي - Geolocation Hook
+ * 
+ * @description
+ * يوفر واجهة React للوصول إلى موقع المستخدم الجغرافي
+ * مع تتبع مستمر للتحديثات وإدارة الأخطاء
+ * 
+ * السبب: تتبع موقع Runner ضروري لإظهار موقعه
+ * على الخريطة للمخرج وتحسين توزيع المهام
+ */
 
-interface LocationPosition {
-  latitude: number;
-  longitude: number;
-  accuracy: number;
-  timestamp: number;
+import { useState, useEffect, useMemo } from 'react';
+import type { LocationPosition, GeolocationOptions } from '../lib/types';
+
+/**
+ * قيمة الإرجاع من خطاف useGeolocation
+ */
+interface UseGeolocationReturn {
+  /** بيانات الموقع الحالي */
+  position: LocationPosition | null;
+  /** رسالة الخطأ إن وُجدت */
+  error: string | null;
+  /** هل جاري تحميل الموقع */
+  loading: boolean;
 }
 
-interface UseGeolocationOptions {
-  enableHighAccuracy?: boolean;
-  timeout?: number;
-  maximumAge?: number;
-}
-
-export function useGeolocation(options: UseGeolocationOptions = {}) {
+/**
+ * خطاف تتبع الموقع الجغرافي
+ * 
+ * @description
+ * يستخدم Geolocation API للحصول على موقع المستخدم
+ * ويُحدّث الموقع تلقائياً عند تغيره
+ * 
+ * @param options - خيارات التتبع
+ * @returns بيانات الموقع وحالة التحميل والخطأ
+ * 
+ * @example
+ * ```tsx
+ * const { position, error, loading } = useGeolocation({
+ *   enableHighAccuracy: true,
+ *   timeout: 5000,
+ * });
+ * 
+ * if (loading) return <p>جاري تحديد الموقع...</p>;
+ * if (error) return <p>خطأ: {error}</p>;
+ * return <p>الموقع: {position?.latitude}, {position?.longitude}</p>;
+ * ```
+ */
+export function useGeolocation(options: GeolocationOptions = {}): UseGeolocationReturn {
   const [position, setPosition] = useState<LocationPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // تثبيت الخيارات لتجنب إعادة الإنشاء غير الضرورية
+  const geoOptions = useMemo(() => ({
+    enableHighAccuracy: options.enableHighAccuracy ?? true,
+    timeout: options.timeout ?? 10000,
+    maximumAge: options.maximumAge ?? 0,
+  }), [options.enableHighAccuracy, options.timeout, options.maximumAge]);
+
   useEffect(() => {
+    // التحقق من دعم المتصفح
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser');
+      setError('متصفحك لا يدعم تحديد الموقع الجغرافي');
       setLoading(false);
       return;
     }
 
-    const successHandler = (pos: GeolocationPosition) => {
+    /**
+     * معالج نجاح الحصول على الموقع
+     */
+    const handleSuccess = (pos: GeolocationPosition): void => {
       setPosition({
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
@@ -38,25 +82,42 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
       setLoading(false);
     };
 
-    const errorHandler = (err: GeolocationPositionError) => {
-      setError(err.message);
+    /**
+     * معالج خطأ الحصول على الموقع
+     */
+    const handleError = (err: GeolocationPositionError): void => {
+      let errorMessage: string;
+      
+      switch (err.code) {
+        case err.PERMISSION_DENIED:
+          errorMessage = 'تم رفض إذن الوصول للموقع';
+          break;
+        case err.POSITION_UNAVAILABLE:
+          errorMessage = 'معلومات الموقع غير متاحة';
+          break;
+        case err.TIMEOUT:
+          errorMessage = 'انتهت مهلة طلب الموقع';
+          break;
+        default:
+          errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       setLoading(false);
     };
 
+    // بدء تتبع الموقع
     const watchId = navigator.geolocation.watchPosition(
-      successHandler,
-      errorHandler,
-      {
-        enableHighAccuracy: options.enableHighAccuracy ?? true,
-        timeout: options.timeout ?? 10000,
-        maximumAge: options.maximumAge ?? 0,
-      }
+      handleSuccess,
+      handleError,
+      geoOptions
     );
 
+    // التنظيف عند إلغاء التحميل
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [options.enableHighAccuracy, options.timeout, options.maximumAge]);
+  }, [geoOptions]);
 
   return { position, error, loading };
 }

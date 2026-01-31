@@ -1,31 +1,54 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getCurrentUser, isAuthenticated, removeToken } from '@/lib/auth';
-import ConnectionTest from '@/components/ConnectionTest';
+/**
+ * صفحة لوحة التحكم - Dashboard Page
+ * 
+ * @description
+ * الصفحة الرئيسية للمستخدم المُصادق عليه
+ * تعرض معلومات المستخدم وحالة الاتصال
+ * 
+ * السبب: توفر نظرة عامة سريعة على حالة المستخدم
+ * والمشروع المرتبط به بعد المصادقة
+ */
 
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { getCurrentUser, isAuthenticated, removeToken } from '../../lib/auth';
+import ConnectionTest from '../../components/ConnectionTest';
+import type { CurrentUser } from '../../lib/types';
+
+/**
+ * صفحة لوحة التحكم الرئيسية
+ * 
+ * @description
+ * تتحقق من المصادقة وتعرض معلومات المستخدم
+ * مع إمكانية تسجيل الخروج
+ */
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
-    // Check authentication
+    // التحقق من المصادقة
     if (!isAuthenticated()) {
       router.push('/login/qr');
       return;
     }
 
-    // Get user data
+    // جلب بيانات المستخدم
     const userData = getCurrentUser();
     setUser(userData);
   }, [router]);
 
-  const handleLogout = () => {
+  /**
+   * تسجيل الخروج
+   */
+  const handleLogout = useCallback((): void => {
     removeToken();
     router.push('/login/qr');
-  };
+  }, [router]);
 
+  // عرض مؤشر التحميل
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -36,6 +59,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* شريط التنقل */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -52,7 +76,9 @@ export default function DashboardPage() {
         </div>
       </nav>
 
+      {/* المحتوى الرئيسي */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* بطاقة معلومات المستخدم */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">لوحة التحكم</h2>
           
@@ -74,17 +100,18 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* مكون اختبار الاتصال بالمنصة الأم */}
+        {/* مكون اختبار الاتصال */}
         <div className="mb-6">
           <ConnectionTest />
         </div>
 
+        {/* رسالة الترحيب */}
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             مرحبًا بك في Break Break!
           </h3>
           <p className="text-gray-600">
-            تم المصادقة (Authentication) بنجاح باستخدام رمز QR. هذه هي لوحة التحكم الخاصة بمشروعك.
+            تم المصادقة بنجاح باستخدام رمز QR. هذه هي لوحة التحكم الخاصة بمشروعك.
           </p>
         </div>
       </main>

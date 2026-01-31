@@ -1,16 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { api } from '@/lib/auth';
-import { useSocket } from '@/hooks/useSocket';
+/**
+ * مكون اختبار الاتصال - Connection Test Component
+ * 
+ * @description
+ * يعرض حالة اتصال التطبيق بالمنصة الأم (API و WebSocket)
+ * لمساعدة المستخدم على تشخيص مشاكل الاتصال
+ * 
+ * السبب: في بيئات التصوير الميدانية قد تكون الشبكة
+ * غير مستقرة، لذا من المهم إعلام المستخدم بحالة الاتصال
+ */
 
-interface ConnectionStatus {
-  api: 'connected' | 'disconnected' | 'checking';
-  socket: 'connected' | 'disconnected' | 'checking';
-  apiMessage?: string;
-  socketMessage?: string;
-}
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { api } from '../../lib/auth';
+import { useSocket } from '../../hooks/useSocket';
+import type { ConnectionStatus, ConnectionState } from '../../lib/types';
 
+/**
+ * مكون اختبار الاتصال بالمنصة
+ * 
+ * @description
+ * يفحص اتصال API و WebSocket بشكل دوري
+ * ويعرض النتائج بألوان واضحة للمستخدم
+ * 
+ * @example
+ * ```tsx
+ * <ConnectionTest />
+ * ```
+ */
 export default function ConnectionTest() {
   const [status, setStatus] = useState<ConnectionStatus>({
     api: 'checking',
@@ -22,34 +39,35 @@ export default function ConnectionTest() {
     auth: false,
   });
 
-  // اختبار الاتصال بواجهة برمجة التطبيقات (API)
-  useEffect(() => {
-    const testApiConnection = async () => {
-      try {
-        const response = await api.get('/health');
-        setStatus(prev => ({
-          ...prev,
-          api: 'connected',
-          apiMessage: 'تم الاتصال بنجاح بالمنصة الأم',
-        }));
-      } catch (error: any) {
-        setStatus(prev => ({
-          ...prev,
-          api: 'disconnected',
-          apiMessage: error?.message || 'فشل الاتصال بالمنصة الأم',
-        }));
-      }
-    };
-
-    testApiConnection();
-    
-    // اختبار الاتصال كل 30 ثانية
-    const interval = setInterval(testApiConnection, 30000);
-    
-    return () => clearInterval(interval);
+  /**
+   * اختبار الاتصال بـ API
+   */
+  const testApiConnection = useCallback(async (): Promise<void> => {
+    try {
+      await api.get('/health');
+      setStatus(prev => ({
+        ...prev,
+        api: 'connected',
+        apiMessage: 'تم الاتصال بنجاح بالمنصة الأم',
+      }));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'فشل الاتصال بالمنصة الأم';
+      setStatus(prev => ({
+        ...prev,
+        api: 'disconnected',
+        apiMessage: errorMessage,
+      }));
+    }
   }, []);
 
-  // تحديث حالة المقبس (Socket)
+  // اختبار الاتصال عند التحميل وبشكل دوري
+  useEffect(() => {
+    testApiConnection();
+    const interval = setInterval(testApiConnection, 30000);
+    return () => clearInterval(interval);
+  }, [testApiConnection]);
+
+  // تحديث حالة Socket
   useEffect(() => {
     if (socketConnected) {
       setStatus(prev => ({
@@ -66,27 +84,35 @@ export default function ConnectionTest() {
     }
   }, [socketConnected, socketError]);
 
-  const getStatusColor = (state: 'connected' | 'disconnected' | 'checking') => {
-    switch (state) {
-      case 'connected':
-        return 'bg-green-100 text-green-800 border-green-300';
-      case 'disconnected':
-        return 'bg-red-100 text-red-800 border-red-300';
-      case 'checking':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    }
-  };
+  /**
+   * الحصول على لون الحالة
+   */
+  const getStatusColor = useCallback((state: ConnectionState): string => {
+    const colors: Record<ConnectionState, string> = {
+      connected: 'bg-green-100 text-green-800 border-green-300',
+      disconnected: 'bg-red-100 text-red-800 border-red-300',
+      checking: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    };
+    return colors[state];
+  }, []);
 
-  const getStatusIcon = (state: 'connected' | 'disconnected' | 'checking') => {
-    switch (state) {
-      case 'connected':
-        return '✓';
-      case 'disconnected':
-        return '✗';
-      case 'checking':
-        return '⟳';
-    }
-  };
+  /**
+   * الحصول على أيقونة الحالة
+   */
+  const getStatusIcon = useCallback((state: ConnectionState): string => {
+    const icons: Record<ConnectionState, string> = {
+      connected: '✓',
+      disconnected: '✗',
+      checking: '⟳',
+    };
+    return icons[state];
+  }, []);
+
+  // عناوين URLs للعرض
+  const urls = useMemo(() => ({
+    api: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+    socket: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000',
+  }), []);
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md border border-gray-200">
@@ -105,7 +131,7 @@ export default function ConnectionTest() {
             {status.apiMessage || 'جارٍ التحقق من الاتصال...'}
           </p>
           <p className="text-xs mt-2 opacity-75">
-            العنوان: {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}
+            العنوان: {urls.api}
           </p>
         </div>
 
@@ -119,7 +145,7 @@ export default function ConnectionTest() {
             {status.socketMessage || 'جارٍ التحقق من الاتصال...'}
           </p>
           <p className="text-xs mt-2 opacity-75">
-            العنوان: {process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000'}
+            العنوان: {urls.socket}
           </p>
         </div>
       </div>
