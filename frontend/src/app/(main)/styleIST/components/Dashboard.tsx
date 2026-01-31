@@ -10,7 +10,7 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, Legend
 } from 'recharts';
-import { performanceData, fabricStressTest } from '../data/mockHistoricalData';
+import { performanceData, fabricStressTest } from '../mockData/mockHistoricalData';
 import { useProject } from '../contexts/ProjectContext';
 
 // ==========================================
