@@ -209,32 +209,32 @@ export function useAgentStates(
     [agentStates]
   );
 
-  /** عدد الوكلاء العاملين حالياً */
-  const workingAgentsCount = useMemo(() => {
-    let count = 0;
+  /**
+   * إحصائيات الوكلاء المحسوبة
+   * يتم حسابها في تكرار واحد لتحسين الأداء
+   */
+  const agentStatistics = useMemo(() => {
+    let working = 0;
+    let completed = 0;
+    let errors = false;
+    
     agentStates.forEach((state) => {
-      if (state.status === "working") count++;
+      if (state.status === "working") working++;
+      else if (state.status === "completed") completed++;
+      else if (state.status === "error") errors = true;
     });
-    return count;
+    
+    return { working, completed, errors };
   }, [agentStates]);
+
+  /** عدد الوكلاء العاملين حالياً */
+  const workingAgentsCount = agentStatistics.working;
 
   /** عدد الوكلاء المكتملين */
-  const completedAgentsCount = useMemo(() => {
-    let count = 0;
-    agentStates.forEach((state) => {
-      if (state.status === "completed") count++;
-    });
-    return count;
-  }, [agentStates]);
+  const completedAgentsCount = agentStatistics.completed;
 
   /** هل يوجد وكيل في حالة خطأ */
-  const hasErrors = useMemo(() => {
-    let found = false;
-    agentStates.forEach((state) => {
-      if (state.status === "error") found = true;
-    });
-    return found;
-  }, [agentStates]);
+  const hasErrors = agentStatistics.errors;
 
   return {
     agentStates,

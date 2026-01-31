@@ -51,6 +51,19 @@ function getErrorMessage(status: number): string {
 }
 
 /**
+ * استخراج رسالة الخطأ من أي نوع خطأ
+ * @param error - الخطأ المُلتقط
+ * @param fallback - رسالة افتراضية عند فشل الاستخراج
+ * @returns رسالة الخطأ النصية
+ */
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+}
+
+/**
  * @interface UseBrainStormSessionOptions
  * @description خيارات تهيئة هوك جلسة العصف الذهني
  */
@@ -168,8 +181,7 @@ export function useBrainStormSession(
         const { result } = await response.json();
         return result as SessionResult;
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "فشل في تنفيذ النقاش";
+        const errorMessage = extractErrorMessage(err, "فشل في تنفيذ النقاش");
         setError(errorMessage);
         onError?.(errorMessage);
         return null;
@@ -215,8 +227,7 @@ export function useBrainStormSession(
           );
         }
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "فشل في إنشاء الجلسة";
+        const errorMessage = extractErrorMessage(err, "فشل في إنشاء الجلسة");
         setError(errorMessage);
         onError?.(errorMessage);
       } finally {

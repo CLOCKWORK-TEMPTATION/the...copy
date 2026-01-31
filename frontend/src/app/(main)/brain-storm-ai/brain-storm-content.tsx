@@ -20,7 +20,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import {
   FileText,
   Users,
@@ -205,12 +205,19 @@ const CATEGORY_NAMES: Record<AgentCategory, string> = {
  * @component AgentIconComponent
  * @description مكون عرض أيقونة الوكيل
  * يحول معرف الأيقونة النصي إلى مكون React المناسب
+ * مُحسّن باستخدام memo لمنع إعادة الرسم غير الضرورية
  * 
  * @param icon - معرف الأيقونة من قائمة AgentIcon
  * @param className - فئات CSS إضافية للتنسيق
  * @returns عنصر React للأيقونة المطلوبة
  */
-function AgentIconComponent({ icon, className = "w-5 h-5" }: { icon: AgentIcon; className?: string }) {
+const AgentIconComponent = memo(function AgentIconComponent({ 
+  icon, 
+  className = "w-5 h-5" 
+}: { 
+  icon: AgentIcon; 
+  className?: string;
+}) {
   const iconMap: Record<AgentIcon, React.ReactNode> = {
     brain: <Brain className={className} />,
     users: <Users className={className} />,
@@ -236,7 +243,7 @@ function AgentIconComponent({ icon, className = "w-5 h-5" }: { icon: AgentIcon; 
     search: <Search className={className} />,
   };
   return iconMap[icon] || <Cpu className={className} />;
-}
+});
 
 /**
  * @component AgentCard
