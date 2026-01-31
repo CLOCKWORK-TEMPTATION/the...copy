@@ -1,60 +1,130 @@
-import { GoogleGenAI, Type } from '@google/genai';
-import { Budget, AIAnalysis } from './types';
+/**
+ * خدمة Gemini للذكاء الاصطناعي
+ * 
+ * @description
+ * توفر واجهة للتواصل مع Google Gemini AI لتحليل السيناريوهات
+ * وتوليد الميزانيات وتقديم التوصيات المهنية
+ * 
+ * السبب: تُمكّن المستخدم من الحصول على ميزانيات احترافية
+ * بناءً على تحليل ذكي للسيناريو دون خبرة سابقة
+ */
 
+import { GoogleGenAI } from '@google/genai';
+import { 
+  Budget, 
+  AIAnalysis, 
+  Section, 
+  Category, 
+  LineItem,
+  BudgetSchema,
+  AIAnalysisSchema 
+} from './types';
+
+/**
+ * خطأ API من Gemini
+ */
+interface GeminiApiError extends Error {
+  message: string;
+  code?: string;
+}
+
+/**
+ * خدمة Gemini لتحليل السيناريوهات وتوليد الميزانيات
+ * 
+ * @description
+ * تستخدم نموذج Gemini 2.0 Flash لتقديم تحليلات
+ * إنتاجية متقدمة وميزانيات دقيقة
+ */
 export class GeminiService {
-    private ai: GoogleGenAI | null = null;
-    private model = 'gemini-2.0-flash-exp';
+  private ai: GoogleGenAI | null = null;
+  private model = 'gemini-2.0-flash-exp';
 
-    constructor() {
-        const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-        if (apiKey) {
-            this.ai = new GoogleGenAI({ apiKey });
-        }
+  /**
+   * مُنشئ الخدمة
+   * 
+   * @description
+   * يُهيئ الاتصال بـ Gemini API باستخدام مفتاح API
+   * من متغيرات البيئة
+   */
+  constructor() {
+    const apiKey = process.env.VITE_GEMINI_API_KEY || 
+                   process.env.GEMINI_API_KEY || 
+                   process.env.API_KEY || 
+                   process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    if (apiKey) {
+      this.ai = new GoogleGenAI({ apiKey });
+    }
+  }
+
+  /**
+   * توليد ميزانية من السيناريو
+   * 
+   * @description
+   * يحلل نص السيناريو ويُنشئ ميزانية مفصلة
+   * باستخدام قالب الميزانية المُقدم
+   * 
+   * السبب: أتمتة عملية تقدير التكاليف التي تتطلب
+   * عادةً خبرة سنوات في الإنتاج السينمائي
+   * 
+   * @param scriptContent - نص السيناريو
+   * @param template - قالب الميزانية الأساسي
+   * @returns ميزانية مُولّدة
+   * @throws خطأ إذا فشل التوليد
+   */
+  async generateBudgetFromScript(scriptContent: string, template: Budget): Promise<Budget> {
+    if (!this.ai) {
+      throw new Error("مفتاح Gemini API غير موجود. يرجى إعداد GEMINI_API_KEY في ملف .env");
     }
 
-    async generateBudgetFromScript(scriptContent: string, template: Budget): Promise<Budget> {
-        if (!this.ai) {
-            throw new Error("Gemini API Key is missing. Please set GEMINI_API_KEY in your .env file");
+    const prompt = this.buildBudgetPrompt(scriptContent, template);
+
+    try {
+      const response = await this.ai.models.generateContent({
+        model: this.model,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          temperature: 0.2,
+          topP: 0.8,
+          maxOutputTokens: 8192,
         }
+      });
 
-        const prompt = this.buildBudgetPrompt(scriptContent, template);
+      const text = response.text();
+      if (!text) throw new Error("لم يتم استلام استجابة من الذكاء الاصطناعي");
 
-        try {
-            const response = await this.ai.models.generateContent({
-                model: this.model,
-                contents: prompt,
-                config: {
-                    responseMimeType: 'application/json',
-                    temperature: 0.2,
-                    topP: 0.8,
-                    maxOutputTokens: 8192,
-                }
-            });
+      const cleanedText = this.cleanJsonResponse(text);
 
-            const text = response.text();
-            if (!text) throw new Error("No response from AI");
+      try {
+        const budget = JSON.parse(cleanedText) as Budget;
+        return this.validateAndFixBudget(budget);
+      } catch {
+        throw new Error("استجابة الذكاء الاصطناعي ليست JSON صالحة. يرجى المحاولة مرة أخرى.");
+      }
+    } catch (error: unknown) {
+      throw this.handleApiError(error);
+    }
+  }
 
-            const cleanedText = this.cleanJsonResponse(text);
-
-            try {
-                const budget = JSON.parse(cleanedText);
-                return this.validateAndFixBudget(budget);
-            } catch (parseError) {
-                console.error("JSON Parse Error:", cleanedText);
-                throw new Error("AI response was not valid JSON. Please try again.");
-            }
-        } catch (error: any) {
-            console.error("Gemini API Error:", error);
-            throw this.handleApiError(error);
-        }
+  /**
+   * تحليل السيناريو
+   * 
+   * @description
+   * يُجري تحليلاً شاملاً للسيناريو لتحديد
+   * المتطلبات الإنتاجية والمخاطر وفرص التوفير
+   * 
+   * السبب: يوفر رؤى استراتيجية تُساعد في
+   * التخطيط الأمثل للإنتاج
+   * 
+   * @param scriptContent - نص السيناريو
+   * @returns تحليل شامل للإنتاج
+   */
+  async analyzeScript(scriptContent: string): Promise<AIAnalysis> {
+    if (!this.ai) {
+      throw new Error("مفتاح Gemini API غير موجود");
     }
 
-    async analyzeScript(scriptContent: string): Promise<AIAnalysis> {
-        if (!this.ai) {
-            throw new Error("Gemini API Key is missing");
-        }
-
-        const prompt = `
+    const prompt = `
       You are a veteran Film Production Analyst and Line Producer with expertise in production planning and budgeting.
       
       COMPREHENSIVE SCRIPT ANALYSIS:
@@ -145,21 +215,32 @@ export class GeminiService {
       }
     `;
 
-        const response = await this.ai.models.generateContent({
-            model: this.model,
-            contents: prompt,
-            config: {
-                responseMimeType: 'application/json',
-                temperature: 0.2,
-                topP: 0.85,
-            }
-        });
+    const response = await this.ai.models.generateContent({
+      model: this.model,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+        topP: 0.85,
+      }
+    });
 
-        return JSON.parse(this.cleanJsonResponse(response.text() || '{}'));
-    }
+    const result = JSON.parse(this.cleanJsonResponse(response.text() || '{}')) as AIAnalysis;
+    return result;
+  }
 
-    private buildBudgetPrompt(scriptContent: string, template: Budget): string {
-        return `
+  /**
+   * بناء موجه توليد الميزانية
+   * 
+   * @description
+   * يُنشئ النص التوجيهي التفصيلي لنموذج الذكاء الاصطناعي
+   * 
+   * @param scriptContent - نص السيناريو
+   * @param template - قالب الميزانية
+   * @returns النص التوجيهي
+   */
+  private buildBudgetPrompt(scriptContent: string, template: Budget): string {
+    return `
       You are a world-class Film Line Producer with 30+ years of experience in feature films, commercials, and international productions.
       
       ADVANCED SCRIPT ANALYSIS TASK:
@@ -257,104 +338,147 @@ export class GeminiService {
       
       Generate a professional, accurate, and comprehensive budget based on deep script analysis.
     `;
+  }
+
+  /**
+   * تنظيف استجابة JSON
+   * 
+   * @description
+   * يُزيل أي نص إضافي حول بيانات JSON
+   * 
+   * @param text - النص الخام
+   * @returns نص JSON نظيف
+   */
+  private cleanJsonResponse(text: string): string {
+    return text
+      .trim()
+      .replace(/^[^{]*/, '')
+      .replace(/[^}]*$/, '')
+      .replace(/\n/g, '')
+      .replace(/\s{2,}/g, ' ');
+  }
+
+  /**
+   * التحقق من صحة الميزانية وإصلاحها
+   * 
+   * @description
+   * يتحقق من بنية الميزانية ويُصلح أي
+   * حسابات خاطئة في المجاميع
+   * 
+   * @param budget - الميزانية للتحقق منها
+   * @returns الميزانية المُصححة
+   */
+  private validateAndFixBudget(budget: Budget): Budget {
+    if (!budget.sections || !Array.isArray(budget.sections)) {
+      throw new Error("بنية الميزانية غير صالحة: الأقسام مفقودة");
     }
 
-    private cleanJsonResponse(text: string): string {
-        return text
-            .trim()
-            .replace(/^[^{]*/, '') // Remove text before first {
-            .replace(/[^}]*$/, '') // Remove text after last }
-            .replace(/\n/g, '') // Remove newlines
-            .replace(/\s{2,}/g, ' '); // Remove extra spaces
-    }
+    let calculatedGrandTotal = 0;
 
-    private validateAndFixBudget(budget: any): Budget {
-        // Ensure budget has required structure
-        if (!budget.sections || !Array.isArray(budget.sections)) {
-            throw new Error("Invalid budget structure: missing sections");
-        }
+    budget.sections.forEach((section: Section) => {
+      let sectionTotal = 0;
 
-        let calculatedGrandTotal = 0;
+      section.categories.forEach((category: Category) => {
+        let categoryTotal = 0;
 
-        // Fix each section
-        budget.sections.forEach((section: any) => {
-            let sectionTotal = 0;
-
-            section.categories.forEach((category: any) => {
-                let categoryTotal = 0;
-
-                category.items.forEach((item: any) => {
-                    // Ensure all required fields exist
-                    if (!item.code || !item.description) {
-                        console.warn("Missing required fields in line item", item);
-                    }
-
-                    // Fix numeric values
-                    item.amount = Number(item.amount) || 0;
-                    item.rate = Number(item.rate) || 0;
-                    item.total = item.amount * item.rate;
-
-                    categoryTotal += item.total;
-                });
-
-                category.total = categoryTotal;
-                sectionTotal += categoryTotal;
-            });
-
-            section.total = sectionTotal;
-            calculatedGrandTotal += sectionTotal;
+        category.items.forEach((item: LineItem) => {
+          item.amount = Number(item.amount) || 0;
+          item.rate = Number(item.rate) || 0;
+          item.total = item.amount * item.rate;
+          categoryTotal += item.total;
         });
 
-        budget.grandTotal = calculatedGrandTotal;
+        category.total = categoryTotal;
+        sectionTotal += categoryTotal;
+      });
 
-        return budget;
+      section.total = sectionTotal;
+      calculatedGrandTotal += sectionTotal;
+    });
+
+    budget.grandTotal = calculatedGrandTotal;
+    return budget;
+  }
+
+  /**
+   * معالجة أخطاء API
+   * 
+   * @description
+   * يُحوّل أخطاء API إلى رسائل مفهومة للمستخدم
+   * 
+   * @param error - الخطأ الأصلي
+   * @returns خطأ مع رسالة واضحة
+   */
+  private handleApiError(error: unknown): Error {
+    const apiError = error as GeminiApiError;
+    const message = apiError.message || '';
+    
+    if (message.includes('API key')) {
+      return new Error("مفتاح API غير صالح. يرجى التحقق من إعدادات Gemini API.");
+    } else if (message.includes('quota')) {
+      return new Error("تم تجاوز حصة API. يرجى المحاولة لاحقاً أو التحقق من الفواتير.");
+    } else if (message.includes('permission')) {
+      return new Error("رُفض إذن API. يرجى التأكد من صلاحيات مفتاح Gemini.");
+    } else {
+      return new Error(`فشل توليد الميزانية: ${message || 'حدث خطأ غير معروف'}`);
+    }
+  }
+
+  /**
+   * التحقق من بنية الميزانية
+   * 
+   * @description
+   * يفحص صحة بنية كائن الميزانية
+   * 
+   * @param budget - الميزانية للفحص
+   * @returns نتيجة الفحص مع قائمة الأخطاء
+   */
+  validateBudgetStructure(budget: unknown): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!budget || typeof budget !== 'object') {
+      errors.push('الميزانية ليست كائناً صالحاً');
+      return { isValid: false, errors };
     }
 
-    private handleApiError(error: any): Error {
-        if (error.message?.includes('API key')) {
-            return new Error("Invalid API key. Please check your Gemini API key configuration.");
-        } else if (error.message?.includes('quota')) {
-            return new Error("API quota exceeded. Please try again later or check your billing.");
-        } else if (error.message?.includes('permission')) {
-            return new Error("API permission denied. Please ensure your Gemini API key has the required permissions.");
-        } else {
-            return new Error(`Failed to generate budget: ${error.message || 'Unknown error occurred'}`);
+    const budgetObj = budget as Record<string, unknown>;
+
+    if (!Array.isArray(budgetObj.sections)) {
+      errors.push('أقسام الميزانية ليست مصفوفة');
+    } else {
+      (budgetObj.sections as Record<string, unknown>[]).forEach(
+        (section: Record<string, unknown>, sectionIndex: number) => {
+          if (!section.categories || !Array.isArray(section.categories)) {
+            errors.push(`القسم ${sectionIndex}: الفئات ليست مصفوفة`);
+          }
         }
+      );
     }
 
-    // Validate budget structure
-    validateBudgetStructure(budget: any): { isValid: boolean; errors: string[] } {
-        const errors: string[] = [];
-
-        if (!budget || typeof budget !== 'object') {
-            errors.push('Budget is not a valid object');
-            return { isValid: false, errors };
-        }
-
-        if (!Array.isArray(budget.sections)) {
-            errors.push('Budget sections is not an array');
-        } else {
-            budget.sections.forEach((section: any, sectionIndex: number) => {
-                if (!section.categories || !Array.isArray(section.categories)) {
-                    errors.push(`Section ${sectionIndex}: categories is not an array`);
-                }
-            });
-        }
-
-        if (typeof budget.grandTotal !== 'number') {
-            errors.push('Budget grandTotal is not a number');
-        }
-
-        return { isValid: errors.length === 0, errors };
+    if (typeof budgetObj.grandTotal !== 'number') {
+      errors.push('المجموع الكلي ليس رقماً');
     }
 
-    // Generate budget comparison
-    async compareBudgets(budget1: Budget, budget2: Budget): Promise<any> {
-        if (!this.ai) {
-            throw new Error("Gemini API Key is missing");
-        }
+    return { isValid: errors.length === 0, errors };
+  }
 
-        const prompt = `
+  /**
+   * مقارنة ميزانيتين
+   * 
+   * @description
+   * يُجري مقارنة تفصيلية بين ميزانيتين
+   * لتحديد الفروقات والتوصيات
+   * 
+   * @param budget1 - الميزانية الأولى
+   * @param budget2 - الميزانية الثانية
+   * @returns تقرير المقارنة
+   */
+  async compareBudgets(budget1: Budget, budget2: Budget): Promise<Record<string, unknown>> {
+    if (!this.ai) {
+      throw new Error("مفتاح Gemini API غير موجود");
+    }
+
+    const prompt = `
       You are an expert film production budget analyst. Compare these two film budgets comprehensively.
       
       Budget 1: ${JSON.stringify(budget1.metadata || {}, null, 2)}
@@ -412,25 +536,35 @@ export class GeminiService {
       }
     `;
 
-        const response = await this.ai.models.generateContent({
-            model: this.model,
-            contents: prompt,
-            config: {
-                responseMimeType: 'application/json',
-                temperature: 0.2,
-            }
-        });
+    const response = await this.ai.models.generateContent({
+      model: this.model,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+      }
+    });
 
-        return JSON.parse(this.cleanJsonResponse(response.text() || '{}'));
+    return JSON.parse(this.cleanJsonResponse(response.text() || '{}')) as Record<string, unknown>;
+  }
+
+  /**
+   * تحسين الميزانية
+   * 
+   * @description
+   * يُقدم اقتراحات لتقليل التكاليف
+   * مع الحفاظ على جودة الإنتاج
+   * 
+   * @param budget - الميزانية الحالية
+   * @param targetReduction - مبلغ التخفيض المستهدف
+   * @returns خطة التحسين
+   */
+  async optimizeBudget(budget: Budget, targetReduction: number): Promise<Record<string, unknown>> {
+    if (!this.ai) {
+      throw new Error("مفتاح Gemini API غير موجود");
     }
 
-    // Optimize budget based on constraints
-    async optimizeBudget(budget: Budget, targetReduction: number): Promise<any> {
-        if (!this.ai) {
-            throw new Error("Gemini API Key is missing");
-        }
-
-        const prompt = `
+    const prompt = `
       You are a film production budget optimization expert. 
       
       Current Budget: $${budget.grandTotal.toLocaleString()}
@@ -472,29 +606,39 @@ export class GeminiService {
       }
     `;
 
-        const response = await this.ai.models.generateContent({
-            model: this.model,
-            contents: prompt,
-            config: {
-                responseMimeType: 'application/json',
-                temperature: 0.2,
-            }
-        });
+    const response = await this.ai.models.generateContent({
+      model: this.model,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+      }
+    });
 
-        return JSON.parse(this.cleanJsonResponse(response.text() || '{}'));
-    }
+    return JSON.parse(this.cleanJsonResponse(response.text() || '{}')) as Record<string, unknown>;
+  }
 }
 
-// Export singleton instance
+/** مثيل خدمة Gemini المُشترك */
 export const geminiService = new GeminiService();
 
-// Export individual functions for backward compatibility
-export const generateBudgetFromScript = async (scriptContent: string, template: Budget): Promise<Budget> => {
-    return geminiService.generateBudgetFromScript(scriptContent, template);
+/**
+ * توليد ميزانية من السيناريو (للتوافق مع الإصدارات السابقة)
+ */
+export const generateBudgetFromScript = async (
+  scriptContent: string, 
+  template: Budget
+): Promise<Budget> => {
+  return geminiService.generateBudgetFromScript(scriptContent, template);
 };
 
-export const validateBudgetStructure = (budget: any): { isValid: boolean; errors: string[] } => {
-    return geminiService.validateBudgetStructure(budget);
+/**
+ * التحقق من بنية الميزانية (للتوافق مع الإصدارات السابقة)
+ */
+export const validateBudgetStructure = (
+  budget: unknown
+): { isValid: boolean; errors: string[] } => {
+  return geminiService.validateBudgetStructure(budget);
 };
 
 export { geminiService as default };
