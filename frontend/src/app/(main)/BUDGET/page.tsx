@@ -146,6 +146,10 @@ export default function BudgetPage() {
 
   /**
    * معالج تغيير عنوان الفيلم
+   * 
+   * @description
+   * مصفوفة الاعتماديات فارغة لأن setFilmTitle من useState
+   * مضمونة الثبات من React ولن تتغير
    */
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
     setFilmTitle(e.target.value);
@@ -153,6 +157,10 @@ export default function BudgetPage() {
 
   /**
    * معالج تغيير السيناريو
+   * 
+   * @description
+   * مصفوفة الاعتماديات فارغة لأن setScenario من useState
+   * مضمونة الثبات من React ولن تتغير
    */
   const handleScenarioChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setScenario(e.target.value);

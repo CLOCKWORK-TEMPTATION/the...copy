@@ -98,8 +98,10 @@ export class GeminiService {
       try {
         const budget = JSON.parse(cleanedText) as Budget;
         return this.validateAndFixBudget(budget);
-      } catch {
-        throw new Error("استجابة الذكاء الاصطناعي ليست JSON صالحة. يرجى المحاولة مرة أخرى.");
+      } catch (parseError: unknown) {
+        // تسجيل الخطأ الأصلي للتصحيح مع الحفاظ على رسالة واضحة للمستخدم
+        const errorDetails = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+        throw new Error(`استجابة الذكاء الاصطناعي ليست JSON صالحة (${errorDetails}). يرجى المحاولة مرة أخرى.`);
       }
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -225,8 +227,13 @@ export class GeminiService {
       }
     });
 
-    const result = JSON.parse(this.cleanJsonResponse(response.text() || '{}')) as AIAnalysis;
-    return result;
+    try {
+      const result = JSON.parse(this.cleanJsonResponse(response.text() || '{}')) as AIAnalysis;
+      return result;
+    } catch (parseError: unknown) {
+      const errorDetails = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+      throw new Error(`فشل في تحليل استجابة الذكاء الاصطناعي (${errorDetails}). يرجى المحاولة مرة أخرى.`);
+    }
   }
 
   /**
