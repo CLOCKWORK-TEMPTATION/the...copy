@@ -1,6 +1,10 @@
 /**
- * Task icon mapper utility
- * Extracted to reduce cyclomatic complexity in creative-development.tsx
+ * @fileoverview أداة ربط الأيقونات بالمهام
+ * 
+ * تُستخدم لتبسيط تعقيد المكون الرئيسي عن طريق فصل منطق
+ * اختيار الأيقونات إلى وحدة منفصلة مع بحث O(1)
+ * 
+ * @module development/utils/task-icon-mapper
  */
 
 import {
@@ -8,7 +12,6 @@ import {
   Sparkles,
   FileText,
   PenTool,
-  Beaker,
   Users,
   Search,
   Film,
@@ -26,9 +29,11 @@ import {
   Target,
 } from "lucide-react";
 import { TaskType, TaskCategory } from "@/types/enums";
+import { CreativeTaskType } from "../types";
 
 /**
- * Icon mapping for specific task types
+ * خريطة الأيقونات لأنواع المهام العامة
+ * تُستخدم للوصول السريع O(1) بدلاً من switch متعددة
  */
 const TASK_TYPE_ICONS: Partial<Record<TaskType, React.ReactNode>> = {
   [TaskType.ANALYSIS]: <Lightbulb className="w-4 h-4" />,
@@ -47,75 +52,82 @@ const TASK_TYPE_ICONS: Partial<Record<TaskType, React.ReactNode>> = {
 };
 
 /**
- * Icon mapping for task categories
+ * خريطة الأيقونات لفئات المهام
+ * تُستخدم كـ fallback عندما لا توجد أيقونة محددة للمهمة
  */
-const TASK_CATEGORY_ICONS: Record<TaskCategory, React.ReactNode> = {
+const TASK_CATEGORY_ICONS: Partial<Record<TaskCategory, React.ReactNode>> = {
   [TaskCategory.ANALYSIS]: <Lightbulb className="w-4 h-4" />,
   [TaskCategory.CREATIVE]: <Sparkles className="w-4 h-4" />,
-  [TaskCategory.INTEGRATED]: <FileText className="w-4 h-4" />,
-  [TaskCategory.GENERAL]: <Clipboard className="w-4 h-4" />,
-  [TaskCategory.CHARACTER]: <Users className="w-4 h-4" />,
-  [TaskCategory.SCENE]: <Film className="w-4 h-4" />,
-  [TaskCategory.SCRIPT]: <FileText className="w-4 h-4" />,
   [TaskCategory.CORE]: <Target className="w-4 h-4" />,
   [TaskCategory.PREDICTIVE]: <TrendingUp className="w-4 h-4" />,
   [TaskCategory.ADVANCED_MODULES]: <Brain className="w-4 h-4" />,
 };
 
 /**
- * Get icon for a task type
- * Simplified logic with O(1) lookup instead of nested switches
+ * استرجاع أيقونة لنوع مهمة معين
+ * 
+ * تبحث أولاً عن أيقونة محددة للمهمة، ثم تلجأ لأيقونة الفئة،
+ * وأخيراً تعيد أيقونة افتراضية
+ * 
+ * @param taskType - نوع المهمة المطلوبة
+ * @param taskCategoryMap - خريطة تربط أنواع المهام بفئاتها
+ * @returns عنصر React يمثل الأيقونة
  */
 export function getTaskIcon(
   taskType: TaskType,
   taskCategoryMap: Partial<Record<TaskType, TaskCategory>>
 ): React.ReactNode {
-  // First, try to get icon by specific task type
+  // البحث المباشر عن أيقونة المهمة
   const taskIcon = TASK_TYPE_ICONS[taskType];
   if (taskIcon) {
     return taskIcon;
   }
 
-  // Fall back to category icon
+  // الرجوع لأيقونة الفئة
   const taskCategory = taskCategoryMap[taskType];
   if (taskCategory && TASK_CATEGORY_ICONS[taskCategory]) {
     return TASK_CATEGORY_ICONS[taskCategory];
   }
 
-  // Default fallback
+  // الأيقونة الافتراضية
   return <Sparkles className="w-4 h-4" />;
 }
 
 /**
- * Icon mapping for creative task types
+ * خريطة الأيقونات للمهام الإبداعية
+ * تحتوي على أيقونات مخصصة لكل نوع من أدوات التطوير الإبداعي
  */
-const CREATIVE_TASK_ICONS: Partial<Record<TaskType, React.ReactNode>> = {
-  [TaskType.CREATIVE]: <Wand2 className="w-4 h-4" />,
-  [TaskType.COMPLETION]: <PenTool className="w-4 h-4" />,
-  [TaskType.ADAPTIVE_REWRITING]: <Brain className="w-4 h-4" />,
-  [TaskType.SCENE_GENERATOR]: <Film className="w-4 h-4" />,
-  [TaskType.CHARACTER_VOICE]: <MessageSquare className="w-4 h-4" />,
-  [TaskType.WORLD_BUILDER]: <Globe className="w-4 h-4" />,
-  [TaskType.PLOT_PREDICTOR]: <TrendingUp className="w-4 h-4" />,
-  [TaskType.TENSION_OPTIMIZER]: <Zap className="w-4 h-4" />,
-  [TaskType.RHYTHM_MAPPING]: <Music className="w-4 h-4" />,
-  [TaskType.CHARACTER_NETWORK]: <Network className="w-4 h-4" />,
-  [TaskType.DIALOGUE_FORENSICS]: <Search className="w-4 h-4" />,
-  [TaskType.THEMATIC_MINING]: <Lightbulb className="w-4 h-4" />,
-  [TaskType.STYLE_FINGERPRINT]: <Palette className="w-4 h-4" />,
-  [TaskType.CONFLICT_DYNAMICS]: <Target className="w-4 h-4" />,
+const CREATIVE_TASK_ICONS: Record<CreativeTaskType, React.ReactNode> = {
+  [CreativeTaskType.CREATIVE]: <Wand2 className="w-5 h-5" />,
+  [CreativeTaskType.COMPLETION]: <PenTool className="w-5 h-5" />,
+  [CreativeTaskType.ADAPTIVE_REWRITING]: <Brain className="w-5 h-5" />,
+  [CreativeTaskType.SCENE_GENERATOR]: <Film className="w-5 h-5" />,
+  [CreativeTaskType.CHARACTER_VOICE]: <MessageSquare className="w-5 h-5" />,
+  [CreativeTaskType.WORLD_BUILDER]: <Globe className="w-5 h-5" />,
+  [CreativeTaskType.PLOT_PREDICTOR]: <TrendingUp className="w-5 h-5" />,
+  [CreativeTaskType.TENSION_OPTIMIZER]: <Zap className="w-5 h-5" />,
+  [CreativeTaskType.RHYTHM_MAPPING]: <Music className="w-5 h-5" />,
+  [CreativeTaskType.CHARACTER_NETWORK]: <Network className="w-5 h-5" />,
+  [CreativeTaskType.DIALOGUE_FORENSICS]: <Search className="w-5 h-5" />,
+  [CreativeTaskType.THEMATIC_MINING]: <Lightbulb className="w-5 h-5" />,
+  [CreativeTaskType.STYLE_FINGERPRINT]: <Palette className="w-5 h-5" />,
+  [CreativeTaskType.CONFLICT_DYNAMICS]: <Target className="w-5 h-5" />,
 };
 
 /**
- * Get icon for creative task type
+ * استرجاع أيقونة لمهمة إبداعية
+ * 
+ * تُستخدم في واجهة اختيار أدوات التطوير الإبداعي
+ * 
+ * @param taskType - نوع المهمة الإبداعية
+ * @returns عنصر React يمثل الأيقونة
  */
-export function getCreativeTaskIcon(taskType: TaskType): React.ReactNode {
-  // Try to get icon by specific creative task type
+export function getCreativeTaskIcon(taskType: CreativeTaskType): React.ReactNode {
   const icon = CREATIVE_TASK_ICONS[taskType];
   if (icon) {
     return icon;
   }
 
-  // Default fallback
-  return <Sparkles className="w-4 h-4" />;
+  // الأيقونة الافتراضية
+  return <Sparkles className="w-5 h-5" />;
 }
