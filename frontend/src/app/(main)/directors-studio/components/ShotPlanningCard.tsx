@@ -1,16 +1,25 @@
+/**
+ * @fileoverview مكوّن بطاقة تخطيط اللقطة
+ *
+ * السبب في وجود هذا المكوّن: توفير واجهة تفاعلية
+ * لتخطيط اللقطات السينمائية مع دعم اقتراحات الذكاء الاصطناعي.
+ *
+ * يدعم:
+ * - اختيار نوع اللقطة وزاوية الكاميرا والحركة والإضاءة
+ * - الحصول على اقتراحات من الذكاء الاصطناعي
+ * - حفظ وحذف وإعادة تعيين اللقطة
+ */
 "use client";
 
 import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
   Video,
   Move,
   Maximize2,
   Sun,
-  Lightbulb,
   Loader2,
   Sparkles,
   Trash2,
@@ -28,28 +37,70 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useGetShotSuggestion } from "@/hooks/useAI";
+import { useToast } from "@/hooks/use-toast";
 import type { Shot } from "@shared/schema";
 
+/**
+ * واجهة خصائص مكوّن بطاقة تخطيط اللقطة
+ */
 interface ShotPlanningCardProps {
+  /** بيانات اللقطة الحالية (اختياري) */
   shot?: Partial<Shot>;
+  /** رقم اللقطة */
   shotNumber: number;
+  /** رقم المشهد */
   sceneNumber: number;
+  /** وصف المشهد (اختياري) */
   sceneDescription?: string;
+  /** معرف المشروع (اختياري) */
   projectId?: string;
+  /** معرف المشهد (اختياري) */
   sceneId?: string;
+  /** دالة استدعاء للحفظ */
   onSave?: (shotData: Partial<Shot>) => void;
+  /** دالة استدعاء للحذف */
   onDelete?: () => void;
 }
 
-// Shot type visual icons
+/**
+ * واجهة اقتراح الذكاء الاصطناعي
+ */
+interface AISuggestion {
+  suggestion: string;
+  reasoning: string;
+}
+
+/**
+ * خريطة أيقونات وأوصاف أنواع اللقطات
+ * السبب: توفير معلومات بصرية لمساعدة المخرج في الاختيار
+ */
 const SHOT_TYPE_ICONS: Record<string, { icon: string; description: string }> = {
   "extreme-wide": { icon: "🏔️", description: "تظهر البيئة الكاملة" },
-  "wide": { icon: "🌄", description: "تظهر الموقع والشخصيات" },
-  "medium": { icon: "👤", description: "من الخصر للأعلى" },
+  wide: { icon: "🌄", description: "تظهر الموقع والشخصيات" },
+  medium: { icon: "👤", description: "من الخصر للأعلى" },
   "close-up": { icon: "👁️", description: "الوجه والتعبيرات" },
   "extreme-close-up": { icon: "🔍", description: "تفاصيل دقيقة" },
-};
+} as const;
 
+/**
+ * القيم الافتراضية للقطة
+ */
+const DEFAULT_VALUES = {
+  shotType: "medium",
+  cameraAngle: "eye-level",
+  cameraMovement: "static",
+  lighting: "natural",
+} as const;
+
+/**
+ * مكوّن بطاقة تخطيط اللقطة
+ *
+ * السبب في التصميم: توفير واجهة شاملة لتخطيط اللقطات
+ * مع دعم الذكاء الاصطناعي لتحسين جودة الإنتاج.
+ *
+ * السبب في استخدام memo: بطاقات اللقطات تُعرض في قوائم
+ * ونريد تجنب إعادة العرض غير الضرورية.
+ */
 const ShotPlanningCard = memo(function ShotPlanningCard({
   shot,
   shotNumber,
@@ -60,27 +111,32 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
   onSave,
   onDelete,
 }: ShotPlanningCardProps) {
-  const [shotType, setShotType] = useState(shot?.shotType || "medium");
+  const [shotType, setShotType] = useState(
+    shot?.shotType || DEFAULT_VALUES.shotType
+  );
   const [cameraAngle, setCameraAngle] = useState(
-    shot?.cameraAngle || "eye-level"
+    shot?.cameraAngle || DEFAULT_VALUES.cameraAngle
   );
   const [cameraMovement, setCameraMovement] = useState(
-    shot?.cameraMovement || "static"
+    shot?.cameraMovement || DEFAULT_VALUES.cameraMovement
   );
-  const [lighting, setLighting] = useState(shot?.lighting || "natural");
-  const [aiSuggestion, setAiSuggestion] = useState<{
-    suggestion: string;
-    reasoning: string;
-  } | null>(shot?.aiSuggestion ? JSON.parse(shot.aiSuggestion) : null);
+  const [lighting, setLighting] = useState(
+    shot?.lighting || DEFAULT_VALUES.lighting
+  );
+  const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
 
   const getSuggestionMutation = useGetShotSuggestion();
+  const { toast } = useToast();
 
+  /**
+   * تحميل اقتراح AI المحفوظ عند تحميل اللقطة
+   */
   useEffect(() => {
     if (shot) {
-      setShotType(shot.shotType || "medium");
-      setCameraAngle(shot.cameraAngle || "eye-level");
-      setCameraMovement(shot.cameraMovement || "static");
-      setLighting(shot.lighting || "natural");
+      setShotType(shot.shotType || DEFAULT_VALUES.shotType);
+      setCameraAngle(shot.cameraAngle || DEFAULT_VALUES.cameraAngle);
+      setCameraMovement(shot.cameraMovement || DEFAULT_VALUES.cameraMovement);
+      setLighting(shot.lighting || DEFAULT_VALUES.lighting);
       if (shot.aiSuggestion) {
         try {
           setAiSuggestion(JSON.parse(shot.aiSuggestion));
@@ -91,17 +147,28 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
     }
   }, [shot]);
 
-  const handleGetSuggestion = async () => {
+  /**
+   * معالج الحصول على اقتراح من AI
+   *
+   * السبب في useCallback: تجنب إنشاء دالة جديدة في كل render
+   */
+  const handleGetSuggestion = useCallback(async () => {
     if (!projectId || !sceneId) {
-      console.error("Missing projectId or sceneId for getting suggestions");
+      toast({
+        title: "خطأ",
+        description: "يجب تحديد المشروع والمشهد أولاً",
+        variant: "destructive",
+      });
       return;
     }
+
     try {
       const result = await getSuggestionMutation.mutateAsync({
         projectId,
         sceneId,
         shotType,
       });
+
       if (
         result &&
         "data" in result &&
@@ -117,19 +184,31 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
         });
       }
     } catch (error) {
-      console.error("Failed to get suggestion:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "فشل الحصول على الاقتراح";
+      toast({
+        title: "حدث خطأ",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
-  };
+  }, [projectId, sceneId, shotType, getSuggestionMutation, toast]);
 
-  const handleReset = () => {
-    setShotType("medium");
-    setCameraAngle("eye-level");
-    setCameraMovement("static");
-    setLighting("natural");
+  /**
+   * معالج إعادة تعيين اللقطة للقيم الافتراضية
+   */
+  const handleReset = useCallback(() => {
+    setShotType(DEFAULT_VALUES.shotType);
+    setCameraAngle(DEFAULT_VALUES.cameraAngle);
+    setCameraMovement(DEFAULT_VALUES.cameraMovement);
+    setLighting(DEFAULT_VALUES.lighting);
     setAiSuggestion(null);
-  };
+  }, []);
 
-  const handleSave = () => {
+  /**
+   * معالج حفظ اللقطة
+   */
+  const handleSave = useCallback(() => {
     if (onSave) {
       onSave({
         shotType,
@@ -139,22 +218,30 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
         aiSuggestion: aiSuggestion ? JSON.stringify(aiSuggestion) : null,
       });
     }
-  };
+  }, [onSave, shotType, cameraAngle, cameraMovement, lighting, aiSuggestion]);
 
-  // Get shot type info
-  const shotTypeInfo = SHOT_TYPE_ICONS[shotType] || { icon: "📷", description: "" };
+  /**
+   * الحصول على معلومات نوع اللقطة
+   */
+  const shotTypeInfo = useMemo(
+    () => SHOT_TYPE_ICONS[shotType] || { icon: "📷", description: "" },
+    [shotType]
+  );
 
   return (
     <Card
       data-testid={`card-shot-${shotNumber}`}
       className="card-interactive group overflow-hidden"
     >
-      {/* Header with gradient */}
+      {/* رأس البطاقة مع تدرج */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-500/5" />
         <CardHeader className="relative">
           <div className="flex items-center justify-between">
-            <Badge variant="outline" className="bg-background/50 backdrop-blur-sm">
+            <Badge
+              variant="outline"
+              className="bg-background/50 backdrop-blur-sm"
+            >
               <Film className="h-3 w-3 ml-1" />
               المشهد {sceneNumber}
             </Badge>
@@ -165,7 +252,9 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
                   <Camera className="h-4 w-4 text-brand" />
                   اللقطة {shotNumber}
                 </CardTitle>
-                <p className="text-xs text-muted-foreground">{shotTypeInfo.description}</p>
+                <p className="text-xs text-muted-foreground">
+                  {shotTypeInfo.description}
+                </p>
               </div>
             </div>
           </div>
@@ -174,6 +263,7 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
 
       <CardContent className="space-y-6 pt-4">
         <div className="grid gap-4 md:grid-cols-2">
+          {/* نوع اللقطة */}
           <div className="space-y-2 text-right">
             <label className="text-sm font-medium flex items-center justify-end gap-2">
               <Video className="w-4 h-4" />
@@ -195,6 +285,7 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
             </Select>
           </div>
 
+          {/* زاوية الكاميرا */}
           <div className="space-y-2 text-right">
             <label className="text-sm font-medium flex items-center justify-end gap-2">
               <Maximize2 className="w-4 h-4" />
@@ -214,6 +305,7 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
             </Select>
           </div>
 
+          {/* حركة الكاميرا */}
           <div className="space-y-2 text-right">
             <label className="text-sm font-medium flex items-center justify-end gap-2">
               <Move className="w-4 h-4" />
@@ -234,6 +326,7 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
             </Select>
           </div>
 
+          {/* الإضاءة */}
           <div className="space-y-2 text-right">
             <label className="text-sm font-medium flex items-center justify-end gap-2">
               <Sun className="w-4 h-4" />
@@ -254,6 +347,7 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
           </div>
         </div>
 
+        {/* زر الحصول على اقتراح AI */}
         <Button
           variant="outline"
           className="w-full"
@@ -274,9 +368,9 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
           )}
         </Button>
 
+        {/* عرض اقتراح AI */}
         {aiSuggestion && (
           <div className="relative p-4 rounded-lg bg-gradient-to-br from-brand/5 to-purple-500/5 border border-brand/20 overflow-hidden">
-            {/* Decorative glow */}
             <div className="absolute top-0 left-0 w-20 h-20 bg-brand/10 rounded-full blur-2xl" />
 
             <div className="relative flex items-start gap-3">
@@ -296,7 +390,8 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
                 </p>
                 {aiSuggestion.reasoning && (
                   <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
-                    <span className="font-medium text-foreground">السبب:</span> {aiSuggestion.reasoning}
+                    <span className="font-medium text-foreground">السبب:</span>{" "}
+                    {aiSuggestion.reasoning}
                   </div>
                 )}
               </div>
@@ -304,7 +399,7 @@ const ShotPlanningCard = memo(function ShotPlanningCard({
           </div>
         )}
 
-        {/* Actions */}
+        {/* أزرار الإجراءات */}
         <div className="flex gap-2 justify-end flex-wrap pt-4 border-t">
           {onDelete && shot && (
             <Button

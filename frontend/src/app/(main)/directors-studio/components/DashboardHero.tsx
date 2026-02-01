@@ -1,20 +1,50 @@
+/**
+ * @fileoverview مكوّن البطل الرئيسي للوحة التحكم
+ *
+ * السبب في وجود هذا المكوّن: توفير واجهة ترحيبية جذابة
+ * مع وصول سريع للإجراءات الأساسية (إدارة المشاريع، رفع سيناريو، المساعد الذكي).
+ */
 "use client";
 
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Film, Upload, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import ProjectManager from "@/app/(main)/directors-studio/components/ProjectManager";
 
+/**
+ * معرف اختبار منطقة رفع السيناريو
+ * السبب: توحيد المعرفات للوصول من الكود
+ */
+const SCRIPT_UPLOAD_TEST_ID = '[data-testid="card-script-upload"]';
+
+/**
+ * مكوّن البطل الرئيسي للوحة التحكم
+ *
+ * السبب في التصميم: إنشاء انطباع أول قوي للمستخدم
+ * مع توفير نقاط دخول واضحة للوظائف الرئيسية.
+ *
+ * البنية:
+ * 1. صورة خلفية سينمائية مع تدرج
+ * 2. عنوان ووصف التطبيق
+ * 3. أزرار الإجراءات السريعة
+ *
+ * @returns عنصر React يعرض قسم البطل
+ */
 export default function DashboardHero() {
-  const scrollToUpload = () => {
-    const uploadElement = document.querySelector(
-      '[data-testid="card-script-upload"]'
-    );
+  /**
+   * التمرير إلى منطقة رفع السيناريو
+   *
+   * السبب في useCallback: تجنب إنشاء دالة جديدة في كل render
+   * لأن هذه الدالة تُمرر كـ onClick للزر.
+   */
+  const scrollToUpload = useCallback(() => {
+    const uploadElement = document.querySelector(SCRIPT_UPLOAD_TEST_ID);
     if (uploadElement) {
       uploadElement.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  };
+  }, []);
 
   return (
     <div className="relative h-[400px] rounded-md overflow-hidden">

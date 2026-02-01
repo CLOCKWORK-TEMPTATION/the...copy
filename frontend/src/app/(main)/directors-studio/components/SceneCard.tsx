@@ -1,6 +1,18 @@
+/**
+ * @fileoverview مكوّن بطاقة المشهد
+ *
+ * السبب في وجود هذا المكوّن: عرض معلومات المشهد
+ * بشكل منظم مع إمكانية التعديل والحذف.
+ *
+ * يدعم:
+ * - عرض تفاصيل المشهد (العنوان، الموقع، الوقت، الشخصيات)
+ * - تغيير الحالة (مخطط، قيد التنفيذ، مكتمل)
+ * - حذف المشهد مع تأكيد
+ * - التنقل لتخطيط اللقطات
+ */
 "use client";
 
-import React, { useState, memo, useCallback, useMemo } from "react";
+import { useState, memo, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,19 +45,66 @@ import { useDeleteScene } from "@/hooks/useProject";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
+/**
+ * أنواع حالات المشهد المدعومة
+ */
+type SceneStatus = "planned" | "in-progress" | "completed";
+
+/**
+ * واجهة خصائص مكوّن بطاقة المشهد
+ */
 interface SceneCardProps {
+  /** معرف المشهد الفريد */
   id: string;
+  /** رقم المشهد في السيناريو */
   sceneNumber: number;
+  /** عنوان المشهد */
   title: string;
+  /** موقع المشهد */
   location: string;
+  /** وقت اليوم في المشهد */
   timeOfDay: string;
+  /** قائمة أسماء الشخصيات في المشهد */
   characters: string[];
+  /** عدد اللقطات المخططة (اختياري) */
   shotCount?: number;
-  status?: "planned" | "in-progress" | "completed";
+  /** حالة المشهد الحالية */
+  status?: SceneStatus;
+  /** وصف المشهد (اختياري) */
   description?: string | null;
+  /** دالة استدعاء للتعديل */
   onEdit?: () => void;
 }
 
+/**
+ * خريطة ألوان حالات المشهد
+ * السبب: توحيد الألوان وتسهيل الصيانة
+ */
+const STATUS_COLORS: Record<SceneStatus, string> = {
+  planned: "bg-muted text-muted-foreground",
+  "in-progress": "bg-primary/10 text-primary",
+  completed:
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+} as const;
+
+/**
+ * خريطة تسميات حالات المشهد بالعربية
+ */
+const STATUS_LABELS: Record<SceneStatus, string> = {
+  planned: "مخطط",
+  "in-progress": "قيد التنفيذ",
+  completed: "مكتمل",
+} as const;
+
+/**
+ * مكوّن بطاقة المشهد
+ *
+ * السبب في استخدام memo: بطاقات المشاهد تُعرض في قائمة
+ * ونريد تجنب إعادة عرض جميع البطاقات عند تغيير واحدة منها.
+ *
+ * @param props - خصائص المشهد
+ * @returns بطاقة تعرض معلومات المشهد مع خيارات التحكم
+ */
 const SceneCard = memo(function SceneCard({
   id,
   sceneNumber,
@@ -62,20 +121,13 @@ const SceneCard = memo(function SceneCard({
   const deleteScene = useDeleteScene();
   const { toast } = useToast();
 
-  const statusColors = {
-    planned: "bg-muted text-muted-foreground",
-    "in-progress": "bg-primary/10 text-primary",
-    completed:
-      "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  };
-
-  const statusLabels = {
-    planned: "مخطط",
-    "in-progress": "قيد التنفيذ",
-    completed: "مكتمل",
-  };
-
-  const handleDelete = async () => {
+  /**
+   * معالج حذف المشهد
+   *
+   * السبب في useCallback: تجنب إنشاء دالة جديدة في كل render
+   * مما يحسن أداء المكونات الفرعية التي تستقبل هذه الدالة.
+   */
+  const handleDelete = useCallback(async () => {
     try {
       await deleteScene.mutateAsync(id);
       toast({
@@ -84,13 +136,30 @@ const SceneCard = memo(function SceneCard({
       });
       setDeleteDialogOpen(false);
     } catch (error) {
+      // عرض رسالة خطأ واضحة للمستخدم
+      const errorMessage =
+        error instanceof Error ? error.message : "فشل حذف المشهد";
       toast({
         title: "حدث خطأ",
-        description: "فشل حذف المشهد",
+        description: errorMessage,
         variant: "destructive",
       });
     }
-  };
+  }, [id, deleteScene, toast]);
+
+  /**
+   * معالج فتح نافذة تأكيد الحذف
+   */
+  const handleDeleteClick = useCallback(() => {
+    setDeleteDialogOpen(true);
+  }, []);
+
+  /**
+   * الحصول على لون وتسمية الحالة
+   * السبب في useMemo: تجنب البحث في الكائنات في كل render
+   */
+  const statusColor = useMemo(() => STATUS_COLORS[status], [status]);
+  const statusLabel = useMemo(() => STATUS_LABELS[status], [status]);
 
   return (
     <>
@@ -125,7 +194,7 @@ const SceneCard = memo(function SceneCard({
                 )}
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
-                  onClick={() => setDeleteDialogOpen(true)}
+                  onClick={handleDeleteClick}
                   data-testid="button-delete-scene"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -134,9 +203,7 @@ const SceneCard = memo(function SceneCard({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Badge className={statusColors[status]}>
-              {statusLabels[status]}
-            </Badge>
+            <Badge className={statusColor}>{statusLabel}</Badge>
           </div>
 
           <div className="flex items-center gap-2">
