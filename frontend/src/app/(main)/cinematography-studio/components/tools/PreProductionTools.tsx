@@ -1,6 +1,20 @@
+/**
+ * @fileoverview أدوات ما قبل الإنتاج
+ *
+ * هذا المكون يوفر أدوات التخطيط البصري لمرحلة ما قبل الإنتاج.
+ * يتضمن مولد الرؤية البصرية الذي يحول وصف المشهد إلى كادر سينمائي.
+ *
+ * السبب وراء فصل هذه الأدوات:
+ * - كل مرحلة إنتاجية لها احتياجات مختلفة
+ * - تسهيل الصيانة والتطوير المستقل
+ * - تحسين الأداء عبر lazy loading
+ *
+ * @module cinematography-studio/components/tools/PreProductionTools
+ */
+
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -12,29 +26,79 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Eye, Sparkles, Zap, Image as ImageIcon } from "lucide-react";
+import { usePreProduction } from "../../hooks";
+import type { PreProductionToolsProps } from "../../types";
 
-interface PreProductionProps {
-  mood?: string;
-}
-
-const PreProductionTools: React.FC<PreProductionProps> = ({
+/**
+ * مكون أدوات ما قبل الإنتاج
+ *
+ * يوفر هذا المكون:
+ * - مولد الرؤية البصرية (Concept Art Generator)
+ * - إعدادات الغموض والفوضى البصرية
+ * - معاينة الكادر المولد مع اقتراحات تقنية
+ *
+ * @param props - خصائص المكون
+ * @param props.mood - المود البصري المحدد للمشروع
+ * @returns مكون أدوات ما قبل الإنتاج
+ */
+const PreProductionTools: React.FC<PreProductionToolsProps> = ({
   mood = "noir",
 }) => {
-  const [prompt, setPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [darkness, setDarkness] = useState([50]);
-  const [complexity, setComplexity] = useState([30]);
+  // استخدام الـ hook المخصص لإدارة الحالة
+  const {
+    prompt,
+    darkness,
+    complexity,
+    isGenerating,
+    result,
+    setPrompt,
+    setDarkness,
+    setComplexity,
+    handleGenerate,
+    canGenerate,
+  } = usePreProduction(mood);
 
-  const handleGenerate = () => {
-    if (!prompt.trim()) {
-      return;
-    }
-    setIsGenerating(true);
-    setTimeout(() => setIsGenerating(false), 2000);
-  };
+  // ============================================
+  // دوال مُحسنة للأداء
+  // ============================================
+
+  /**
+   * معالج تغيير النص
+   *
+   * السبب وراء useCallback:
+   * - تجنب إعادة إنشاء الدالة في كل render
+   * - تحسين أداء مكون Textarea
+   */
+  const handlePromptChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setPrompt(e.target.value);
+    },
+    [setPrompt]
+  );
+
+  /**
+   * البيانات التقنية للعرض
+   *
+   * السبب وراء useMemo:
+   * - تجنب إعادة حساب البيانات في كل render
+   * - البيانات تعتمد فقط على نتيجة التوليد
+   */
+  const technicalData = useMemo(
+    () => ({
+      lens: result?.lens ?? "35mm Anamorphic",
+      lighting: result?.lighting ?? "Low-Key / Chiaroscuro",
+      angle: result?.angle ?? "Dutch Angle (Low)",
+    }),
+    [result]
+  );
+
+  // ============================================
+  // العرض
+  // ============================================
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* لوحة التحكم */}
       <div className="lg:col-span-4 space-y-6">
         <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
           <CardHeader>
@@ -47,6 +111,7 @@ const PreProductionTools: React.FC<PreProductionProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* حقل وصف المشهد */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-300">
                 وصف المشهد
@@ -55,11 +120,13 @@ const PreProductionTools: React.FC<PreProductionProps> = ({
                 placeholder="مثال: غرفة تحقيق مظلمة، ضوء واحد مسلط على وجه المتهم، دخان سجائر يملأ المكان..."
                 className="bg-black/20 border-zinc-700 text-zinc-100 min-h-[120px] focus:border-amber-500"
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={handlePromptChange}
               />
             </div>
 
+            {/* إعدادات التوليد */}
             <div className="space-y-4 p-4 bg-black/20 rounded-lg border border-white/5">
+              {/* شريط الغموض */}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-400">
@@ -78,6 +145,7 @@ const PreProductionTools: React.FC<PreProductionProps> = ({
                 />
               </div>
 
+              {/* شريط الفوضى البصرية */}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-400">
@@ -96,9 +164,10 @@ const PreProductionTools: React.FC<PreProductionProps> = ({
               </div>
             </div>
 
+            {/* زر التوليد */}
             <Button
               onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
+              disabled={!canGenerate}
               className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-black font-bold py-6"
             >
               {isGenerating ? (
@@ -115,10 +184,13 @@ const PreProductionTools: React.FC<PreProductionProps> = ({
         </Card>
       </div>
 
+      {/* منطقة المعاينة */}
       <div className="lg:col-span-8">
         <Card className="bg-zinc-900 border-zinc-800 h-full min-h-[500px] flex flex-col relative overflow-hidden group">
+          {/* طبقة الضوضاء البصرية */}
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-5 pointer-events-none mix-blend-overlay" />
 
+          {/* منطقة الصورة */}
           <div className="flex-1 flex items-center justify-center bg-black/40 relative">
             {!isGenerating ? (
               <div className="text-center space-y-4">
@@ -140,18 +212,19 @@ const PreProductionTools: React.FC<PreProductionProps> = ({
             )}
           </div>
 
+          {/* شريط المعلومات التقنية */}
           <div className="p-4 bg-zinc-950 border-t border-zinc-800 grid grid-cols-3 gap-4 text-xs font-mono text-zinc-400">
             <div className="flex items-center gap-2">
               <span className="text-amber-600">LENS:</span>
-              {isGenerating ? "..." : "35mm Anamorphic"}
+              {isGenerating ? "..." : technicalData.lens}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-amber-600">LIGHT:</span>
-              {isGenerating ? "..." : "Low-Key / Chiaroscuro"}
+              {isGenerating ? "..." : technicalData.lighting}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-amber-600">ANGLE:</span>
-              {isGenerating ? "..." : "Dutch Angle (Low)"}
+              {isGenerating ? "..." : technicalData.angle}
             </div>
           </div>
         </Card>
