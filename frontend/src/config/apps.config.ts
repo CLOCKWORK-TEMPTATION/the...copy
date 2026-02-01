@@ -146,6 +146,18 @@ export const platformApps: PlatformApp[] = [
     category: "management",
     enabled: true,
     badge: "GPS Tracking"
+  },
+  {
+    id: "prompt-engineering",
+    name: "Arabic Prompt Engineering Studio",
+    nameAr: "استوديو هندسة التوجيهات العربي",
+    description: "أدوات متقدمة لتطوير وتحسين التوجيهات للذكاء الاصطناعي باللغة العربية",
+    icon: "⚡",
+    path: "/arabic-prompt-engineering-studio",
+    color: "from-cyan-600 to-blue-600",
+    category: "creative",
+    enabled: true,
+    badge: "Advanced AI"
   }
 ];
 
