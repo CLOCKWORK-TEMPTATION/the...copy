@@ -1,128 +1,116 @@
-import React, { useState, useEffect } from 'react';
-import { Clapperboard, FileText, Upload, Sparkles, AlertCircle } from 'lucide-react';
+/**
+ * @fileoverview المكون الرئيسي لتطبيق تفريغ السيناريو
+ * 
+ * هذا المكون هو نقطة الدخول الرئيسية لتطبيق BreakBreak AI.
+ * يستخدم خطافات مخصصة لفصل المنطق عن العرض.
+ * 
+ * السبب: نفصل المنطق عن واجهة المستخدم لتحسين قابلية الصيانة
+ * والاختبار، ونستخدم Toast بدلاً من alert للتجربة الأفضل.
+ */
+
+import React, { useState, useCallback, useMemo } from 'react';
+import { Clapperboard, FileText, Sparkles, AlertCircle } from 'lucide-react';
 import { MOCK_SCRIPT, AGENTS } from './constants';
-import * as geminiService from './services/geminiService';
-import { Scene, SceneBreakdown, ScenarioAnalysis, Version } from './types';
+import { Scene, SceneBreakdown, ScenarioAnalysis } from './types';
 import ResultsView from './components/ResultsView';
 import ChatBot from './components/ChatBot';
+import ToastContainer from './components/ToastContainer';
+import { useScriptProcessor } from './hooks/useScriptProcessor';
+import { useSceneManager } from './hooks/useSceneManager';
+import { useToast } from './hooks/useToast';
+import { logError } from './config';
 
+/**
+ * المكون الرئيسي للتطبيق
+ * 
+ * يوفر واجهة لإدخال السيناريو وعرض نتائج التحليل.
+ * يستخدم خطافات مخصصة لإدارة الحالة والمنطق.
+ */
 function App() {
   const [scriptText, setScriptText] = useState(MOCK_SCRIPT);
-  const [view, setView] = useState<'input' | 'results'>('input');
-  const [isSegmenting, setIsSegmenting] = useState(false);
-  const [scenes, setScenes] = useState<Scene[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  
+  // استخدام الخطافات المخصصة
+  const { 
+    isSegmenting, 
+    error, 
+    view, 
+    processScript, 
+    reset: resetProcessor, 
+    clearError 
+  } = useScriptProcessor();
+  
+  const { 
+    scenes, 
+    setScenes,
+    updateScene, 
+    restoreVersion 
+  } = useSceneManager();
+  
+  const { toasts, error: showError, dismiss } = useToast();
 
-  const handleProcessScript = async () => {
-    if (!scriptText.trim()) return;
-    
-    setIsSegmenting(true);
-    setError(null);
-
-    try {
-      const response = await geminiService.segmentScript(scriptText);
-      
-      if (!response || !response.scenes || !Array.isArray(response.scenes)) {
-        throw new Error('Invalid response format from API. Expected scenes array.');
-      }
-      
-      const formattedScenes: Scene[] = response.scenes.map((s: any, index: number) => {
-        if (!s.header || !s.content) {
-          throw new Error(`Scene ${index + 1} is missing required fields (header or content).`);
-        }
-        return {
-          id: index + 1,
-          header: s.header || '',
-          content: s.content || '',
-          isAnalyzed: false,
-          versions: []
-        };
-      });
-
-      if (formattedScenes.length === 0) {
-        throw new Error('لم يتم اكتشاف أي مشاهد في السيناريو. تأكد من تنسيق السيناريو.');
-      }
-
-      setScenes(formattedScenes);
-      setView('results');
-    } catch (err) {
-      console.error('Script processing error:', err);
-      const errorMsg = err instanceof Error ? err.message : 'خطأ غير معروف';
-      setError(`خطأ: ${errorMsg}`);
-    } finally {
-      setIsSegmenting(false);
+  /**
+   * يعالج السيناريو ويعرض النتائج أو الأخطاء
+   * 
+   * السبب: نستخدم Toast للأخطاء بدلاً من alert
+   * لتجربة مستخدم أفضل
+   */
+  const handleProcessScript = useCallback(async () => {
+    if (!scriptText.trim()) {
+      showError('الرجاء إدخال نص السيناريو');
+      return;
     }
-  };
 
-  const handleUpdateScene = (id: number, breakdown: SceneBreakdown | undefined, scenarios?: ScenarioAnalysis) => {
-    setScenes(prev => prev.map(scene => {
-      if (scene.id === id) {
-        const oldVersions = scene.versions || [];
-        let newVersions = [...oldVersions];
+    const result = await processScript(scriptText);
+    
+    if (result.success && result.scenes) {
+      setScenes(result.scenes);
+    } else if (result.error) {
+      showError(result.error.message);
+      logError('App.handleProcessScript', new Error(result.error.message));
+    }
+  }, [scriptText, processScript, setScenes, showError]);
 
-        // If we have existing data, save it as a version before overwriting
-        if (scene.isAnalyzed && (scene.analysis || scene.scenarios)) {
-           newVersions.unshift({
-             id: Date.now().toString(),
-             timestamp: Date.now(),
-             label: `نسخة ${oldVersions.length + 1} - ${new Date().toLocaleTimeString('ar-EG')}`,
-             analysis: scene.analysis,
-             scenarios: scene.scenarios
-           });
-        }
+  /**
+   * يحدث بيانات مشهد معين
+   * 
+   * السبب: نمرر الدالة للمكونات الفرعية للتحديث
+   */
+  const handleUpdateScene = useCallback((
+    id: number, 
+    breakdown: SceneBreakdown | undefined, 
+    scenarios?: ScenarioAnalysis
+  ) => {
+    updateScene(id, breakdown, scenarios);
+  }, [updateScene]);
 
-        return { 
-            ...scene, 
-            isAnalyzed: !!breakdown || !!scene.analysis, 
-            analysis: breakdown || scene.analysis,
-            scenarios: scenarios || scene.scenarios,
-            versions: newVersions
-        };
-      }
-      return scene;
-    }));
-  };
+  /**
+   * يستعيد إصدار قديم من المشهد
+   */
+  const handleRestoreVersion = useCallback((sceneId: number, versionId: string) => {
+    restoreVersion(sceneId, versionId);
+  }, [restoreVersion]);
 
-  const handleRestoreVersion = (sceneId: number, versionId: string) => {
-    setScenes(prev => prev.map(scene => {
-      if (scene.id === sceneId && scene.versions) {
-        const versionToRestore = scene.versions.find(v => v.id === versionId);
-        if (!versionToRestore) return scene;
-
-        // Archive current state before restoring
-        const currentVersion: Version = {
-          id: Date.now().toString(),
-          timestamp: Date.now(),
-          label: `نسخة ما قبل الاستعادة (${new Date().toLocaleTimeString('ar-EG')})`,
-          analysis: scene.analysis,
-          scenarios: scene.scenarios
-        };
-
-        const newVersions = [currentVersion, ...scene.versions];
-
-        return {
-          ...scene,
-          analysis: versionToRestore.analysis,
-          scenarios: versionToRestore.scenarios,
-          versions: newVersions
-        };
-      }
-      return scene;
-    }));
-  };
-
-  const handleReset = () => {
-    setView('input');
+  /**
+   * يعيد تعيين التطبيق للبدء من جديد
+   */
+  const handleReset = useCallback(() => {
+    resetProcessor();
     setScenes([]);
-    setError(null);
-  };
+    clearError();
+  }, [resetProcessor, setScenes, clearError]);
 
-  // Filter only breakdown agents for the landing page grid
-  const previewAgents = AGENTS.filter(a => a.type === 'breakdown').slice(0, 4);
+  /**
+   * تصفية الوكلاء لعرض معاينة في صفحة الإدخال
+   * 
+   * السبب: نستخدم useMemo لتجنب إعادة الحساب غير الضرورية
+   */
+  const previewAgents = useMemo(() => 
+    AGENTS.filter(a => a.type === 'breakdown').slice(0, 4), 
+  []);
 
   return (
     <div className="min-h-screen pb-20">
-      {/* Header */}
+      {/* الرأس */}
       <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -147,7 +135,7 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* المحتوى الرئيسي */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         
         {view === 'input' ? (
@@ -162,10 +150,11 @@ function App() {
               </p>
             </div>
 
-            {error && (
+            {/* عرض رسالة الخطأ */}
+            {error !== null && (
               <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-lg flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0" />
-                <p>{error}</p>
+                <p>{error.message}</p>
               </div>
             )}
 
@@ -179,7 +168,7 @@ function App() {
                   dir="auto"
                 />
                 
-                {/* Visual Hint Overlay */}
+                {/* تلميح بصري */}
                 <div className="absolute top-4 left-4 bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-full text-xs font-mono text-slate-400 border border-slate-700 pointer-events-none">
                   INT. SCRIPT EDITOR
                 </div>
@@ -215,7 +204,7 @@ function App() {
               </button>
             </div>
 
-            {/* Features Grid */}
+            {/* شبكة الميزات */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-10 border-t border-slate-800">
                {previewAgents.map(agent => (
                  <div key={agent.key} className="flex flex-col items-center gap-2 text-center p-4 bg-slate-800/30 rounded-lg">
@@ -236,8 +225,11 @@ function App() {
           />
         )}
         
-        {/* ChatBot Overlay */}
+        {/* روبوت المحادثة */}
         <ChatBot />
+        
+        {/* حاوية الإشعارات */}
+        <ToastContainer toasts={toasts} onDismiss={dismiss} />
       </main>
     </div>
   );

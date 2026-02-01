@@ -1,46 +1,82 @@
+/**
+ * @fileoverview خدمة التواصل مع واجهة Gemini AI
+ * 
+ * هذا الملف يحتوي على جميع دوال التواصل مع خدمة Google Gemini.
+ * يشمل تقسيم السيناريو، تحليل المشاهد، وتوليد السيناريوهات.
+ * 
+ * السبب: نجمع جميع استدعاءات API في مكان واحد لتسهيل الصيانة
+ * وتوحيد معالجة الأخطاء والتكوين.
+ */
+
 import { GoogleGenAI, Type, Schema, Chat } from "@google/genai";
 import { SceneBreakdown, ScriptSegmentResponse, ScenarioAnalysis } from "../types";
-import { analyzeCastEnhanced } from "./castService"; // Note: Fixed import path from previous castBreakdownService to castService if needed, assuming castService exists
+import { analyzeCastEnhanced } from "./castService";
 import { runAllBreakdownAgents } from "./breakdownAgents";
+import { logError } from "../config";
 
 // ============================================
-// CONFIGURATION
+// التكوين
 // ============================================
 
+/** نموذج تقسيم السيناريو */
 const SEGMENTATION_MODEL = 'gemini-3-pro-preview';
+/** نموذج المحادثة */
 const CHAT_MODEL = 'gemini-3-pro-preview';
+/** نموذج السيناريوهات الاستراتيجية */
 const SCENARIO_MODEL = 'gemini-3-pro-preview';
+/** نموذج التحليل */
 const ANALYSIS_MODEL = 'gemini-3-pro-preview';
 
 /**
- * Initialize Google GenAI with API key from environment
- * Safely retrieves API key from multiple possible sources
+ * يحصل على قيمة من كائن window بشكل آمن
+ * 
+ * السبب: نتجنب الأخطاء في بيئة الخادم حيث window غير متاح
+ */
+const getWindowValue = (key: string): string | undefined => {
+  if (typeof window === 'undefined') return undefined;
+  const windowObj = window as unknown as Record<string, unknown>;
+  const value = windowObj[key];
+  return typeof value === 'string' ? value : undefined;
+};
+
+/**
+ * يحصل على مفتاح API من مصادر متعددة
+ * 
+ * السبب: ندعم مصادر متعددة للمرونة في بيئات مختلفة
+ * 
+ * @returns مفتاح API
  */
 const getAPIKey = (): string => {
-  // Try multiple sources for API key
   const apiKey = 
     process.env.GEMINI_API_KEY || 
     process.env.API_KEY || 
-    (typeof window !== 'undefined' && (window as any).GEMINI_API_KEY) ||
+    getWindowValue('GEMINI_API_KEY') ||
     '';
   
   if (!apiKey) {
-    console.warn('⚠️ Warning: GEMINI_API_KEY environment variable is not set. AI features will not work.');
+    console.warn('⚠️ تحذير: متغير GEMINI_API_KEY غير معين. ميزات AI لن تعمل.');
   }
   
   return apiKey;
 };
 
+/**
+ * ينشئ مثيل GoogleGenAI جديد
+ */
 const getAI = (): GoogleGenAI => {
   const apiKey = getAPIKey();
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is required. Please set it in your .env.local file.');
+    throw new Error('مفتاح GEMINI_API_KEY مطلوب. الرجاء تعيينه في ملف .env.local');
   }
   return new GoogleGenAI({ apiKey });
 };
 
+/** مثيل AI المخزن مؤقتاً */
 let ai: GoogleGenAI | null = null;
 
+/**
+ * يحصل على مثيل AI (مع التخزين المؤقت)
+ */
 const getAIInstance = (): GoogleGenAI => {
   if (!ai) {
     ai = getAI();
@@ -49,11 +85,16 @@ const getAIInstance = (): GoogleGenAI => {
 };
 
 // ============================================
-// CHAT SESSION
+// جلسة المحادثة
 // ============================================
 
 /**
- * Creates a new chat session for the production assistant.
+ * ينشئ جلسة محادثة جديدة لمساعد الإنتاج
+ * 
+ * السبب: نوفر واجهة محادثة تفاعلية للمستخدم
+ * مع سياق متخصص في الإنتاج السينمائي
+ * 
+ * @returns جلسة محادثة جديدة
  */
 export const createChatSession = (): Chat => {
   const aiInstance = getAIInstance();
@@ -127,31 +168,37 @@ Return a JSON object with a "scenes" array where each scene has:
     const result = response.text ? JSON.parse(response.text) : { scenes: [] };
     return result;
   } catch (error) {
-    console.error("Error segmenting script:", error);
-    throw new Error("Failed to segment script.");
+    logError('geminiService.segmentScript', error);
+    throw new Error("فشل في تقسيم السيناريو.");
   }
 };
 
 // ============================================
-// MAIN SCENE ANALYSIS ORCHESTRATOR
+// منسق تحليل المشهد الرئيسي
 // ============================================
 
 /**
- * Main Scene Analysis - Orchestrates Cast and 11 Specialized Technical Agents.
+ * يحلل المشهد باستخدام وكلاء متخصصين
  * 
- * This function triggers:
- * 1. The Cast Agent (Complex character analysis)
- * 2. The Breakdown Orchestrator (Runs 11 specific agents for Props, VFX, etc. in parallel)
+ * هذه الدالة تنسق بين:
+ * 1. وكيل طاقم التمثيل (تحليل الشخصيات المعقد)
+ * 2. منسق التفريغ (يشغل 11 وكيل متخصص بالتوازي)
+ * 
+ * السبب: نستخدم Promise.all لتشغيل التحليلات بالتوازي
+ * وتحسين وقت الاستجابة
+ * 
+ * @param sceneContent - محتوى المشهد
+ * @returns تفريغ المشهد الكامل
  */
 export const analyzeScene = async (sceneContent: string): Promise<SceneBreakdown> => {
   try {
-    // Run Cast Agent and Technical Agents in parallel
+    // تشغيل وكيل الشخصيات والوكلاء التقنيين بالتوازي
     const [castResult, technicalResult] = await Promise.all([
       analyzeCastEnhanced(sceneContent),
       runAllBreakdownAgents(sceneContent)
     ]);
 
-    // Merge results - convert ExtendedCastMember[] to CastMember[] for the main view
+    // دمج النتائج - تحويل ExtendedCastMember[] إلى CastMember[] للعرض الرئيسي
     const simplifiedCast = castResult.members.map(m => ({
       name: m.name,
       role: m.roleCategory,
@@ -167,20 +214,28 @@ export const analyzeScene = async (sceneContent: string): Promise<SceneBreakdown
     };
 
   } catch (error) {
-    console.error("Analysis Orchestration Error:", error);
-    throw new Error("Failed to complete scene analysis.");
+    logError('geminiService.analyzeScene', error);
+    throw new Error("فشل في إكمال تحليل المشهد.");
   }
 };
 
 // ============================================
-// SCENARIO GENERATION (Agent Negotiation)
+// توليد السيناريوهات (تفاوض الوكلاء)
 // ============================================
 
+/**
+ * خيارات تحليل السيناريوهات
+ */
 export interface ScenarioAnalysisOptions {
+  /** تضمين السيناريو الموصى به */
   includeRecommended?: boolean;
+  /** عدد السيناريوهات المطلوب توليدها */
   scenarioCount?: number;
+  /** إعطاء الأولوية للميزانية */
   prioritizeBudget?: boolean;
+  /** إعطاء الأولوية للإبداع */
   prioritizeCreative?: boolean;
+  /** إعطاء الأولوية للجدولة */
   prioritizeSchedule?: boolean;
 }
 
@@ -292,7 +347,7 @@ For each scenario, provide:
     return result as ScenarioAnalysis;
 
   } catch (error) {
-    console.error("Error analyzing scenarios:", error);
+    logError('geminiService.analyzeProductionScenarios', error);
     return { scenarios: [] };
   }
 };
@@ -386,7 +441,7 @@ Return ONLY valid JSON.`;
       ...result
     };
   } catch (error) {
-    console.error(`Error running ${agentKey} agent:`, error);
+    logError(`geminiService.runSingleAgent.${agentKey}`, error);
     return {
       agentKey,
       analysis: [],

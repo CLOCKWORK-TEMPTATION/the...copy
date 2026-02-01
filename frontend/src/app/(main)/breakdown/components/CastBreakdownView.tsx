@@ -1,10 +1,20 @@
-import React, { useState, useMemo } from 'react';
+/**
+ * @fileoverview مكون عرض تفريغ طاقم التمثيل
+ * 
+ * هذا المكون يعرض قائمة الشخصيات المستخرجة من المشهد
+ * مع إمكانية البحث والتصفية والترتيب والتصدير.
+ * 
+ * السبب: نوفر واجهة متكاملة لإدارة بيانات طاقم التمثيل
+ * مع تحليلات متقدمة وتصدير للملفات.
+ */
+
+import React, { useState, useMemo, useCallback } from 'react';
 import { CastMember, ExtendedCastMember, CastAnalysisResult } from '../types';
 import {
   UserCircle, Star, User, HeartHandshake, Baby, Clock,
   Search, Filter, Download, ChevronDown, ChevronUp,
   TrendingUp, TrendingDown, Minus, AlertTriangle,
-  FileText, Network, Eye, EyeOff, RefreshCw,
+  FileText, Network, Eye, RefreshCw,
   Heart, Brain, Zap, HelpCircle, Users2, Shield
 } from 'lucide-react';
 import {
@@ -14,19 +24,23 @@ import {
   generateCastingCall,
   GenderAnalysis,
   ArcAnalysis,
-  EmotionAnalysis,
-  analyzeGender,
-  analyzeCharacterArc,
-  analyzeEmotion
+  EmotionAnalysis
 } from '../services/castService';
+import { logError } from '../config';
 
 // ============================================
-// TYPES
+// الأنواع
 // ============================================
 
+/**
+ * خصائص المكون الرئيسي
+ */
 interface CastBreakdownViewProps {
+  /** قائمة أعضاء طاقم التمثيل */
   cast?: CastMember[] | ExtendedCastMember[];
+  /** حالة المعالجة */
   isProcessing?: boolean;
+  /** محتوى المشهد للتحليل */
   sceneContent?: string;
   onAnalyze?: (content: string) => Promise<CastAnalysisResult>;
 }
@@ -489,7 +503,11 @@ const CastBreakdownView: React.FC<CastBreakdownViewProps> = ({
     });
   }, [filteredCast, sortBy, sortOrder]);
 
-  // Handle analyze with AI
+  /**
+   * يحلل طاقم التمثيل باستخدام AI
+   * 
+   * السبب: نستخدم logError للتسجيل الموحد
+   */
   const handleAnalyze = async () => {
     if (!sceneContent) return;
 
@@ -501,13 +519,15 @@ const CastBreakdownView: React.FC<CastBreakdownViewProps> = ({
 
       setAnalysisResult(result);
     } catch (error) {
-      console.error('Analysis failed:', error);
+      logError('CastBreakdownView.handleAnalyze', error);
     } finally {
       setAnalyzing(false);
     }
   };
 
-  // Toggle card expansion
+  /**
+   * يبدل حالة توسيع بطاقة معينة
+   */
   const toggleCard = (index: number) => {
     setExpandedCards(prev => {
       const next = new Set(prev);
