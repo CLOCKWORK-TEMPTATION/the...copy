@@ -1,6 +1,26 @@
+/**
+ * @module brain-storm-content
+ * @description المكون الرئيسي لمنصة العصف الذهني الذكي
+ * 
+ * يوفر هذا المكون واجهة متكاملة لنظام العصف الذهني متعدد الوكلاء
+ * يتيح للمستخدمين إدخال أفكار إبداعية وتحليلها عبر مراحل متعددة
+ * باستخدام وكلاء ذكاء اصطناعي متخصصين
+ * 
+ * ## المميزات الرئيسية:
+ * - نظام نقاش متعدد الوكلاء (Constitutional AI)
+ * - خمس مراحل للعصف الذهني (تحليل، توسع، تحقق، نقاش، تقييم)
+ * - دعم رفع الملفات (PDF, DOCX, TXT)
+ * - واجهة RTL بالعربية
+ * 
+ * ## الهيكل المعماري:
+ * - يستخدم useMemo و useCallback للأداء الأمثل
+ * - يفصل المنطق عن العرض باستخدام معالجات أحداث واضحة
+ * - يتبع نمط Shadcn UI للمكونات
+ */
+
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import {
   FileText,
   Users,
@@ -49,7 +69,6 @@ import {
 } from "@/components/ui/tooltip";
 import FileUpload from "@/components/file-upload";
 
-// استيراد الوكلاء الحقيقيين
 import {
   getAllAgents,
   getAgentsForPhase,
@@ -62,45 +81,143 @@ import {
   type AgentCategory,
 } from "@/lib/drama-analyst/services/brainstormAgentRegistry";
 
-// استيراد Constitutional AI للنقاش المتعدد الوكلاء
 import {
-  getMultiAgentDebateSystem,
-  getUncertaintyQuantificationEngine,
-  type DebateResult,
   type UncertaintyMetrics,
 } from "@/lib/ai/constitutional";
 
-import { getGeminiService } from "@/lib/ai/stations/gemini-service";
+// ============================================================================
+// تعريف الأنواع
+// ============================================================================
 
-// الأنواع
+/**
+ * @type AgentStatus
+ * @description حالات الوكيل الممكنة أثناء جلسة العصف الذهني
+ */
+type AgentStatus = "idle" | "working" | "completed" | "error";
+
+/**
+ * @interface AgentState
+ * @description حالة وكيل فردي أثناء جلسة العصف الذهني
+ */
 interface AgentState {
+  /** المعرف الفريد للوكيل */
   id: string;
-  status: "idle" | "working" | "completed" | "error";
+  /** الحالة الحالية للوكيل */
+  status: AgentStatus;
+  /** آخر رسالة صادرة من الوكيل */
   lastMessage?: string;
+  /** نسبة تقدم العمل (0-100) */
   progress?: number;
 }
 
+/**
+ * @interface Session
+ * @description بيانات جلسة العصف الذهني
+ */
 interface Session {
+  /** المعرف الفريد للجلسة */
   id: string;
+  /** ملخص الفكرة الإبداعية */
   brief: string;
+  /** المرحلة الحالية من العصف الذهني */
   phase: BrainstormPhase;
+  /** حالة الجلسة */
   status: "active" | "completed" | "paused" | "error";
+  /** وقت بدء الجلسة */
   startTime: Date;
+  /** قائمة معرفات الوكلاء النشطين */
   activeAgents: string[];
+  /** نتائج الجلسة */
   results?: Record<string, unknown>;
 }
 
+/**
+ * @interface DebateMessage
+ * @description رسالة في نقاش العصف الذهني بين الوكلاء
+ */
 interface DebateMessage {
+  /** معرف الوكيل المرسل */
   agentId: string;
+  /** اسم الوكيل بالعربية */
   agentName: string;
+  /** نص الرسالة */
   message: string;
+  /** وقت الإرسال */
   timestamp: Date;
+  /** نوع الرسالة */
   type: "proposal" | "critique" | "agreement" | "decision";
+  /** مقاييس عدم اليقين (اختياري) */
   uncertainty?: UncertaintyMetrics;
 }
 
-// مكون الأيقونة
-function AgentIconComponent({ icon, className = "w-5 h-5" }: { icon: AgentIcon; className?: string }) {
+// ============================================================================
+// الثوابت
+// ============================================================================
+
+/**
+ * رسائل الأخطاء المعروضة للمستخدم حسب كود الحالة HTTP
+ * نستخدم رسائل عربية واضحة لتحسين تجربة المستخدم
+ */
+const ERROR_MESSAGES: Record<number, string> = {
+  401: "لم يتم العثور على API key - يرجى إضافتها في ملف .env.local",
+  429: "تم تجاوز الحد المسموح من الطلبات - يرجى المحاولة لاحقاً",
+  503: "فشل الاتصال بخادم AI - تحقق من الاتصال بالإنترنت",
+  504: "تم تجاوز الحد الزمني - حاول بنص أقصر",
+};
+
+/**
+ * ألوان حالات الوكلاء للعرض
+ */
+const STATUS_COLORS: Record<AgentStatus, string> = {
+  working: "bg-blue-400 animate-pulse",
+  completed: "bg-green-400",
+  error: "bg-red-400",
+  idle: "bg-gray-400",
+};
+
+/**
+ * ألوان فئات الوكلاء للعرض
+ */
+const CATEGORY_COLORS: Record<AgentCategory, string> = {
+  core: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  analysis: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  creative: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  predictive: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  advanced: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+};
+
+/**
+ * أسماء فئات الوكلاء بالعربية
+ */
+const CATEGORY_NAMES: Record<AgentCategory, string> = {
+  core: "أساسي",
+  analysis: "تحليل",
+  creative: "إبداع",
+  predictive: "تنبؤ",
+  advanced: "متقدم",
+};
+
+// ============================================================================
+// مكونات فرعية
+// ============================================================================
+
+/**
+ * @component AgentIconComponent
+ * @description مكون عرض أيقونة الوكيل
+ * يحول معرف الأيقونة النصي إلى مكون React المناسب
+ * مُحسّن باستخدام memo لمنع إعادة الرسم غير الضرورية
+ * 
+ * @param icon - معرف الأيقونة من قائمة AgentIcon
+ * @param className - فئات CSS إضافية للتنسيق
+ * @returns عنصر React للأيقونة المطلوبة
+ */
+const AgentIconComponent = memo(function AgentIconComponent({ 
+  icon, 
+  className = "w-5 h-5" 
+}: { 
+  icon: AgentIcon; 
+  className?: string;
+}) {
   const iconMap: Record<AgentIcon, React.ReactNode> = {
     brain: <Brain className={className} />,
     users: <Users className={className} />,
@@ -126,9 +243,19 @@ function AgentIconComponent({ icon, className = "w-5 h-5" }: { icon: AgentIcon; 
     search: <Search className={className} />,
   };
   return iconMap[icon] || <Cpu className={className} />;
-}
+});
 
-// مكون بطاقة الوكيل
+/**
+ * @component AgentCard
+ * @description بطاقة عرض معلومات الوكيل
+ * تعرض حالة الوكيل وقدراته والمتعاونين معه
+ * يمكن توسيعها لعرض المزيد من التفاصيل
+ * 
+ * @param agent - تعريف الوكيل من قاعدة البيانات
+ * @param state - حالة الوكيل الحالية
+ * @param isExpanded - هل البطاقة موسعة لعرض التفاصيل
+ * @param onToggleExpand - معالج تبديل حالة التوسيع
+ */
 function AgentCard({
   agent,
   state,
@@ -140,34 +267,17 @@ function AgentCard({
   isExpanded: boolean;
   onToggleExpand: () => void;
 }) {
-  const getStatusColor = (status: AgentState["status"]) => {
-    switch (status) {
-      case "working": return "bg-blue-400 animate-pulse";
-      case "completed": return "bg-green-400";
-      case "error": return "bg-red-400";
-      default: return "bg-gray-400";
-    }
-  };
+  /** الحصول على لون حالة الوكيل باستخدام الثوابت المعرفة مسبقاً */
+  const statusColor = STATUS_COLORS[state.status];
 
-  const getCategoryColor = (category: AgentCategory) => {
-    switch (category) {
-      case "core": return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
-      case "analysis": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      case "creative": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "predictive": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "advanced": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-    }
-  };
+  /** الحصول على لون فئة الوكيل */
+  const categoryColor = CATEGORY_COLORS[agent.category];
 
-  const categoryNames: Record<AgentCategory, string> = {
-    core: "أساسي",
-    analysis: "تحليل",
-    creative: "إبداع",
-    predictive: "تنبؤ",
-    advanced: "متقدم",
-  };
-
-  const collaborators = getCollaborators(agent.id);
+  /** الحصول على قائمة المتعاونين مع الوكيل */
+  const collaborators = useMemo(
+    () => getCollaborators(agent.id),
+    [agent.id]
+  );
 
   return (
     <div className={`p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors border ${state.status === "working" ? "border-blue-400" : "border-transparent"}`}>
@@ -178,8 +288,8 @@ function AgentCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="font-medium text-sm truncate">{agent.nameAr}</p>
-            <Badge variant="secondary" className={`text-xs ${getCategoryColor(agent.category)}`}>
-              {categoryNames[agent.category]}
+            <Badge variant="secondary" className={`text-xs ${categoryColor}`}>
+              {CATEGORY_NAMES[agent.category]}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground truncate">{agent.role}</p>
@@ -188,7 +298,7 @@ function AgentCard({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${getStatusColor(state.status)}`} />
+          <div className={`w-2 h-2 rounded-full ${statusColor}`} />
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onToggleExpand}>
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
@@ -228,24 +338,86 @@ function AgentCard({
   );
 }
 
+// ============================================================================
 // المكون الرئيسي
+// ============================================================================
+
+/**
+ * @component BrainStormContent
+ * @description المكون الرئيسي لمنصة العصف الذهني الذكي
+ * 
+ * يجمع هذا المكون بين جميع المكونات الفرعية ويدير الحالة العامة
+ * للتطبيق. يتعامل مع:
+ * - إنشاء وإدارة جلسات العصف الذهني
+ * - التواصل مع API النقاش
+ * - عرض حالات الوكلاء ورسائل النقاش
+ * - التنقل بين المراحل الخمس
+ * 
+ * @example
+ * ```tsx
+ * <BrainStormContent />
+ * ```
+ */
 export default function BrainStormContent() {
+  // ============================================================================
+  // البيانات الثابتة المحسوبة مرة واحدة
+  // ============================================================================
+
+  /** قائمة جميع الوكلاء المتاحين */
   const realAgents = useMemo(() => getAllAgents(), []);
+  
+  /** إحصائيات الوكلاء (العدد، RAG، متوسط التعقيد) */
   const agentStats = useMemo(() => getAgentStats(), []);
 
+  // ============================================================================
+  // الحالة
+  // ============================================================================
+
+  /** الجلسة الحالية */
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  
+  /** خريطة حالات الوكلاء */
   const [agentStates, setAgentStates] = useState<Map<string, AgentState>>(new Map());
+  
+  /** حالة التحميل */
   const [isLoading, setIsLoading] = useState(false);
+  
+  /** رسالة الخطأ الحالية */
   const [error, setError] = useState<string | null>(null);
+  
+  /** المرحلة النشطة */
   const [activePhase, setActivePhase] = useState<BrainstormPhase>(1);
+  
+  /** نص ملخص الفكرة */
   const [brief, setBrief] = useState("");
+  
+  /** مجموعة الوكلاء الموسعة (للعرض) */
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
+  
+  /** رسائل النقاش */
   const [debateMessages, setDebateMessages] = useState<DebateMessage[]>([]);
+  
+  /** هل نعرض جميع الوكلاء أم وكلاء المرحلة فقط */
   const [showAllAgents, setShowAllAgents] = useState(false);
 
+  // ============================================================================
+  // القيم المحسوبة
+  // ============================================================================
+
+  /** الوكلاء المتاحين للمرحلة النشطة */
   const phaseAgents = useMemo(() => getAgentsForPhase(activePhase), [activePhase]);
+  
+  /** الوكلاء المعروضون (حسب الاختيار) */
   const displayedAgents = showAllAgents ? realAgents : phaseAgents;
 
+  // ============================================================================
+  // التأثيرات الجانبية
+  // ============================================================================
+
+  /**
+   * تهيئة حالات الوكلاء عند تحميل المكون
+   * يُنشئ حالة ابتدائية (idle) لكل وكيل
+   */
   useEffect(() => {
     const initialStates = new Map<string, AgentState>();
     realAgents.forEach((agent) => {
@@ -254,6 +426,14 @@ export default function BrainStormContent() {
     setAgentStates(initialStates);
   }, [realAgents]);
 
+  // ============================================================================
+  // معالجات الأحداث
+  // ============================================================================
+
+  /**
+   * تبديل حالة توسيع بطاقة الوكيل
+   * @param agentId - معرف الوكيل المراد تبديل حالته
+   */
   const toggleAgentExpand = useCallback((agentId: string) => {
     setExpandedAgents((prev) => {
       const next = new Set(prev);
@@ -266,6 +446,11 @@ export default function BrainStormContent() {
     });
   }, []);
 
+  /**
+   * تحديث حالة وكيل محدد
+   * @param agentId - معرف الوكيل
+   * @param updates - التحديثات المطلوبة على الحالة
+   */
   const updateAgentState = useCallback((agentId: string, updates: Partial<AgentState>) => {
     setAgentStates((prev) => {
       const next = new Map(prev);
@@ -277,6 +462,11 @@ export default function BrainStormContent() {
     });
   }, []);
 
+  /**
+   * بدء جلسة عصف ذهني جديدة
+   * يتحقق من وجود ملخص الفكرة ثم ينشئ جلسة جديدة
+   * ويبدأ النقاش مع وكلاء المرحلة الأولى
+   */
   const handleStartSession = async () => {
     if (!brief.trim()) {
       setError("⚠️ يرجى إدخال ملخص الفكرة الإبداعية أو رفع ملف (PDF, DOCX, TXT)");
@@ -310,12 +500,19 @@ export default function BrainStormContent() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "فشل في إنشاء الجلسة";
       setError(errorMessage);
-      console.error("[BrainStorm] Session error:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * تنفيذ نقاش بين الوكلاء عبر API الخادم
+   * يرسل طلب للخادم ويعالج الاستجابة بتحديث حالات الوكلاء وإضافة الرسائل
+   * 
+   * @param agents - قائمة الوكلاء المشاركين في النقاش
+   * @param session - الجلسة الحالية
+   * @param task - المهمة المطلوب تنفيذها (اختياري - يستخدم ملخص الجلسة افتراضياً)
+   */
   const executeAgentDebate = async (
     agents: readonly BrainstormAgentDefinition[],
     session: Session,
@@ -324,6 +521,7 @@ export default function BrainStormContent() {
     const agentIds = agents.map((a) => a.id);
     const debateTask = task || `تحليل الفكرة: ${session.brief}`;
 
+    // تحديث حالة الوكلاء إلى "يعمل"
     agents.forEach((agent) => {
       updateAgentState(agent.id, {
         status: "working",
@@ -343,22 +541,14 @@ export default function BrainStormContent() {
       });
 
       if (!response.ok) {
-        // تحسين رسائل الأخطاء حسب نوع الخطأ
-        if (response.status === 401) {
-          throw new Error("لم يتم العثور على API key - يرجى إضافتها في ملف .env.local");
-        } else if (response.status === 503) {
-          throw new Error("فشل الاتصال بخادم AI - تحقق من الاتصال بالإنترنت");
-        } else if (response.status === 504) {
-          throw new Error("تم تجاوز الحد الزمني - حاول بنص أقصر");
-        } else if (response.status === 429) {
-          throw new Error("تم تجاوز الحد المسموح من الطلبات - يرجى المحاولة لاحقاً");
-        } else {
-          throw new Error(`خطأ في الخادم: ${response.status}`);
-        }
+        // استخدام رسائل الأخطاء المعرفة مسبقاً
+        const errorMessage = ERROR_MESSAGES[response.status] ?? `خطأ في الخادم: ${response.status}`;
+        throw new Error(errorMessage);
       }
 
       const { result: debateResult } = await response.json();
 
+      // معالجة اقتراحات الوكلاء
       for (const proposal of debateResult.proposals) {
         const agent = agents.find((a) => a.id === proposal.agentId);
         if (agent) {
@@ -380,6 +570,7 @@ export default function BrainStormContent() {
         }
       }
 
+      // إضافة القرار النهائي إن وجد
       if (debateResult.finalDecision) {
         setDebateMessages((prev) => [
           ...prev,
@@ -392,10 +583,9 @@ export default function BrainStormContent() {
           },
         ]);
       }
-    } catch (error) {
-      console.error("[BrainStorm] Debate error:", error);
-      // تحديث رسالة الخطأ الرئيسية
-      const errorMessage = error instanceof Error ? error.message : "فشل في تنفيذ النقاش";
+    } catch (err) {
+      // تحديث رسالة الخطأ الرئيسية وحالات الوكلاء
+      const errorMessage = err instanceof Error ? err.message : "فشل في تنفيذ النقاش";
       setError(errorMessage);
       agents.forEach((agent) => {
         updateAgentState(agent.id, { status: "error", lastMessage: "فشل" });
@@ -403,6 +593,10 @@ export default function BrainStormContent() {
     }
   };
 
+  /**
+   * إيقاف الجلسة الحالية وإعادة تعيين الحالة
+   * يُعيد جميع الوكلاء لحالة الخمول ويمسح رسائل النقاش
+   */
   const handleStopSession = () => {
     setCurrentSession(null);
     setActivePhase(1);
@@ -412,6 +606,10 @@ export default function BrainStormContent() {
     });
   };
 
+  /**
+   * الانتقال إلى المرحلة التالية من العصف الذهني
+   * يحدث المرحلة ويبدأ النقاش مع وكلاء المرحلة الجديدة
+   */
   const handleAdvancePhase = async () => {
     if (!currentSession) return;
     const nextPhase = Math.min(activePhase + 1, 5) as BrainstormPhase;
@@ -420,6 +618,7 @@ export default function BrainStormContent() {
     setCurrentSession(updatedSession);
     const nextPhaseAgents = getAgentsForPhase(nextPhase);
     
+    /** مهام كل مرحلة مع ملخص الفكرة */
     const phaseTasks: Record<BrainstormPhase, string> = {
       1: `التحليل الأولي للبريف: ${currentSession.brief}`,
       2: `التوسع الإبداعي: ${currentSession.brief}`,
@@ -430,14 +629,22 @@ export default function BrainStormContent() {
     
     try {
       await executeAgentDebate(nextPhaseAgents, updatedSession, phaseTasks[nextPhase]);
-    } catch (error) {
-      console.error(`[Brainstorm] Phase ${nextPhase} error:`, error);
+    } catch (err) {
       setError(`فشل في إتمام المرحلة ${nextPhase}`);
     }
   };
 
-  const getPhaseIcon = (phaseId: BrainstormPhase) => {
-    const icons = {
+  // ============================================================================
+  // القيم المحسوبة للعرض
+  // ============================================================================
+
+  /**
+   * الحصول على أيقونة المرحلة
+   * @param phaseId - رقم المرحلة
+   * @returns عنصر React للأيقونة
+   */
+  const getPhaseIcon = useCallback((phaseId: BrainstormPhase) => {
+    const icons: Record<BrainstormPhase, React.ReactNode> = {
       1: <BookOpen className="w-5 h-5" />,
       2: <Sparkles className="w-5 h-5" />,
       3: <Shield className="w-5 h-5" />,
@@ -445,10 +652,15 @@ export default function BrainStormContent() {
       5: <Target className="w-5 h-5" />,
     };
     return icons[phaseId];
-  };
+  }, []);
 
-  const getPhaseColor = (phaseId: BrainstormPhase) => {
-    const colors = {
+  /**
+   * الحصول على لون المرحلة
+   * @param phaseId - رقم المرحلة
+   * @returns فئة CSS للون
+   */
+  const getPhaseColor = useCallback((phaseId: BrainstormPhase) => {
+    const colors: Record<BrainstormPhase, string> = {
       1: "bg-blue-500 hover:bg-blue-600",
       2: "bg-purple-500 hover:bg-purple-600",
       3: "bg-green-500 hover:bg-green-600",
@@ -456,20 +668,29 @@ export default function BrainStormContent() {
       5: "bg-red-500 hover:bg-red-600",
     };
     return colors[phaseId];
-  };
+  }, []);
 
-  const phases = BRAINSTORM_PHASES.map((phase) => ({
-    id: phase.id,
-    name: phase.name,
-    nameEn: phase.nameEn,
-    description: phase.description,
-    icon: getPhaseIcon(phase.id),
-    color: getPhaseColor(phase.id),
-    agentCount: getAgentsForPhase(phase.id).length,
-  }));
+  /** معلومات المراحل للعرض */
+  const phases = useMemo(() => 
+    BRAINSTORM_PHASES.map((phase) => ({
+      id: phase.id,
+      name: phase.name,
+      nameEn: phase.nameEn,
+      description: phase.description,
+      icon: getPhaseIcon(phase.id),
+      color: getPhaseColor(phase.id),
+      agentCount: getAgentsForPhase(phase.id).length,
+    })),
+    [getPhaseIcon, getPhaseColor]
+  );
+
+  // ============================================================================
+  // العرض
+  // ============================================================================
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* رأس الصفحة */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           🧠 منصة العصف الذهني الذكي
@@ -482,10 +703,23 @@ export default function BrainStormContent() {
           <Badge variant="secondary">{agentStats.withRAG} RAG</Badge>
           <Badge variant="secondary">تعقيد {(agentStats.averageComplexity * 100).toFixed(0)}%</Badge>
         </div>
-        {error && <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg"><p className="text-red-600">{error}</p></div>}
-        {currentSession && <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg"><p className="text-blue-600">الجلسة: {currentSession.brief}</p></div>}
+        
+        {/* رسالة الخطأ */}
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+        
+        {/* معلومات الجلسة الحالية */}
+        {currentSession && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-600">الجلسة: {currentSession.brief}</p>
+          </div>
+        )}
       </div>
 
+      {/* المحتوى الرئيسي */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <Card>
