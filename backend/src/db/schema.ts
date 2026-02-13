@@ -23,8 +23,14 @@ export const users = pgTable('users', {
   // MFA fields
   mfaEnabled: boolean('mfa_enabled').default(false).notNull(),
   mfaSecret: text('mfa_secret'),
+  // Zero-Knowledge fields
+  authVerifierHash: text('auth_verifier_hash'), // Hash of auth verifier for ZK authentication
+  kdfSalt: text('kdf_salt'), // Salt for key derivation
+  publicKey: text('public_key'), // Public key for sharing (optional)
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  lastLogin: timestamp('last_login'),
+  accountStatus: varchar('account_status', { length: 50 }).default('active').notNull(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -164,3 +170,6 @@ export const shots = pgTable(
 
 export type Shot = typeof shots.$inferSelect;
 export type NewShot = typeof shots.$inferInsert;
+
+// Re-export Zero-Knowledge schema
+export * from './zkSchema';
