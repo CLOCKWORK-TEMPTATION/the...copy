@@ -238,6 +238,13 @@ app.post('/api/auth/logout', csrfProtection, authController.logout.bind(authCont
 app.post('/api/auth/refresh', csrfProtection, authController.refresh.bind(authController), setCsrfToken);
 app.get('/api/auth/me', authMiddleware, authController.getCurrentUser.bind(authController));
 
+// Zero-Knowledge Auth endpoints (public)
+import { zkSignup, zkLoginInit, zkLoginVerify, manageRecoveryArtifact } from '@/controllers/zkAuth.controller';
+app.post('/api/auth/zk-signup', zkSignup, setCsrfToken);
+app.post('/api/auth/zk-login-init', zkLoginInit);
+app.post('/api/auth/zk-login-verify', zkLoginVerify, setCsrfToken);
+app.post('/api/auth/recovery', authMiddleware, csrfProtection, manageRecoveryArtifact);
+
 // Seven Stations Pipeline endpoints (protected)
 app.post('/api/analysis/seven-stations', authMiddleware, csrfProtection, analysisController.runSevenStationsPipeline.bind(analysisController));
 app.get('/api/analysis/stations-info', authMiddleware, analysisController.getStationDetails.bind(analysisController));
@@ -255,6 +262,14 @@ app.post('/api/projects', authMiddleware, csrfProtection, projectsController.cre
 app.put('/api/projects/:id', authMiddleware, csrfProtection, projectsController.updateProject.bind(projectsController));
 app.delete('/api/projects/:id', authMiddleware, csrfProtection, projectsController.deleteProject.bind(projectsController));
 app.post('/api/projects/:id/analyze', authMiddleware, csrfProtection, projectsController.analyzeScript.bind(projectsController));
+
+// Zero-Knowledge Encrypted Documents endpoints (protected)
+import { createEncryptedDocument, getEncryptedDocument, updateEncryptedDocument, deleteEncryptedDocument, listEncryptedDocuments } from '@/controllers/encryptedDocs.controller';
+app.post('/api/docs', authMiddleware, csrfProtection, createEncryptedDocument);
+app.get('/api/docs/:id', authMiddleware, getEncryptedDocument);
+app.put('/api/docs/:id', authMiddleware, csrfProtection, updateEncryptedDocument);
+app.delete('/api/docs/:id', authMiddleware, csrfProtection, deleteEncryptedDocument);
+app.get('/api/docs', authMiddleware, listEncryptedDocuments);
 
 // Directors Studio - Scenes endpoints (protected)
 app.get('/api/projects/:projectId/scenes', authMiddleware, scenesController.getScenes.bind(scenesController));
