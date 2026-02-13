@@ -44,3 +44,16 @@ export {
 } from './byoapi';
 
 export type { APIProviderConfig } from './byoapi';
+
+// Document Service
+export {
+  saveEncryptedDocument,
+  loadEncryptedDocument,
+  listEncryptedDocuments,
+  deleteEncryptedDocument,
+} from './documentService';
+
+export type {
+  SaveDocumentParams,
+  LoadDocumentParams,
+} from './documentService';
